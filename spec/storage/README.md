@@ -7,7 +7,7 @@ Index OpenVaultDB storage specifications.
 ## Key Concepts
 
 - InGitDB/Git-backed storage is the first MVP backend target.
-- Providers store encrypted vault bytes and are not trusted with plaintext.
+- Providers store vault data and metadata; the MVP does not encrypt vault data.
 - Backend choice affects security, auditability, migration, and recovery.
 
 ## Contents
@@ -28,11 +28,11 @@ Index OpenVaultDB storage specifications.
 
 ## MVP Behavior
 
-The MVP uses an InGitDB/GitHub-backed vault first, with application-level encryption and Git history as a recovery/audit aid. SQLite is the next local backend target and Firestore follows after provider-trust review.
+The MVP uses an InGitDB/GitHub-backed vault first, with Git history as a recovery/audit aid. SQLite is the next backend target and Firestore follows after provider-trust review.
 
 ## Risks
 
-- Backups can copy keys and encrypted data together.
+- Backups and Git history can retain sensitive data indefinitely.
 - Filesystem metadata can leak vault existence or activity.
 - Git history can retain sensitive material indefinitely.
 

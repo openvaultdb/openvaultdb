@@ -9,6 +9,7 @@ format: https://specscore.md/decisions-index-specification
 | # | Decision | Status | Date | Tags | Affected |
 |---|----------|--------|------|------|----------|
 | [0001](0001-canonical-specification-repository.md) | Canonical Specification Repository | Draft | 2026-07-08 | repository,specification | — |
+| [0002](0002-github-ingitdb-first-generator-layout.md) | GitHub InGitDB First Generator Layout | Approved | 2026-07-08 | storage,github,ingitdb,generator | — |
 
 ## Open Questions
 

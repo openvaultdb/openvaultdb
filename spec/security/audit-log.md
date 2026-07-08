@@ -22,7 +22,7 @@ Define the append-only record of security-relevant events.
 
 ## MVP Behavior
 
-The MVP stores an encrypted local audit log with hash chaining or equivalent tamper-evidence, accessible through CLI inspection and export commands.
+The MVP stores an audit log with hash chaining or equivalent tamper-evidence, accessible through CLI inspection and export commands. Audit-log confidentiality depends on repository and hoster access controls because MVP data is not encrypted by OpenVaultDB.
 
 ## Risks
 

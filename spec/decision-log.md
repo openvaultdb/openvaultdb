@@ -21,7 +21,7 @@ Record provisional project decisions before they are promoted to formal architec
 | Decision | Status | Rationale | Review Trigger |
 |---|---|---|---|
 | Use the main `openvaultdb` repository as the canonical public specification home. | Accepted | Centralizes stars, contributors, architecture, and future implementation. | Repository strategy changes. |
-| Start with an InGitDB/GitHub-backed encrypted vault MVP. | Proposed | Git history gives a simple first recovery and audit substrate for the first implementation. | Fable rejects Git-backed storage risk. |
+| Start with an InGitDB/GitHub-backed MVP without OpenVaultDB-managed encryption. | Proposed | Git history gives a simple first recovery and audit substrate for the first implementation, and hoster recovery remains provider-specific. | Fable rejects Git-backed storage risk. |
 | Require explicit application registration. | Proposed | Prevents ambient access by installed software. | Application onboarding proves unusable. |
 | Use capability-based permissions. | Proposed | Enables narrow, auditable grants and revocation semantics. | Capability model cannot express common app workflows. |
 | Treat websites, apps, CLIs, and AI agents as API callers governed by the same capability model. | Proposed | The API should not care about caller implementation, but audit may still need agent delegation metadata. | Fable requires stricter AI-specific authorization. |

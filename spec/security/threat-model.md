@@ -8,7 +8,7 @@ Define expected attackers, abuse cases, and security boundaries.
 
 - Malicious app: software that requests or abuses vault access.
 - Confused agent: AI agent that misinterprets user intent or tool output.
-- Compromised provider: backend that leaks, alters, replays, or deletes encrypted data.
+- Compromised provider: backend that leaks, alters, replays, or deletes vault data.
 - Leaked credential: token, capability, or key material disclosed to an attacker.
 - Interrupted operation: crash, power loss, or process kill during a sensitive write.
 
@@ -23,20 +23,20 @@ Define expected attackers, abuse cases, and security boundaries.
 
 ## MVP Behavior
 
-The MVP focuses on narrow grants, encrypted storage, append-only audit events, explicit migration planning, and GitHub/InGitDB provider risks.
+The MVP focuses on narrow grants, append-only audit events, explicit migration planning, and GitHub/InGitDB provider risks. It does not encrypt vault data.
 
 ## Risks
 
 - Full local device compromise can defeat local-only controls.
-- Metadata such as collection names and access timing may leak unless encrypted or minimized.
-- Git history can preserve deleted secrets if a Git backend stores plaintext or stable ciphertext poorly.
+- Record data, collection names, and access timing may be visible to GitHub, hosters, repository admins, and integrations.
+- Git history can preserve deleted secrets because MVP data is not encrypted by OpenVaultDB.
 - Permission broadening during migration can become a privilege escalation path.
 
 ## Open Questions
 
 - What tamper-evidence level is required for the local audit log?
-- Should MVP detect rollback attacks on the encrypted vault file?
-- Which metadata fields must be encrypted in the first implementation?
+- Should MVP detect rollback or history-rewrite attacks on the Git-backed vault?
+- Which metadata fields must be minimized even without encryption?
 
 ## Acceptance Criteria
 

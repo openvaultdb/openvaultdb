@@ -2,13 +2,13 @@
 
 ## Current Proposal
 
-Schemas are explicit and versioned. Migrations are reviewable plans covering schema, data, permissions, indexes, storage format, encryption, and key rotation. MVP migrations block application writes, fail fast on failed records, are checkpointed or idempotent, show progress, and use backup settings plus Git history restore where applicable.
+Schemas are explicit and versioned. Migrations are reviewable plans covering schema, data, permissions, indexes, and storage format. MVP migrations block application writes, fail fast on failed records, are checkpointed or idempotent, show progress, and use backup settings plus Git history restore where applicable. Encryption and key rotation are post-MVP migration classes.
 
 ## Key Risks
 
 - Interrupted migrations can corrupt data or permission state.
 - Destructive changes and field renames can cause silent data loss.
-- Encryption and key rotation may be non-reversible.
+- Future encryption and key rotation may be non-reversible.
 - AI-triggered migrations may understate risk.
 - Backend migrations can introduce provider-trust issues.
 

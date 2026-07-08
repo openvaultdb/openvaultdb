@@ -29,7 +29,7 @@ Index OpenVaultDB security specifications.
 
 ## MVP Behavior
 
-The MVP uses local key ownership, explicit app registration, scoped capabilities, no implicit AI writes, and append-only local audit logging.
+The MVP uses explicit app registration, scoped capabilities, no special AI privileges, provider/hoster-managed access recovery, and append-only audit logging. It does not encrypt vault data.
 
 ## Risks
 

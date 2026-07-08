@@ -21,7 +21,7 @@ Define what users see before, during, and after migrations.
 
 ## MVP Behavior
 
-The MVP exposes migration review and progress through CLI commands. Interactive approval is required for destructive, non-reversible, permission-broadening, encryption, key, storage backend, and AI-triggered migrations.
+The MVP exposes migration review and progress through CLI commands. Interactive approval is required for destructive, non-reversible, permission-broadening, storage backend, and AI-triggered migrations. Encryption and key migrations are post-MVP concerns.
 
 ## Risks
 

@@ -81,7 +81,6 @@ than backend-specific DDL or JSON schema.
 
 ## Open Questions
 
-- What exact GitHub/InGitDB repository layout should the first backend generator emit?
 - Should ModelSpec validation errors be emitted on stdout, stderr, or both for CLI
   workflows?
 

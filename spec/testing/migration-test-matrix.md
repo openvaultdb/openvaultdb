@@ -13,7 +13,7 @@ Define review-ready migration test scenarios.
 
 ## Normative Requirements
 
-- Migration tests MUST cover destructive schema changes, field renames, encryption changes, permission broadening, key rotation, storage backend migration, Git-backed history, third-party extensions, and AI-triggered migrations.
+- Migration tests MUST cover destructive schema changes, field renames, permission broadening, storage backend migration, Git-backed history, third-party extensions, AI-triggered migrations, and future encryption/key-rotation migrations.
 - Tests MUST verify progress and audit events where applicable.
 
 ## MVP Behavior
@@ -24,7 +24,7 @@ Define review-ready migration test scenarios.
 | MIG-002 | Rename field. | Plan preserves source/target mapping and validates data. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-003 | Delete field. | Explicit destructive approval required. | [../schema/user-visible-migration-flow.md](../schema/user-visible-migration-flow.md) |
 | MIG-004 | Broaden field permission label. | Fresh approval required. | [../security/permissions-model.md](../security/permissions-model.md) |
-| MIG-005 | Rotate encryption key. | Backup, rollback limits, and audit events required. | [../schema/migrations.md](../schema/migrations.md) |
+| MIG-005 | Future encryption key rotation is proposed. | Rejected as post-MVP unless explicit encryption mode exists. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-006 | Kill process mid-batch. | Resume from checkpoint or require rollback. | [../schema/data-migrations.md](../schema/data-migrations.md) |
 | MIG-007 | AI agent proposes migration. | Plan identifies agent and requires user approval. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
 | MIG-008 | Git-backed InGitDB vault migration runs with branch protection enabled. | Plan validates repository protection and restore path. | [../storage/git-backend.md](../storage/git-backend.md) |
@@ -34,7 +34,7 @@ Define review-ready migration test scenarios.
 ## Risks
 
 - Rollback expectations may differ by migration class.
-- Progress metrics may be unavailable for streaming or encrypted backends.
+- Progress metrics may be unavailable for streaming or future encrypted backends.
 
 ## Open Questions
 

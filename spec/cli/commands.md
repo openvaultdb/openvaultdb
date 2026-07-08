@@ -39,7 +39,7 @@ Propose the MVP command surface without committing to exact flags.
 ## Open Questions
 
 - Should `migration run` refuse unapproved plans even for local user sessions?
-- Which commands require passphrase or OS authentication re-entry?
+- Which commands require hoster/provider authentication re-entry?
 - Should `audit export` support redaction profiles?
 
 ## Acceptance Criteria

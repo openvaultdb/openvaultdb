@@ -8,13 +8,13 @@ Define how OpenVaultDB talks to durable storage without making storage providers
 
 - Backend adapter: implementation-specific persistence layer.
 - ModelSpec projection: mapping from a logical application model to backend-specific structures.
-- Vault storage format: encrypted records, schemas, grants, audit entries, and checkpoints.
+- Vault storage format: records, schemas, grants, audit entries, and checkpoints.
 - Integrity metadata: information used to detect corruption, replay, or tampering.
 - Backend migration: movement from one storage backend to another.
 
 ## Normative Requirements
 
-- Backends MUST NOT receive plaintext record data unless explicitly marked trusted and out of MVP.
+- MVP backends MAY receive plaintext record data; deployments MUST document that trust boundary.
 - Backends MUST consume vault-approved projections from ModelSpec rather than application-authored backend schemas as the primary contract.
 - Backends MUST support atomic or recoverable writes for vault metadata, audit events, and migration checkpoints.
 - Backend migrations MUST use the migration workflow.
@@ -23,7 +23,7 @@ Define how OpenVaultDB talks to durable storage without making storage providers
 
 ## MVP Behavior
 
-The MVP uses one local backend with encrypted content, durable metadata, recoverable writes, and explicit backup behavior.
+The MVP uses one GitHub/InGitDB backend with durable metadata, recoverable writes, and explicit backup behavior.
 
 ## Risks
 

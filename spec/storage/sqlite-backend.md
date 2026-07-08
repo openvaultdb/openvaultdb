@@ -6,14 +6,14 @@ Define expectations for the second OpenVaultDB storage backend after InGitDB/Git
 
 ## Key Concepts
 
-- SQLite store: local durable database file for encrypted vault content and metadata.
+- SQLite store: local durable database file for vault content and metadata.
 - Transaction: atomic unit for metadata, audit, and checkpoint updates.
 - WAL mode: write-ahead logging behavior that may affect durability and leakage.
 - Vacuum: maintenance operation that may affect deleted content retention.
 
 ## Normative Requirements
 
-- SQLite storage MUST encrypt sensitive vault content before persistence or use a reviewed encrypted SQLite layer.
+- SQLite storage MAY add encryption after MVP review; it is not the MVP storage mode.
 - Transaction boundaries MUST protect grant updates, audit writes, and migration checkpoints.
 - Temporary files, journals, and WAL files MUST be considered part of the security boundary.
 - SQLite schema changes for vault internals MUST be treated as storage format migrations.
@@ -21,23 +21,23 @@ Define expectations for the second OpenVaultDB storage backend after InGitDB/Git
 
 ## MVP Behavior
 
-SQLite is the second backend target after the InGitDB/GitHub MVP. It may become the local metadata and encrypted payload store if encryption, journaling, and checkpoint behavior are reviewed.
+SQLite is the second backend target after the InGitDB/GitHub MVP. It may become the local metadata and payload store if journaling and checkpoint behavior are reviewed.
 
 ## Risks
 
-- Journals or temporary files may retain sensitive plaintext if encryption is layered incorrectly.
+- Journals or temporary files may retain sensitive plaintext.
 - SQLite locking can complicate concurrent app access and migrations.
 - Corruption recovery can conflict with audit-log append-only semantics.
 
 ## Open Questions
 
-- Should MVP use SQLCipher, application-layer encryption, or both?
+- Should post-MVP SQLite use SQLCipher, application-layer encryption, or neither?
 - What SQLite pragmas are required for durability and leakage control?
 - Is concurrent access allowed or mediated by a single vault process?
 
 ## Acceptance Criteria
 
-- Sensitive data is not written to plaintext SQLite pages, WAL, journals, or temp files.
+- SQLite plaintext retention in pages, WAL, journals, and temp files is documented for non-encrypted deployments.
 - Migration checkpoints and audit events commit atomically with data changes where required.
 - Restore validation detects corrupt or mismatched vault files.
 

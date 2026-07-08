@@ -19,7 +19,7 @@ Define requirements for transforming stored records between schema versions.
 - Each transformed record MUST be validated against the target schema before commit.
 - Data migrations MUST preserve record identity unless the plan states otherwise.
 - Failed records MUST be reported with safe diagnostics and MUST NOT be silently dropped.
-- Migrations touching encrypted fields MUST state whether plaintext is exposed in memory and how failures are handled.
+- Future migrations touching encrypted fields MUST state whether plaintext is exposed in memory and how failures are handled.
 - AI-generated transforms MUST be reviewable and MUST NOT execute without approval.
 
 ## MVP Behavior

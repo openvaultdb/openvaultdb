@@ -41,7 +41,7 @@ The GitHub storage provider uses a user-owned GitHub repository as durable stora
 
 ## Data Model (Draft)
 
-Proposed repository layout:
+The first GitHub/InGitDB generator emits this repository layout:
 
 ```
 vault/
@@ -56,14 +56,15 @@ vault/
 ├── audit/
 │   └── {year}/{month}/{day}.ndjson  # Append-only audit events
 ├── grants/
-│   └── current.json    # Active grants (encrypted)
+│   └── current.json    # Active grants
 └── migrations/
     ├── checkpoints/
     │   └── {migration_id}.json
     └── history.json
 ```
 
-> **Open question**: Should records be stored as individual files or batched into larger files? Individual files are simpler but hit rate limits faster. Batched files reduce API calls but complicate partial updates.
+Records are stored as one JSON file per record initially. Batching and Git tree API
+optimizations are future work after rate-limit testing.
 
 > **Alternative**: Use Git tree API for bulk writes to reduce API call count. More complex implementation; better throughput.
 
@@ -76,11 +77,11 @@ vault/
 | OAuth token is scoped to target repository | Compromised token exposes that repository only |
 | GitHub App credentials are securely stored | Control plane stores credentials; compromise exposes all GitHub-backed vaults |
 
-> **Critical assumption**: Users trusting GitHub as a storage backend accept that GitHub (or anyone who compromises their GitHub account) can read all vault data. For sensitive data, application-level encryption should be applied before writing to GitHub.
+> **Critical assumption**: Users trusting GitHub as the MVP storage backend accept that GitHub, repository administrators, installed GitHub Apps, and anyone who compromises repository access can read vault data. The MVP does not encrypt vault data.
 
 ## Encryption
 
-Options (draft):
+Options for post-MVP review:
 
 | Approach | Pros | Cons |
 |---|---|---|
@@ -88,7 +89,7 @@ Options (draft):
 | Client-side encryption (vault encrypts before write) | Data opaque to GitHub | Cannot use GitHub search/browse; key management required |
 | Hybrid: encrypted records, plaintext schema | Balances usability and privacy | Schema reveals data model |
 
-> **Recommendation for review**: Should the GitHub provider require client-side encryption by default? Or should it be opt-in?
+> **MVP direction**: Use no OpenVaultDB-managed encryption. Future encryption modes require separate trust-model review.
 
 ## Migration Considerations
 
@@ -125,7 +126,7 @@ Migrations must account for:
 
 ## Open Questions
 
-1. Should the GitHub provider require client-side encryption?
+1. When should the GitHub provider add an encryption mode after MVP?
 2. What is the maximum practical vault size for GitHub storage?
 3. Should the provider use individual file API calls or Git tree API for bulk operations?
 4. How should the provider handle GitHub API rate limit exhaustion?
@@ -139,7 +140,7 @@ Migrations must account for:
 - Users may accidentally make their vault repository public.
 - GitHub Actions or installed GitHub Apps may have unintended access to vault data.
 - GitHub history rewriting could compromise audit log integrity.
-- Git history supports recovery from accidental changes but does not remove confidentiality risk from committed plaintext or weakly encrypted data.
+- Git history supports recovery from accidental changes but does not remove confidentiality risk.
 
 ## Acceptance Criteria
 

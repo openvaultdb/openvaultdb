@@ -8,7 +8,7 @@ Provide shared terms for architecture, security, schema, storage, and review dis
 
 | Term | Definition |
 |---|---|
-| Vault | A user-owned encrypted data store plus schemas, permissions, audit log, and metadata. |
+| Vault | A user-owned data store plus schemas, permissions, audit log, and metadata. |
 | Principal | An actor such as a user, application, AI agent, extension, CLI session, or storage provider. |
 | Application | Software requesting access to vault data or schema operations. |
 | ModelSpec | Independent open specification language for application data models consumed by OpenVaultDB for logical schemas. |
@@ -21,7 +21,7 @@ Provide shared terms for architecture, security, schema, storage, and review dis
 | Projection | Mapping from a logical ModelSpec model to a backend, API, query, or language representation. |
 | Migration | A planned transition of schema, data, permissions, indexes, storage format, or encryption state. |
 | Checkpoint | Durable migration progress metadata that allows resume or rollback decisions. |
-| Provider | A storage backend or synchronization service that may store encrypted vault bytes. |
+| Provider | A storage backend or synchronization service that stores vault data and metadata. |
 | Audit log | Append-only record of security-relevant events and user-visible decisions. |
 
 ## Normative Requirements
@@ -32,7 +32,7 @@ Provide shared terms for architecture, security, schema, storage, and review dis
 
 ## MVP Behavior
 
-The MVP uses a single local vault, local principals, local encrypted storage, and CLI-mediated permission grants.
+The MVP uses a GitHub/InGitDB-backed vault, registered principals, and CLI-mediated permission grants.
 
 ## Risks
 

@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Index conservative encrypted GitHub/InGitDB-first MVP specifications.
+Index conservative GitHub/InGitDB-first MVP specifications.
 
 ## Key Concepts
 
-- Encrypted InGitDB/GitHub-backed vault first.
+- InGitDB/GitHub-backed vault first.
 - Explicit application registration.
 - Capability-based permissions.
 - Append-only audit log.
@@ -27,7 +27,7 @@ Index conservative encrypted GitHub/InGitDB-first MVP specifications.
 
 ## MVP Behavior
 
-The MVP is an encrypted GitHub/InGitDB-backed vault controlled through CLI workflows and explicit grants.
+The MVP is a GitHub/InGitDB-backed vault controlled through CLI workflows and explicit grants. It does not encrypt vault data.
 
 ## Risks
 

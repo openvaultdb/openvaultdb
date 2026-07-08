@@ -14,9 +14,9 @@ Define assumptions for storage providers and synchronization services.
 ## Normative Requirements
 
 - Providers MUST be assumed capable of compromise unless explicitly trusted by a non-MVP deployment.
-- Provider compromise MUST NOT reveal plaintext vault data in the MVP model.
+- Provider compromise exposes vault data in the MVP model because OpenVaultDB does not encrypt vault data.
 - Provider replay or rollback SHOULD be detectable or user-visible.
-- Provider-specific credentials MUST be revocable without rotating vault data keys where possible.
+- Provider-specific credentials MUST be revocable.
 - Cloud sync MUST have a reviewed conflict, replay, deletion, and audit model before implementation.
 
 ## MVP Behavior
@@ -25,7 +25,7 @@ The MVP does not use remote providers. Provider trust is documented for future r
 
 ## Risks
 
-- Users may confuse encrypted storage with full integrity protection.
+- Users may confuse private repository access controls with confidentiality from the provider.
 - Provider deletion can cause data loss even without confidentiality loss.
 - Sync conflict resolution can become an implicit migration.
 

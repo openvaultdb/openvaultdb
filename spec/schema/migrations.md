@@ -9,7 +9,7 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 - Migration plan: reviewable proposal before execution.
 - Current ModelSpec: schema version currently governing stored data.
 - Target ModelSpec: schema version requested by an application, user, or migration.
-- Migration classes: schema, data, permission, index, storage format, encryption, and key rotation.
+- Migration classes: schema, data, permission, index, storage format, and future encryption/key-rotation changes.
 - Checkpoint: durable execution state.
 - Rollback: planned return path or compensating action.
 - Resume: continuation after interruption without duplicating unsafe effects.
@@ -18,10 +18,10 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 
 - Every migration MUST have a plan before execution.
 - Schema migration planning MUST compare the current ModelSpec and target ModelSpec before producing backend-specific migration steps.
-- Migration plans MUST distinguish ModelSpec semantic changes from OpenVaultDB-owned permission, audit, encryption, and backend changes.
+- Migration plans MUST distinguish ModelSpec semantic changes from OpenVaultDB-owned permission, audit, and backend changes.
 - A migration plan MUST identify requester, app or AI agent, affected collections, estimated affected records, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and user approvals.
 - Migrations MUST be checkpointed or idempotent.
-- Destructive changes, permission broadening, encryption changes, key rotation, and storage backend migration MUST follow the configured approval policy.
+- Destructive changes, permission broadening, and storage backend migration MUST follow the configured approval policy. Future encryption and key-rotation migrations MUST also use explicit migration plans.
 - Execution MUST emit audit events for proposal, approval, start, checkpoint, warning, error, completion, rollback, and resume.
 - Interrupted migrations MUST resume safely or stop in a clearly recoverable state.
 - Permission and index migrations MUST be planned as first-class migration types.
