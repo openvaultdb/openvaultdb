@@ -72,6 +72,18 @@ The MVP may support one backend first. The preferred first backend generator is 
 GitHub repository using InGitDB layout. The schema contract remains ModelSpec rather
 than backend-specific DDL or JSON schema.
 
+## CLI Validation Diagnostics
+
+OpenVaultDB CLI commands that validate ModelSpec MUST emit human-readable validation
+errors on `stderr`.
+
+When a command supports structured output, such as `--format json`, the structured
+diagnostic payload MUST be written to `stdout`. Human-readable progress or error
+prose MUST NOT be mixed into structured `stdout`.
+
+Validation failures MUST exit non-zero. Non-error informational output MAY be written
+to `stdout` for human-oriented commands.
+
 ## Risks
 
 - Treating projection hints as authoritative would move storage decisions back into applications.
@@ -81,8 +93,7 @@ than backend-specific DDL or JSON schema.
 
 ## Open Questions
 
-- Should ModelSpec validation errors be emitted on stdout, stderr, or both for CLI
-  workflows?
+None at this time.
 
 ## Acceptance Criteria
 
