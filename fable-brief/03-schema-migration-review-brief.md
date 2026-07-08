@@ -14,7 +14,7 @@ Schemas are explicit and versioned. Migrations are reviewable plans covering sch
 
 ## Unresolved Questions
 
-- Should all writes be blocked during migration?
+- Which confirmation pattern should destructive migrations use: simple warning, typed confirmation, risk tiers, or another approach?
 - Which backup settings are mandatory before destructive migrations?
 - What transform sandboxing is required?
 - When should quarantine be added after the fail-fast MVP?

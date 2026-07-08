@@ -23,6 +23,8 @@ Define what users see before, during, and after migrations.
 
 The MVP exposes migration review and progress through CLI commands. Interactive approval is required for destructive, non-reversible, permission-broadening, storage backend, and AI-triggered migrations. Encryption and key migrations are post-MVP concerns.
 
+The exact destructive-migration confirmation pattern is deferred to Fable review. Candidate patterns include simple warning, typed confirmation, and risk-tiered confirmation.
+
 ## Risks
 
 - Users may approve without understanding risk.
@@ -32,7 +34,7 @@ The MVP exposes migration review and progress through CLI commands. Interactive 
 ## Open Questions
 
 - What is the exact wording for non-reversible migrations?
-- Should high-risk approvals require typing the collection name?
+- Should destructive migration approvals use simple warning, typed confirmation, risk tiers, or another Fable-approved pattern?
 - How should the CLI present unknown record counts?
 
 ## Acceptance Criteria
