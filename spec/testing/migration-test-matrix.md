@@ -26,7 +26,7 @@ Define review-ready migration test scenarios.
 | MIG-004 | Broaden field permission label. | Fresh approval required. | [../security/permissions-model.md](../security/permissions-model.md) |
 | MIG-005 | Future encryption key rotation is proposed. | Rejected as post-MVP unless explicit encryption mode exists. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-006 | Kill process mid-batch. | Resume from checkpoint or require rollback. | [../schema/data-migrations.md](../schema/data-migrations.md) |
-| MIG-007 | AI agent proposes migration. | Plan identifies agent and requires user approval. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
+| MIG-007 | AI-agent-initiated migration uses an authenticated app principal. | Plan identifies the authenticated principal and required approval, without separate AI identity. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
 | MIG-008 | Git-backed InGitDB vault migration runs with branch protection enabled. | Plan validates repository protection and restore path. | [../storage/git-backend.md](../storage/git-backend.md) |
 | MIG-009 | Third-party extension transform. | Rejected or sandbox-required. | [../mvp/non-goals.md](../mvp/non-goals.md) |
 | MIG-010 | Backend migration local to future provider. | Plan requires provider trust review. | [../storage/provider-trust.md](../storage/provider-trust.md) |

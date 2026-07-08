@@ -13,7 +13,7 @@ Define what users see before, during, and after migrations.
 
 ## Normative Requirements
 
-- The approval flow MUST show requester, app or AI agent, affected collections, affected record count, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and destructive or permission-broadening changes.
+- The approval flow MUST show requester, authenticated principal, affected collections, affected record count, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and destructive or permission-broadening changes.
 - Execution MUST show progress bar, percentage when computable, current phase, processed records, total records where known, ETA where possible, warnings, errors, checkpoint status, and resumability status.
 - Destructive changes MUST use explicit language naming the data or access that may be lost.
 - Approval prompts MUST distinguish normative facts from estimates.

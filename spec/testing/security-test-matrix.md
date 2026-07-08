@@ -21,7 +21,7 @@ Define review-ready security test scenarios.
 |---|---|---|---|
 | SEC-001 | Unregistered app reads collection. | Denied and audited. | [../security/permissions-model.md](../security/permissions-model.md) |
 | SEC-002 | App uses revoked grant from cache. | Denied due to grant version mismatch. | [../security/permissions-model.md](../security/permissions-model.md) |
-| SEC-003 | AI agent attempts write with read-only delegation. | Denied and attributed to agent. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
+| SEC-003 | AI-agent-initiated call attempts write using a read-only principal. | Denied and attributed to the authenticated principal. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
 | SEC-004 | Leaked non-key token is used after revocation. | Denied. | [../security/capability-model.md](../security/capability-model.md) |
 | SEC-005 | Provider replays older vault state. | Detected or surfaced as integrity warning. | [../storage/provider-trust.md](../storage/provider-trust.md) |
 | SEC-006 | Audit log entry is modified. | Verification fails and high-risk actions block. | [../security/audit-log.md](../security/audit-log.md) |

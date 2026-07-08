@@ -18,7 +18,7 @@ Track unresolved questions that should be answered before implementation commitm
 
 ## MVP Behavior
 
-The MVP proceeds only after the trust model, permission model, AI caller identity policy, migration approval flow, and backup/rollback expectations are reviewed.
+The MVP proceeds only after the trust model, permission model, migration approval flow, and backup/rollback expectations are reviewed.
 
 ## Risks
 
@@ -29,7 +29,6 @@ The MVP proceeds only after the trust model, permission model, AI caller identit
 
 | Question | Type | Related Specs |
 |---|---|---|
-| Should AI-agent initiated calls require additional audit identity beyond normal application principal identity? | Review | [security/ai-agent-access.md](security/ai-agent-access.md) |
 | How should destructive migrations present risk to non-expert users? | Blocking | [schema/user-visible-migration-flow.md](schema/user-visible-migration-flow.md) |
 | What InGitDB/GitHub repository layout and branch protection rules are mandatory for MVP? | Blocking | [storage/git-backend.md](storage/git-backend.md) |
 | What is the minimum audit-log export format for external review? | Review | [security/audit-log.md](security/audit-log.md) |

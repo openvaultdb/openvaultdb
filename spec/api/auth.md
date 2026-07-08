@@ -62,13 +62,17 @@ Token lifetime: short-lived (15 minutes, proposed). Refresh via client credentia
 
 > **Open question**: Should applications use rotating client secrets (OAuth 2.0 PKCE) or symmetric keys? Symmetric keys are simpler; PKCE is more appropriate for public clients.
 
-### AI Agent Tokens
+### AI-Agent-Initiated Calls
 
-For AI agents acting on behalf of a user:
-1. User (or user's application) issues a scoped delegated token to the AI agent.
-2. Token includes: principal ID, granted capabilities, expiry, delegation depth limit.
-3. AI agent cannot re-delegate beyond the delegation depth limit.
-4. AI agent tokens are audited independently of the delegating user.
+For the MVP, AI-agent-initiated calls use the same token model as websites,
+applications, CLIs, and services:
+
+1. The caller authenticates as a registered principal.
+2. The access token includes principal ID, granted capabilities, and expiry.
+3. Audit records identify the authenticated principal.
+4. Separate AI-agent identity metadata is not required.
+
+Post-MVP profiles may add AI-specific provenance or delegated-agent tokens.
 
 > **Risk**: Confused deputy attack — AI agent is tricked by malicious input into using its token for unauthorized operations. Token scope should be as narrow as possible. See [../security/ai-agent-access.md](../security/ai-agent-access.md).
 

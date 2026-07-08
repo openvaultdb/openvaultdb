@@ -19,7 +19,7 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 - Every migration MUST have a plan before execution.
 - Schema migration planning MUST compare the current ModelSpec and target ModelSpec before producing backend-specific migration steps.
 - Migration plans MUST distinguish ModelSpec semantic changes from OpenVaultDB-owned permission, audit, and backend changes.
-- A migration plan MUST identify requester, app or AI agent, affected collections, estimated affected records, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and user approvals.
+- A migration plan MUST identify requester, authenticated principal, affected collections, estimated affected records, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and user approvals.
 - Migrations MUST be checkpointed or idempotent.
 - Destructive changes, permission broadening, and storage backend migration MUST follow the configured approval policy. Future encryption and key-rotation migrations MUST also use explicit migration plans.
 - Execution MUST emit audit events for proposal, approval, start, checkpoint, warning, error, completion, rollback, and resume.

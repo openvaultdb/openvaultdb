@@ -15,8 +15,9 @@ summary: An AI agent acts on behalf of a user within explicit limits.
 
 ## Description
 
-Delegated capabilities are never broader than the source authority, and
-audit records preserve the delegation chain (see
+Delegated capabilities are never broader than the source authority. MVP
+audit records identify the authenticated principal and do not require a
+separate AI-agent delegation chain (see
 [AI agent access](../../../../security/ai-agent-access.md)).
 
 ## Open Questions

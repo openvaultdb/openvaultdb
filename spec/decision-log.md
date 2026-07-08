@@ -24,7 +24,7 @@ Record provisional project decisions before they are promoted to formal architec
 | Start with an InGitDB/GitHub-backed MVP without OpenVaultDB-managed encryption. | Proposed | Git history gives a simple first recovery and audit substrate for the first implementation, and hoster recovery remains provider-specific. | Fable rejects Git-backed storage risk. |
 | Require explicit application registration. | Proposed | Prevents ambient access by installed software. | Application onboarding proves unusable. |
 | Use capability-based permissions. | Proposed | Enables narrow, auditable grants and revocation semantics. | Capability model cannot express common app workflows. |
-| Treat websites, apps, CLIs, and AI agents as API callers governed by the same capability model. | Proposed | The API should not care about caller implementation, but audit may still need agent delegation metadata. | Fable requires stricter AI-specific authorization. |
+| Treat websites, apps, CLIs, and AI agents as API callers governed by the same capability model. | Proposed | The API should not care about caller implementation, and MVP audit records only the authenticated principal. | Fable requires stricter AI-specific authorization. |
 | Make InGitDB/Git-backed storage the first backend. | Proposed | User-owned GitHub repos and history restore are central to the intended MVP. | GitHub provider risks exceed MVP tolerance. |
 | Make migrations reviewable, checkpointed, and auditable. | Proposed | Schema evolution is a core trust boundary. | Migration complexity blocks MVP. |
 

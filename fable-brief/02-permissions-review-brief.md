@@ -20,7 +20,7 @@ OpenVaultDB uses deny-by-default capability-based permissions. Websites, applica
 
 ## Expected Fable Review
 
-Review whether the model prevents confused-deputy behavior and stale authorization without making ordinary app or website access unusable, and whether AI-originated calls require stronger identity capture.
+Review whether the model prevents confused-deputy behavior and stale authorization without making ordinary app, website, CLI, service, or AI-agent-initiated access unusable.
 
 ## Related Specification Files
 

@@ -15,7 +15,6 @@ The proposed MVP uses InGitDB/GitHub-backed storage first, with explicit applica
 
 ## Unresolved Questions
 
-- Do AI-initiated calls require special identity capture beyond normal application principal identity?
 - What minimum migration UX makes destructive changes understandable?
 - What InGitDB repository protection rules are mandatory?
 - What hoster/provider recovery behavior must be documented for MVP?

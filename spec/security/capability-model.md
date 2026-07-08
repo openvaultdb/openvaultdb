@@ -39,7 +39,7 @@ The MVP supports capabilities for collection read/query, record write, record de
 ## Acceptance Criteria
 
 - Every API operation maps to one or more required capabilities.
-- Delegated AI-agent actions preserve original user and application context in the audit log.
+- AI-agent-initiated actions are audited as actions by the authenticated principal used for the call.
 - Capability denial reasons are inspectable for debugging and security review.
 
 ## Related Specifications
