@@ -31,7 +31,7 @@ Users create and manage a vault using the CLI. The first backend stores vault st
 ## Open Questions
 
 - Which local cache guarantees are required for GitHub-backed MVP operation?
-- Should GitHub repositories be private-only for all vaults?
+- What warnings should be shown when a user selects a public repository or disables branch protection?
 
 ## Acceptance Criteria
 

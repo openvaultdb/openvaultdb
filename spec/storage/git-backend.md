@@ -16,14 +16,15 @@ Define the Git-backed storage posture for the first OpenVaultDB MVP backend.
 
 - InGitDB/Git-backed storage SHOULD be the first MVP backend.
 - The MVP Git backend MAY store plaintext vault data and MUST document that repository access exposes vault contents.
-- A Git backend MUST address deleted-secret retention, history rewriting limits, remote exposure, merge conflicts, branch protection, and key rotation before production use.
+- A Git backend MUST address deleted-secret retention, history rewriting limits, remote exposure, merge conflicts, optional branch protection, and key rotation before production use.
 - Git-backed migration MUST include provider-trust and audit-log implications.
-- MVP Git-backed deployments SHOULD prohibit normal users from deleting the vault repository or rewriting/squashing commit history.
+- OpenVaultDB MUST NOT require a particular GitHub repository visibility or branch-protection policy for MVP.
+- Users or hosters decide whether to use private repositories, branch protection, force-push restrictions, or deletion restrictions.
 - Git history MAY be used for accidental recovery, but it MUST NOT be treated as a confidentiality control.
 
 ## MVP Behavior
 
-The MVP targets an InGitDB repository layout first. SQLite is the second backend target and Firestore is the third. GitHub-backed storage is expected to use a private, user-owned repository with branch protection. Data is not encrypted by OpenVaultDB in the MVP.
+The MVP targets an InGitDB repository layout first. SQLite is the second backend target and Firestore is the third. GitHub repository visibility and branch protection are user or hoster policy choices. Data is not encrypted by OpenVaultDB in the MVP.
 
 ## Risks
 
@@ -35,12 +36,11 @@ The MVP targets an InGitDB repository layout first. SQLite is the second backend
 
 ## Open Questions
 
-- What branch protection settings are mandatory for MVP?
 - Should future encrypted chunks be content-addressed, randomized, or avoided?
 
 ## Acceptance Criteria
 
-- The MVP Git backend documents its repository layout, branch protection requirements, plaintext-data risk, and recovery workflow.
+- The MVP Git backend documents its repository layout, optional branch-protection settings, plaintext-data risk, and recovery workflow.
 - Public push accidents are treated as a first-class threat.
 - Conflict resolution is specified before implementation.
 

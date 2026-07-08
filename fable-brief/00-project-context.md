@@ -16,7 +16,7 @@ The proposed MVP uses InGitDB/GitHub-backed storage first, with explicit applica
 ## Unresolved Questions
 
 - What minimum migration UX makes destructive changes understandable?
-- What InGitDB repository protection rules are mandatory?
+- What warnings should OpenVaultDB show for public repositories or unprotected branches?
 - What hoster/provider recovery behavior must be documented for MVP?
 
 ## Expected Fable Review

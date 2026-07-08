@@ -25,7 +25,7 @@ The MVP assumes GitHub/private-repository controls, explicit approvals, least-pr
 | Assumption | Risk if False | Mitigation |
 |---|---|---|
 | Users can evaluate concise permission prompts. | Users approve broad or destructive access. | Use narrow capabilities and risk labels. |
-| GitHub-backed InGitDB storage without OpenVaultDB encryption is sufficient for MVP learning. | MVP inherits GitHub API, token, visibility, hoster, and history-retention risks early. | Require private repositories, branch protection, clear trust disclaimers, and explicit provider trust review. |
+| GitHub-backed InGitDB storage without OpenVaultDB encryption is sufficient for MVP learning. | MVP inherits GitHub API, token, visibility, hoster, and history-retention risks early. | Document private repository and branch-protection options, but leave policy to users or hosters. |
 | AI agent calls can be governed by the same capability model as website and application calls. | Agent-originated changes may be hard to investigate if caller identity is collapsed. | MVP audits the authenticated principal only; optional AI provenance is post-MVP. |
 | Migrations can be made resumable and auditable. | Interrupted migrations corrupt vault state. | Require checkpoints and idempotence. |
 | Git history is useful for recovery. | Deleted secrets remain recoverable and commit metadata can leak activity. | Treat Git history as restore, not privacy. |

@@ -17,7 +17,7 @@ The MVP is an InGitDB/GitHub-backed vault with CLI-first workflows, explicit app
 - What minimal API should exist alongside the CLI?
 - What hoster/provider recovery behavior must be documented for a first release?
 - Which conformance tests block MVP release?
-- What InGitDB branch protection and repository visibility rules are mandatory?
+- What warnings should OpenVaultDB show for public repositories or unprotected branches?
 
 ## Expected Fable Review
 

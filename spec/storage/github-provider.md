@@ -34,10 +34,10 @@ The GitHub storage provider uses a user-owned GitHub repository as durable stora
 |---|---|---|
 | GitHub API rate limits (5000 req/hour authenticated) | Limits throughput | Batching; caching; exponential backoff |
 | No multi-file atomic writes | Partial write risk on crash | Write-ahead log + checkpoint |
-| Repository visibility | Private repo required for sensitive data | Enforce private repo in configuration |
+| Repository visibility | Public repos expose vault data; private repos reduce accidental exposure | Warn clearly; user or hoster decides policy |
 | GitHub service availability | Vault unavailable during GitHub outages | Caching layer; fallback behavior TBD |
 | File path length limits | Limits collection/record ID length | Enforce max ID length |
-| Git history as audit log | History rewrite could tamper with audit | Protect branch; enforce branch protection rules |
+| Git history as audit log | History rewrite could tamper with audit | Document optional branch protection and external audit limits |
 
 ## Data Model (Draft)
 
@@ -73,7 +73,7 @@ optimizations are future work after rate-limit testing.
 | Trust Assumption | Risk |
 |---|---|
 | GitHub does not read vault file contents | GitHub can read all files in the repository |
-| Git history is tamper-evident | GitHub can rewrite history (force push) unless branch protection is enabled |
+| Git history is tamper-evident | GitHub history can be rewritten if repository policy allows force push |
 | OAuth token is scoped to target repository | Compromised token exposes that repository only |
 | GitHub App credentials are securely stored | Control plane stores credentials; compromise exposes all GitHub-backed vaults |
 
@@ -118,8 +118,8 @@ Migrations must account for:
 ## Security Implications
 
 1. **Token scope**: OAuth tokens should be scoped to `repo` (specific repository) only. Avoid `read:org` or other broad scopes.
-2. **Branch protection**: Enable branch protection on the vault repository to prevent history rewriting.
-3. **Private repository**: Vault repository MUST be private.
+2. **Branch protection**: Branch protection can reduce accidental or unauthorized history rewriting, but OpenVaultDB does not require it for MVP.
+3. **Repository visibility**: Private repositories reduce exposure risk, but repository visibility is a user or hoster decision.
 4. **Token rotation**: Tokens should be rotated periodically; the control plane must support token rotation without vault downtime.
 5. **Audit log integrity**: GitHub history provides some tamper-evidence, but can be overridden by repository admins. Not suitable as the sole audit mechanism for high-security requirements.
 6. **History retention**: Git history MAY support accidental recovery, but it retains deleted content and MUST NOT be treated as a confidentiality control.
@@ -132,7 +132,6 @@ Migrations must account for:
 4. How should the provider handle GitHub API rate limit exhaustion?
 5. Is GitHub Actions a risk vector? (GitHub Actions may have access to repository contents)
 6. Should vault repositories be archived (read-only) during migrations?
-7. What branch protection settings are mandatory to prevent normal users from deleting repositories or rewriting/squashing history?
 
 ## Risks
 
@@ -146,7 +145,7 @@ Migrations must account for:
 
 - Provider correctly reads and writes records to GitHub repository.
 - Provider handles rate limit errors with exponential backoff and does not corrupt data.
-- Branch protection enforcement documented and tested.
+- Repository visibility and branch-protection risk warnings are documented and tested.
 - Restore from Git history is documented and tested for accidental write/delete recovery.
 - Migration completes correctly (including partial failure and resume).
 

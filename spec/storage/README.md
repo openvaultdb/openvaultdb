@@ -38,7 +38,7 @@ The MVP uses an InGitDB/GitHub-backed vault first, with Git history as a recover
 
 ## Open Questions
 
-- What InGitDB repository layout is mandatory for MVP?
+- Which InGitDB layout details remain implementation-specific after ADR-0002?
 - Which SQLite capabilities are required before it becomes the second backend?
 
 ## Acceptance Criteria
