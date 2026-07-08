@@ -6,7 +6,7 @@ Index OpenVaultDB schema and migration specifications.
 
 ## Key Concepts
 
-- Applications publish ModelSpec JSON as the logical application schema.
+- Applications publish ModelSpec as the logical application schema.
 - OpenVaultDB loads current and target ModelSpec for validation, migration planning, backend mapping, GraphQL generation, DTQL typing metadata, DALGO metadata, and backend generators.
 - Permissions, audit policy, encryption, and user approvals remain OpenVaultDB concerns, not ModelSpec concerns.
 - Migrations are plans, not hidden side effects.
@@ -26,7 +26,7 @@ Index OpenVaultDB schema and migration specifications.
 ## Normative Requirements
 
 - Schema changes MUST be explicit and reviewable.
-- OpenVaultDB MUST treat ModelSpec JSON as the first MVP ingestion format for application data models.
+- OpenVaultDB MUST treat ModelSpec as the logical schema contract and accept JSON AST serialization first for MVP ingestion.
 - OpenVaultDB MUST NOT make SpecScore a runtime dependency merely because SpecScore can validate ModelSpec.
 - Migrations MUST be permission-aware, checkpointed or idempotent, and auditable.
 - Destructive changes MUST require user approval.

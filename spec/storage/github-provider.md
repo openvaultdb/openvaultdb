@@ -6,6 +6,9 @@
 
 Specify the GitHub repository storage provider: capabilities, limitations, trust assumptions, data model, migration considerations, and security implications.
 
+This provider is the preferred first backend generator target for OpenVaultDB: a
+GitHub repository using InGitDB layout generated from ModelSpec.
+
 ## Overview
 
 The GitHub storage provider uses a user-owned GitHub repository as durable storage for vault records, schemas, audit events, and migration checkpoints. OpenVaultDB holds a GitHub OAuth token or GitHub App installation token scoped to the target repository.
@@ -15,7 +18,7 @@ The GitHub storage provider uses a user-owned GitHub repository as durable stora
 | Capability | Supported | Notes |
 |---|---|---|
 | Record read/write | Yes | Via GitHub Contents API or Git trees |
-| Schema storage | Yes | As JSON/YAML files in repo |
+| Schema storage | Yes | As ModelSpec AST serialization files in repo |
 | Audit log storage | Yes | Append-only files; tamper-evidence via Git history |
 | Transactions | No | Best-effort; see limitations |
 | Atomic writes | Partial | Single file: atomic via Git blob replace; multi-file: not atomic |
@@ -45,8 +48,8 @@ Proposed repository layout:
 vault/
 ├── meta.json           # Vault metadata: ID, schema version, created_at
 ├── schema/
-│   ├── current.json    # Current ModelSpec schema
-│   └── v{N}.json       # Historical schema versions
+│   ├── current.modelspec.json    # Current ModelSpec AST serialization
+│   └── v{N}.modelspec.json       # Historical ModelSpec versions
 ├── collections/
 │   ├── {collection}/
 │   │   ├── {record_id}.json   # Individual records

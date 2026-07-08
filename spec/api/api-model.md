@@ -18,7 +18,7 @@ Define the implementation-independent API behavior for applications and AI agent
 - Protected operations MUST fail closed when grant state is unavailable or stale.
 - API errors MUST distinguish authentication failure, authorization denial, validation failure, conflict, and migration-required states.
 - APIs MUST expose migration plans as data before execution.
-- Schema APIs MUST accept application-published ModelSpec JSON as the logical schema contract.
+- Schema APIs MUST accept application-published ModelSpec as the logical schema contract.
 - APIs MUST NOT require callers to publish backend-specific schemas as the primary contract.
 - APIs MUST NOT allow AI agents to self-approve high-risk operations.
 
