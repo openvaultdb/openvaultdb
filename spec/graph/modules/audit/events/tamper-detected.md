@@ -5,7 +5,7 @@ name: TamperDetected
 status: draft
 subject: audit.audit-entry
 participants:
-  - vaults.vault
+  - vault.vault
 sources:
   - automation
 summary: Tamper-evidence verification failed for the audit log.

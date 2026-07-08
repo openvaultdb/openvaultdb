@@ -3,7 +3,7 @@ kind: entity
 id: user
 name: User
 status: draft
-model: modelspec://identity.User
+model: modelspec:///identity.User
 summary: Human owner of a vault; the approving principal for grants and migrations.
 ---
 

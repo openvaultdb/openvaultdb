@@ -3,7 +3,7 @@ kind: entity
 id: capability
 name: Capability
 status: draft
-model: modelspec://access.Capability
+model: modelspec:///access.Capability
 summary: A scoped, machine-checkable authorization with operation, resource, and constraints.
 ---
 

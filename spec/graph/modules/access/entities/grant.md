@@ -3,7 +3,7 @@ kind: entity
 id: grant
 name: Grant
 status: draft
-model: modelspec://access.Grant
+model: modelspec:///access.Grant
 lifecycle:
   states: [requested, approved, revoked, expired]
 summary: A user-approved assignment of capabilities to a principal.

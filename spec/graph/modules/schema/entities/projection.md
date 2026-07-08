@@ -3,7 +3,7 @@ kind: entity
 id: projection
 name: Projection
 status: draft
-model: modelspec://schema.Projection
+model: modelspec:///schema.Projection
 summary: A vault-approved mapping from a logical ModelSpec model to a backend representation.
 ---
 

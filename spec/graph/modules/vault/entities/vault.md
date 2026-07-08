@@ -3,7 +3,7 @@ kind: entity
 id: vault
 name: Vault
 status: draft
-model: modelspec://vaults.Vault
+model: modelspec:///vault.Vault
 lifecycle:
   states: [active, migrating, locked]
 summary: The user-owned unit of data, schemas, permissions, audit log, and metadata.

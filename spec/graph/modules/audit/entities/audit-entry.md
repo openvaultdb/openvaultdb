@@ -3,7 +3,7 @@ kind: entity
 id: audit-entry
 name: AuditEntry
 status: draft
-model: modelspec://audit.AuditEntry
+model: modelspec:///audit.AuditEntry
 summary: A structured, append-only record of an action, decision, denial, or state transition.
 ---
 

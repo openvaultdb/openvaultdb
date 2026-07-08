@@ -3,7 +3,7 @@ kind: entity
 id: schema-version
 name: SchemaVersion
 status: draft
-model: modelspec://schema.SchemaVersion
+model: modelspec:///schema.SchemaVersion
 lifecycle:
   states: [loaded, current, superseded]
 summary: A loaded ModelSpec module version governing a namespace's stored records.

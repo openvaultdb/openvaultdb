@@ -8,7 +8,7 @@ entity "SchemaVersion" {
   }
 
   property "namespace" {
-    entity   = "vaults.Namespace"
+    entity   = "vault.Namespace"
     required = true
   }
 

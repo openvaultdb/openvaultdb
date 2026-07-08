@@ -4,10 +4,10 @@ id: plan-migrates-namespace
 name: planMigratesNamespace
 status: draft
 from: migration.migration-plan
-to: vaults.namespace
+to: vault.namespace
 cardinality: many-to-many
 metadata:
-  risk: modelspec://common.RiskLevel
+  risk: modelspec:///common.RiskLevel
 summary: A migration plan names the namespaces whose collections it affects.
 ---
 

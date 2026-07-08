@@ -3,7 +3,7 @@ kind: entity
 id: backend
 name: Backend
 status: draft
-model: modelspec://storage.Backend
+model: modelspec:///storage.Backend
 summary: An implementation-specific persistence layer consuming vault-approved projections.
 ---
 

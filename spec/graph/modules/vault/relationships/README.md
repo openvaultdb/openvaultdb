@@ -1,6 +1,6 @@
 # Relationships
 
-RelationshipSpec artifacts owned by the `vaults` module.
+RelationshipSpec artifacts owned by the `vault` module.
 
 ## Artifacts
 

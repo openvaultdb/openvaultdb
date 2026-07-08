@@ -5,7 +5,7 @@ name: RollbackDetected
 status: draft
 subject: storage.backend
 participants:
-  - vaults.vault
+  - vault.vault
 sources:
   - integration
 summary: Integrity metadata indicates the provider served an unexpected earlier state.

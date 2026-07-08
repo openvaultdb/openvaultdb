@@ -3,7 +3,7 @@ kind: entity
 id: checkpoint
 name: Checkpoint
 status: draft
-model: modelspec://migration.Checkpoint
+model: modelspec:///migration.Checkpoint
 summary: Durable migration progress metadata allowing resume or rollback decisions.
 ---
 

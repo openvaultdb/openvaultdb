@@ -1,6 +1,6 @@
 # Events
 
-EventSpec artifacts owned by the `vaults` module.
+EventSpec artifacts owned by the `vault` module.
 
 ## Artifacts
 

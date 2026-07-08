@@ -4,10 +4,10 @@ id: grant-scopes-namespace
 name: grantScopesNamespace
 status: draft
 from: access.grant
-to: vaults.namespace
+to: vault.namespace
 cardinality: many-to-many
 metadata:
-  risk: modelspec://common.RiskLevel
+  risk: modelspec:///common.RiskLevel
 summary: A grant scopes a principal's capabilities to namespaces within a vault.
 ---
 

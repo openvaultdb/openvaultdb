@@ -3,7 +3,7 @@ kind: module
 id: migration
 name: Migration
 status: draft
-dependsOn: [identity, vaults, schema, common]
+dependsOn: [identity, vault, schema, common]
 summary: Migration plans, approval, execution, and checkpoints.
 ---
 

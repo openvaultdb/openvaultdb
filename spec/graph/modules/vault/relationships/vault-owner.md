@@ -3,7 +3,7 @@ kind: relationship
 id: vault-owner
 name: vaultOwner
 status: draft
-from: vaults.vault
+from: vault.vault
 to: identity.user
 cardinality: many-to-one
 summary: Every vault has exactly one owning user principal.

@@ -1,6 +1,6 @@
-# Entities
+# Models
 
-EntitySpec artifacts owned by the `vaults` module.
+ModelSpec sources owned by the `vault` module.
 
 ## Artifacts
 

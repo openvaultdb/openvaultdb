@@ -3,7 +3,7 @@ kind: entity
 id: migration-plan
 name: MigrationPlan
 status: draft
-model: modelspec://migration.MigrationPlan
+model: modelspec:///migration.MigrationPlan
 lifecycle:
   states: [proposed, approved, executing, completed, rolled-back]
 summary: A reviewable proposal identifying requester, scope, risk, reversibility, and approvals.

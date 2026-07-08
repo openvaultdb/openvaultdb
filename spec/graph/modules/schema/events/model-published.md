@@ -5,7 +5,7 @@ name: ModelPublished
 status: draft
 subject: schema.schema-version
 participants:
-  - vaults.namespace
+  - vault.namespace
 summary: An application published a new ModelSpec module version.
 ---
 

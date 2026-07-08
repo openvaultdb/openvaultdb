@@ -1,13 +1,13 @@
 ---
 kind: module
-id: vaults
-name: Vaults
+id: vault
+name: Vault
 status: draft
 dependsOn: [identity]
 summary: Hosts, vaults, namespaces, collections, and records.
 ---
 
-# Module: Vaults
+# Module: Vault
 
 ## Description
 

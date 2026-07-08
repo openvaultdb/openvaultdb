@@ -5,7 +5,7 @@ name: MigrationStarted
 status: draft
 subject: migration.migration-plan
 participants:
-  - vaults.vault
+  - vault.vault
 summary: Execution of an approved plan began; MVP blocks application writes.
 ---
 

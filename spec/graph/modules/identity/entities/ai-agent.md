@@ -3,7 +3,7 @@ kind: entity
 id: ai-agent
 name: AiAgent
 status: draft
-model: modelspec://identity.AiAgent
+model: modelspec:///identity.AiAgent
 summary: Delegated principal acting on behalf of a user or application with explicit limits.
 ---
 

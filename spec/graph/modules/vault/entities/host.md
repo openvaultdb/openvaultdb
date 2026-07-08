@@ -3,7 +3,7 @@ kind: entity
 id: host
 name: Host
 status: draft
-model: modelspec://vaults.Host
+model: modelspec:///vault.Host
 summary: Where a vault physically lives - an OpenVaultDB server or a Git provider.
 ---
 

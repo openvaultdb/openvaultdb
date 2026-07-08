@@ -3,7 +3,7 @@ kind: module
 id: storage
 name: Storage
 status: draft
-dependsOn: [vaults, schema]
+dependsOn: [vault, schema]
 summary: Storage backends and provider integrity.
 ---
 

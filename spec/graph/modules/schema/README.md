@@ -3,7 +3,7 @@ kind: module
 id: schema
 name: Schema
 status: draft
-dependsOn: [identity, vaults]
+dependsOn: [identity, vault]
 summary: ModelSpec consumption, schema versions, and projections.
 ---
 

@@ -1,6 +1,6 @@
-# Commands
+# Entities
 
-CommandSpec artifacts owned by the `vaults` module.
+EntitySpec artifacts owned by the `vault` module.
 
 ## Artifacts
 

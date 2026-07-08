@@ -3,7 +3,7 @@ kind: entity
 id: namespace
 name: Namespace
 status: draft
-model: modelspec://vaults.Namespace
+model: modelspec:///vault.Namespace
 summary: An application's private, schema-owning area inside a vault.
 ---
 

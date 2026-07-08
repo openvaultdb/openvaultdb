@@ -3,7 +3,7 @@ kind: entity
 id: application
 name: Application
 status: draft
-model: modelspec://identity.Application
+model: modelspec:///identity.Application
 summary: Registered software requesting access to vault data or schema operations.
 ---
 

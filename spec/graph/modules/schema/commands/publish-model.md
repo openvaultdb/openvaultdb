@@ -8,9 +8,9 @@ actors:
   - identity.application
 inputs:
   - name: namespace
-    ref: vaults.namespace
+    ref: vault.namespace
   - name: module-source
-    model: modelspec://schema.ModelSource
+    model: modelspec:///schema.ModelSource
 possibleEvents:
   - schema.model-published
 summary: An application publishes a ModelSpec module version for its namespace.

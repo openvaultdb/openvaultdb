@@ -7,7 +7,7 @@ from: identity.ai-agent
 to: identity.user
 cardinality: many-to-one
 metadata:
-  validity: modelspec://common.TimeWindow
+  validity: modelspec:///common.TimeWindow
 summary: An AI agent acts on behalf of a user within explicit limits.
 ---
 

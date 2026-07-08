@@ -11,7 +11,7 @@ inputs:
   - name: capability
     ref: access.capability
   - name: validity
-    model: modelspec://common.TimeWindow
+    model: modelspec:///common.TimeWindow
 possibleEvents:
   - access.grant-requested
 summary: A principal requests capabilities; the CLI presents scopes and risk to the user.

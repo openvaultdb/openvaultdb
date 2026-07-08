@@ -1,6 +1,6 @@
-# Models
+# Commands
 
-ModelSpec sources owned by the `vaults` module.
+CommandSpec artifacts owned by the `vault` module.
 
 ## Artifacts
 

@@ -3,7 +3,7 @@ kind: entity
 id: collection
 name: Collection
 status: draft
-model: modelspec://vaults.Collection
+model: modelspec:///vault.Collection
 summary: A named record set governed by a schema version and permissions.
 ---
 

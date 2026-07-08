@@ -3,7 +3,7 @@ kind: module
 id: access
 name: Access
 status: draft
-dependsOn: [identity, vaults, common]
+dependsOn: [identity, vault, common]
 summary: Capabilities, grants, delegation, and registration.
 ---
 

@@ -3,7 +3,7 @@ kind: entity
 id: record
 name: Record
 status: draft
-model: modelspec://vaults.Record
+model: modelspec:///vault.Record
 summary: A stored data item with identity, schema-version metadata, and change history.
 ---
 

@@ -18,7 +18,7 @@ entity "Backend" {
   }
 
   property "vault" {
-    entity   = "vaults.Vault"
+    entity   = "vault.Vault"
     required = true
   }
 

@@ -3,7 +3,7 @@ kind: module
 id: audit
 name: Audit
 status: draft
-dependsOn: [identity, vaults, common]
+dependsOn: [identity, vault, common]
 summary: Append-only audit log.
 ---
 
