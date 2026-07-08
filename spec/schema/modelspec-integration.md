@@ -81,8 +81,6 @@ than backend-specific DDL or JSON schema.
 
 ## Open Questions
 
-- Should ModelSpec include migration capabilities beyond descriptive metadata, and if
-  so which parts should OpenVaultDB consume versus continue to own itself?
 - What exact GitHub/InGitDB repository layout should the first backend generator emit?
 - Should ModelSpec validation errors be emitted on stdout, stderr, or both for CLI
   workflows?
