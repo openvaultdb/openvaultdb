@@ -2,7 +2,7 @@
 
 OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. The project is intended to let users own application data, publish schemas as ModelSpec, grant narrow capabilities, audit access, and move between storage providers without trusting any single application or backend with unchecked authority.
 
-This repository is the public gravity point for OpenVaultDB specifications, architecture review, security model review, SpecScore reports, contributors, and the future reference implementation.
+This repository is the public gravity point for OpenVaultDB specifications, architecture review, security model review, SpecScore reports, contributors, and project-level decisions. Implementation work lives in the implementation repositories.
 
 ## Goals
 
@@ -43,6 +43,14 @@ Before merging specification changes, contributors SHOULD run SpecScore lint and
 ### Specifications
 
 - [spec/](spec/README.md): implementation-independent specifications (full index).
+
+Related repositories:
+
+- `openvaultdb-go`: Go implementation and SDK work.
+- `openvaultdb-ts`: TypeScript implementation and SDK work.
+- `openvaultdb-todo-demo`: demo application work.
+- `openvaultdb-com`: public landing and promotion site.
+- `backstage`: internal/private marketing docs and specifications.
 
 **Architecture and Cloud**
 - [spec/architecture/](spec/architecture/README.md): plugin model, overview, reference implementation scope.

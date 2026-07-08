@@ -17,7 +17,6 @@ The MVP is an encrypted InGitDB/GitHub-backed vault with CLI-first workflows, ex
 - What minimal API should exist alongside the CLI?
 - What passphrase recovery behavior is acceptable for a first release?
 - Which conformance tests block MVP release?
-- What happens to sibling repositories once this repo becomes canonical?
 - What InGitDB branch protection and repository visibility rules are mandatory?
 
 ## Expected Fable Review

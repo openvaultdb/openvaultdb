@@ -67,7 +67,7 @@ openvaultdb/
     └── integration/
 ```
 
-> **Open question**: Should SDK code live in this monorepo or in separate repositories (openvaultdb-go, openvaultdb-ts)? Monorepo simplifies cross-cutting changes; separate repos simplify versioning for SDK consumers.
+> **Repository role**: SDK and implementation code lives in implementation repositories such as `openvaultdb-go` and `openvaultdb-ts`. This repository remains the canonical public specification and architecture source.
 
 ## Language Choice
 
@@ -146,7 +146,7 @@ The reference implementation includes a compatibility test suite that any implem
 
 ## Open Questions
 
-1. Monorepo or separate repositories for SDKs?
+1. Which implementation milestones should land first in `openvaultdb-go` and `openvaultdb-ts`?
 2. Should the reference implementation include a web UI, or is CLI-first sufficient for MVP?
 3. How should the compliance test suite be run against third-party implementations?
 4. What CI/CD pipeline is required before the first release?

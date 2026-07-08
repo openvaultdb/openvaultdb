@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. This repository is the canonical public home for specifications, architecture documentation, security model, SpecScore workflow, contributors, and the future reference implementation.
+OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. This repository is the canonical public home for specifications, architecture documentation, security model, SpecScore workflow, contributors, and project-level decisions.
 
 The proposed MVP is an encrypted vault using InGitDB/GitHub-backed storage first, with explicit application registration, capability-based permissions, append-only audit logging, migration planning, and CLI-first workflows. SQLite is the second backend target and Firestore is third.
 

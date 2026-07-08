@@ -37,7 +37,7 @@ Define the review and implementation sequence for the conservative MVP.
 ## Open Questions
 
 - What is the first public milestone name?
-- Which sibling repositories should be archived, linked, or redirected after this repo becomes canonical?
+- Which implementation milestones belong in `openvaultdb-go`, `openvaultdb-ts`, and `openvaultdb-todo-demo`?
 
 ## Acceptance Criteria
 
