@@ -23,7 +23,8 @@ Define review-ready migration test scenarios.
 | MIG-001 | Add optional field. | Plan is low risk and resumable. | [../schema/schema-model.md](../schema/schema-model.md) |
 | MIG-002 | Rename field. | Plan preserves source/target mapping and validates data. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-003 | Delete field. | Explicit destructive approval required. | [../schema/user-visible-migration-flow.md](../schema/user-visible-migration-flow.md) |
-| MIG-004 | Broaden field permission label. | Fresh approval required. | [../security/permissions-model.md](../security/permissions-model.md) |
+| MIG-004 | Broaden field permission label. | Migration-style plan and approval required. | [../security/permissions-model.md](../security/permissions-model.md) |
+| MIG-004B | Bulk revoke grants or narrow permission labels in a way that breaks apps. | Migration-style plan and approval required. | [../security/permissions-model.md](../security/permissions-model.md) |
 | MIG-005 | Future encryption key rotation is proposed. | Rejected as post-MVP unless explicit encryption mode exists. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-006 | Kill process mid-batch. | Resume from checkpoint or require rollback. | [../schema/data-migrations.md](../schema/data-migrations.md) |
 | MIG-007 | AI-agent-initiated migration uses an authenticated app principal. | Plan identifies the authenticated principal and required approval, without separate AI identity. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |

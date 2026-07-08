@@ -13,8 +13,9 @@ summary: A user-approved assignment of capabilities to a principal.
 
 ## Description
 
-Grants are explicit, scoped, and auditable; permission broadening requires
-fresh approval; revocation invalidates future authorization decisions.
+Grants are explicit, scoped, and auditable. Permission broadening and
+destructive or restrictive permission changes require migration-style
+planning; revocation invalidates future authorization decisions.
 
 ## Open Questions
 

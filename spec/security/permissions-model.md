@@ -21,16 +21,21 @@ Define how principals receive, use, cache, and lose access to vault resources.
 - Permission caches MUST include a grant version or equivalent invalidation mechanism.
 - Revocation MUST invalidate future authorization decisions and SHOULD terminate active sessions where practical.
 - Permission broadening MUST require fresh approval.
+- Permission broadening and destructive or restrictive permission changes MUST use migration-style planning.
+- Destructive or restrictive permission changes include bulk revocation, permission-label changes that break application access, and grant narrowing that changes expected application behavior.
 - Permission migrations MUST use the migration approval workflow.
 
 ## MVP Behavior
 
 Applications register with the vault and request capabilities. The CLI presents requested scopes and risk. The user approves, denies, narrows, or revokes grants. Websites, applications, CLIs, and AI agents use the same capability model.
 
+Permission changes use normal grant operations for narrow, single-principal updates. Broadening access and destructive or restrictive changes that affect multiple grants, schema labels, or application compatibility use migration-style plans.
+
 ## Risks
 
 - Users may approve broad scopes to avoid friction.
 - Field-level permissions can become inconsistent during schema migration.
+- Restrictive permission changes can unexpectedly break applications or workflows.
 - Long-lived or non-expiring grants can outlive user intent.
 - Stale caches can allow access after revocation.
 
@@ -43,7 +48,7 @@ Applications register with the vault and request capabilities. The CLI presents 
 ## Acceptance Criteria
 
 - A stale permission cache cannot authorize access after a grant version changes.
-- A migration that broadens access is blocked until approved.
+- A migration that broadens access or restricts/breaks existing application access is blocked until approved.
 - Audit records can reconstruct who approved each grant and why it was used.
 
 ## Related Specifications

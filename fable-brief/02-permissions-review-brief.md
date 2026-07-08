@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-OpenVaultDB uses deny-by-default capability-based permissions. Websites, applications, CLIs, and AI agents may call the same API, but authorization is based on authenticated principal and granted capabilities. Grants are explicit, scoped, auditable, revocable, and checked against current grant state or freshness metadata. The MVP may support non-expiring or long-lived grants, with one year as a candidate duration.
+OpenVaultDB uses deny-by-default capability-based permissions. Websites, applications, CLIs, and AI agents may call the same API, but authorization is based on authenticated principal and granted capabilities. Grants are explicit, scoped, auditable, revocable, and checked against current grant state or freshness metadata. The MVP may support non-expiring or long-lived grants, with one year as a candidate duration. Permission broadening and destructive or restrictive permission changes use migration-style planning.
 
 ## Key Risks
 
@@ -10,6 +10,7 @@ OpenVaultDB uses deny-by-default capability-based permissions. Websites, applica
 - Offline or cached grants may survive revocation.
 - Delegation can hide the true actor.
 - Field-level permissions can drift during schema changes.
+- Restrictive permission changes can break applications unexpectedly.
 
 ## Unresolved Questions
 

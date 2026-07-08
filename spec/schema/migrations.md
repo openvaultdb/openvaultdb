@@ -21,10 +21,11 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 - Migration plans MUST distinguish ModelSpec semantic changes from OpenVaultDB-owned permission, audit, and backend changes.
 - A migration plan MUST identify requester, authenticated principal, affected collections, estimated affected records, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and user approvals.
 - Migrations MUST be checkpointed or idempotent.
-- Destructive changes, permission broadening, and storage backend migration MUST follow the configured approval policy. Future encryption and key-rotation migrations MUST also use explicit migration plans.
+- Destructive changes, permission broadening, destructive or restrictive permission changes, and storage backend migration MUST follow the configured approval policy. Future encryption and key-rotation migrations MUST also use explicit migration plans.
 - Execution MUST emit audit events for proposal, approval, start, checkpoint, warning, error, completion, rollback, and resume.
 - Interrupted migrations MUST resume safely or stop in a clearly recoverable state.
 - Permission and index migrations MUST be planned as first-class migration types.
+- Permission migrations MUST cover access broadening, bulk revocation, permission-label changes that break application access, and grant narrowing that changes expected application behavior.
 - MVP migrations SHOULD block application writes until a non-blocking version strategy is specified.
 - Data migration failures SHOULD fail fast and block completion unless the migration plan explicitly enables quarantine.
 
@@ -50,7 +51,7 @@ The MVP runs one migration at a time per vault and blocks application writes dur
 - Migration progress exposes phase, percentage, processed records, total records where known, ETA where possible, warnings, errors, checkpoint status, and resumability status.
 - A killed migration can be resumed or reported as requiring rollback without silent corruption.
 - Application writes are blocked during MVP migration execution.
-- Permission broadening and destructive field changes follow the configured approval policy and are visible in the plan.
+- Permission broadening, destructive/restrictive permission changes, and destructive field changes follow the configured approval policy and are visible in the plan.
 
 ## Related Specifications
 

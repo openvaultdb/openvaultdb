@@ -15,9 +15,10 @@ summary: The vault owner approves a migration plan under the configured approval
 
 ## Description
 
-Destructive changes, permission broadening, and storage backend migration
-follow the configured approval policy; a caller can never self-approve
-high-risk operations without the approval capability.
+Destructive changes, permission broadening, destructive or restrictive
+permission changes, and storage backend migration follow the configured
+approval policy; a caller can never self-approve high-risk operations
+without the approval capability.
 
 ## Failure Cases
 
