@@ -6,7 +6,7 @@ Define how vault data is described independently of any implementation language 
 
 ## Key Concepts
 
-- ModelSpec module: the application-published logical model consumed by the vault.
+- ModelSpec JSON module: the application-published logical model consumed by the vault.
 - Collection: a named record set derived from or bound to a ModelSpec entity or projection.
 - Field: named value with type and constraints derived from ModelSpec, plus OpenVaultDB-owned sensitivity and permission labels.
 - Index: derived structure for lookup or ordering.
@@ -15,7 +15,7 @@ Define how vault data is described independently of any implementation language 
 
 ## Normative Requirements
 
-- Every application schema MUST identify the ModelSpec module and version it was loaded from.
+- Every application schema MUST identify the ModelSpec JSON module and version it was loaded from.
 - OpenVaultDB MUST load the current ModelSpec and target ModelSpec before planning schema migrations.
 - Fields MUST derive type, nullability, constraints, and migration behavior from ModelSpec plus OpenVaultDB-owned metadata.
 - Sensitive fields SHOULD be labeled for prompt, audit, and export redaction.

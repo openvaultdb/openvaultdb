@@ -8,6 +8,8 @@ SpecScore or on any specific backend.
 ## Key Concepts
 
 - ModelSpec: independent open specification language for application data models.
+- ModelSpec JSON: first machine-readable ModelSpec interchange format, identified by
+  top-level `modelspec: "1.0-draft"`.
 - Current ModelSpec: model version currently governing stored records.
 - Target ModelSpec: model version requested by an application, user, or migration.
 - Projection: mapping from a logical ModelSpec model to a backend, API, query, or language representation.
@@ -15,7 +17,8 @@ SpecScore or on any specific backend.
 
 ## Normative Requirements
 
-- Applications MUST publish ModelSpec as the primary logical schema contract for OpenVaultDB.
+- Applications MUST publish ModelSpec JSON as the primary logical schema contract for OpenVaultDB.
+- The MVP ingestion path MUST accept ModelSpec JSON first.
 - OpenVaultDB MUST load the current ModelSpec and target ModelSpec before planning schema migrations.
 - OpenVaultDB MUST use ModelSpec for schema validation, migration planning, backend mapping, GraphQL schema generation, DTQL typing metadata, DALGO metadata, and backend generators.
 - OpenVaultDB MUST keep backend choice under vault control.
@@ -59,9 +62,9 @@ Vault enforces writes against ModelSpec-derived validation
 
 ## MVP Behavior
 
-The MVP accepts application-published ModelSpec, stores loaded model metadata with the
-vault schema version, validates writes against the loaded model, and produces migration
-plans from current-to-target ModelSpec diffs.
+The MVP accepts application-published ModelSpec JSON, stores loaded model metadata
+with the vault schema version, validates writes against the loaded model, and produces
+migration plans from current-to-target ModelSpec diffs.
 
 The MVP may support one backend first, but the schema contract remains ModelSpec rather
 than backend-specific DDL or JSON schema.
@@ -77,13 +80,12 @@ than backend-specific DDL or JSON schema.
 
 - Should ModelSpec include migration capabilities beyond descriptive metadata, and if
   so which parts should OpenVaultDB consume versus continue to own itself?
-- Which ModelSpec serialization format is required for the MVP ingestion path?
 - Which backend generator should be implemented first?
 - How should ModelSpec validation diagnostics be exposed to applications versus users?
 
 ## Acceptance Criteria
 
-- An application can publish a storage-neutral ModelSpec without selecting a backend.
+- An application can publish storage-neutral ModelSpec JSON without selecting a backend.
 - The vault can load current and target ModelSpec versions and produce a reviewable migration plan.
 - The vault can generate backend metadata while preserving that the vault has final backend authority.
 - OpenVaultDB documentation states that it depends on ModelSpec, not SpecScore.
