@@ -1,0 +1,56 @@
+# Glossary
+
+## Purpose
+
+Provide shared terms for architecture, security, schema, storage, and review discussions.
+
+## Key Concepts
+
+| Term | Definition |
+|---|---|
+| Vault | A user-owned encrypted data store plus schemas, permissions, audit log, and metadata. |
+| Principal | An actor such as a user, application, AI agent, extension, CLI session, or storage provider. |
+| Application | Software requesting access to vault data or schema operations. |
+| AI agent | A delegated principal that can act on behalf of a user or application with explicit limits. |
+| Capability | A scoped, auditable authorization to perform specific operations on specific resources. |
+| Permission grant | A user-approved assignment of capabilities to a principal. |
+| Collection | A named group of records governed by a schema version and permissions. |
+| Record | A stored data item with identity, schema version metadata, and audit-relevant change history. |
+| Schema | A versioned definition of fields, constraints, indexes, and permission-relevant labels. |
+| Migration | A planned transition of schema, data, permissions, indexes, storage format, or encryption state. |
+| Checkpoint | Durable migration progress metadata that allows resume or rollback decisions. |
+| Provider | A storage backend or synchronization service that may store encrypted vault bytes. |
+| Audit log | Append-only record of security-relevant events and user-visible decisions. |
+
+## Normative Requirements
+
+- Specifications MUST use these terms consistently unless a local definition is explicitly stated.
+- Capability and permission MUST NOT be used interchangeably.
+- Provider trust MUST mean the assumptions about a backend, not a guarantee that the backend is safe.
+
+## MVP Behavior
+
+The MVP uses a single local vault, local principals, local encrypted storage, and CLI-mediated permission grants.
+
+## Risks
+
+- Ambiguous terms can hide security gaps.
+- Users may interpret provider support as provider trust.
+- "AI agent" may cover both local tools and remote hosted systems with different risks.
+
+## Open Questions
+
+- Should "workspace" be a first-class term separate from vault?
+- Should records expose stable global IDs or vault-local IDs only?
+
+## Acceptance Criteria
+
+- Every major specification uses terms from this glossary.
+- Terms that affect permissions, audit, or migrations are defined before use.
+
+## Related Specifications
+
+- [security/permissions-model.md](security/permissions-model.md)
+- [security/capability-model.md](security/capability-model.md)
+- [schema/schema-model.md](schema/schema-model.md)
+- [storage/storage-backends.md](storage/storage-backends.md)

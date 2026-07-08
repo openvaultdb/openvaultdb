@@ -1,0 +1,32 @@
+# Fable 5 Brief: Project Context
+
+## Current Proposal
+
+OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. This repository is the canonical public home for specifications, architecture documentation, security model, SpecScore workflow, contributors, and the future reference implementation.
+
+The proposed MVP is a local-first encrypted vault with explicit application registration, capability-based permissions, append-only audit logging, explicit migration approval, and CLI-first workflows.
+
+## Key Risks
+
+- The permission model may be too complex for users to safely approve.
+- Local-first encryption can still fail through key handling, backups, logs, or device compromise.
+- Schema evolution touches permissions, encryption, storage, and auditability.
+- AI-agent delegation can create confused-deputy and prompt-injection paths.
+
+## Unresolved Questions
+
+- What key recovery model is acceptable?
+- Which AI actions require fresh human approval?
+- What minimum migration UX makes destructive changes understandable?
+- Should SQLite be the only MVP backend?
+
+## Expected Fable Review
+
+Review whether the architecture is scoped tightly enough for a trustworthy MVP and whether any missing security boundary blocks implementation.
+
+## Related Specification Files
+
+- [../spec/vision.md](../spec/vision.md)
+- [../spec/mvp/local-first-encrypted-vault.md](../spec/mvp/local-first-encrypted-vault.md)
+- [../spec/risky-assumptions.md](../spec/risky-assumptions.md)
+- [../spec/open-questions.md](../spec/open-questions.md)
