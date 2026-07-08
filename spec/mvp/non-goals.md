@@ -14,7 +14,9 @@ Define what OpenVaultDB will not attempt in the initial MVP.
 
 - The MVP MUST NOT include general-purpose multi-provider cloud synchronization beyond the first GitHub/InGitDB storage target.
 - The MVP MUST NOT give AI agents special privileges beyond the principal and grants used for the call.
-- The MVP MUST NOT support unreviewed third-party extensions.
+- The MVP MUST NOT support user-installable extensions.
+- Any future user-installable extension system MUST require an RFC before it exists.
+- Operator or hoster configured plugins/providers are separate from user-installable extensions and are covered by [../architecture/plugin-model.md](../architecture/plugin-model.md).
 - The MVP MUST NOT optimize for multi-device collaboration before local trust and migration models are validated.
 
 ## MVP Behavior
@@ -24,7 +26,8 @@ The MVP remains explicit, auditable, CLI-first, and Git-backed through InGitDB/G
 ## Risks
 
 - Users may expect GitHub-backed storage to provide stronger confidentiality or atomicity than it does.
-- Excluding extensions may limit early ecosystem feedback.
+- Excluding user-installable extensions may limit early ecosystem feedback.
+- Confusing operator plugins with user-installable extensions can overstate MVP surface area.
 - Non-goals can be forgotten unless enforced by review.
 
 ## Open Questions
@@ -36,6 +39,7 @@ The MVP remains explicit, auditable, CLI-first, and Git-backed through InGitDB/G
 
 - MVP planning documents cite this file when rejecting out-of-scope work.
 - Future RFCs must update this file when a non-goal becomes proposed scope.
+- User-installable extension proposals are rejected unless accompanied by an RFC.
 
 ## Related Specifications
 
@@ -43,3 +47,4 @@ The MVP remains explicit, auditable, CLI-first, and Git-backed through InGitDB/G
 - [roadmap.md](roadmap.md)
 - [../storage/git-backend.md](../storage/git-backend.md)
 - [../security/ai-agent-access.md](../security/ai-agent-access.md)
+- [../architecture/plugin-model.md](../architecture/plugin-model.md)

@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-The MVP is an InGitDB/GitHub-backed vault with CLI-first workflows, explicit app registration, capability grants, append-only audit logs, versioned schemas, and planned migrations. SQLite is second and Firestore is third. It does not encrypt vault data. It excludes general-purpose multi-provider sync, unreviewed extensions, and multi-device collaboration beyond the GitHub-backed storage model.
+The MVP is an InGitDB/GitHub-backed vault with CLI-first workflows, explicit app registration, capability grants, append-only audit logs, versioned schemas, and planned migrations. SQLite is second and Firestore is third. It does not encrypt vault data. It excludes general-purpose multi-provider sync, user-installable extensions, and multi-device collaboration beyond the GitHub-backed storage model.
 
 ## Key Risks
 

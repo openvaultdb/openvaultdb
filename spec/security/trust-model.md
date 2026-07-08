@@ -15,7 +15,8 @@ Define who and what OpenVaultDB trusts, distrusts, and constrains.
 
 ## Normative Requirements
 
-- OpenVaultDB MUST assume applications, AI agents, extensions, and providers can be malicious or compromised.
+- OpenVaultDB MUST assume applications, AI agents, operator-configured plugins/providers, and storage providers can be malicious or compromised.
+- User-installable extensions are out of scope for MVP and MUST require a future RFC before they exist.
 - OpenVaultDB MUST NOT grant data access based only on process identity, package name, or network origin.
 - Every principal MUST have auditable identity metadata.
 - The active permission state MUST be derived from vault-controlled grant records, not from caller-held claims alone.

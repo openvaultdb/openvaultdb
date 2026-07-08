@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-OpenVaultDB assumes hostile applications, confused AI agents, compromised providers, leaked credentials, stale permission caches, malicious extensions, careless users, and interrupted operations. The MVP minimizes application trust through InGitDB/GitHub-backed storage, explicit registration, capability-scoped grants, revocation, and append-only audit events. It does not encrypt vault data.
+OpenVaultDB assumes hostile applications, confused AI agents, compromised providers, leaked credentials, stale permission caches, malicious operator plugins, careless users, and interrupted operations. User-installable extensions are out of scope for MVP. The MVP minimizes application trust through InGitDB/GitHub-backed storage, explicit registration, capability-scoped grants, revocation, and append-only audit events. It does not encrypt vault data.
 
 ## Key Risks
 

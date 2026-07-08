@@ -40,7 +40,7 @@ The MVP uses explicit app registration, scoped capabilities, no special AI privi
 ## Open Questions
 
 - Which audit events are mandatory for all implementations?
-- Should extensions be banned entirely in the MVP?
+- What review bar should a future RFC meet before introducing user-installable extensions?
 
 ## Acceptance Criteria
 

@@ -13,7 +13,7 @@ Define review-ready migration test scenarios.
 
 ## Normative Requirements
 
-- Migration tests MUST cover destructive schema changes, field renames, permission broadening, storage backend migration, Git-backed history, third-party extensions, AI-triggered migrations, and future encryption/key-rotation migrations.
+- Migration tests MUST cover destructive schema changes, field renames, permission broadening, storage backend migration, Git-backed history, operator plugin/provider behavior, AI-triggered migrations, and future encryption/key-rotation migrations.
 - Tests MUST verify progress and audit events where applicable.
 
 ## MVP Behavior
@@ -29,7 +29,7 @@ Define review-ready migration test scenarios.
 | MIG-006 | Kill process mid-batch. | Resume from checkpoint or require rollback. | [../schema/data-migrations.md](../schema/data-migrations.md) |
 | MIG-007 | AI-agent-initiated migration uses an authenticated app principal. | Plan identifies the authenticated principal and required approval, without separate AI identity. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
 | MIG-008 | Git-backed InGitDB vault migration runs with user-selected repository policy. | Plan reports repository visibility, branch-protection status, and restore path without blocking on policy. | [../storage/git-backend.md](../storage/git-backend.md) |
-| MIG-009 | Third-party extension transform. | Rejected or sandbox-required. | [../mvp/non-goals.md](../mvp/non-goals.md) |
+| MIG-009 | User-installable extension transform. | Rejected as out of MVP; future RFC required. | [../mvp/non-goals.md](../mvp/non-goals.md) |
 | MIG-010 | Backend migration local to future provider. | Plan requires provider trust review. | [../storage/provider-trust.md](../storage/provider-trust.md) |
 
 ## Risks
