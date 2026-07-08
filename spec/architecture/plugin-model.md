@@ -107,6 +107,11 @@ type BillingProvider interface {
 
 ### AuditProvider
 
+`AuditProvider` persists OpenVaultDB audit events. It is not the logging-library
+abstraction. Go implementations may use `github.com/strongo/logus` to emit
+structured log entries, but OpenVaultDB owns the audit event catalog and required
+fields.
+
 ```go
 // Draft — interface subject to review
 type AuditProvider interface {

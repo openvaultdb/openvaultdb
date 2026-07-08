@@ -19,6 +19,7 @@ OpenVaultDB assumes hostile applications, confused AI agents, compromised provid
 - What rollback or history-rewrite detection is required for GitHub-backed storage?
 - Which metadata must be minimized even without encryption?
 - What local authentication is required for high-risk approvals?
+- Which audit-event fields are mandatory across all providers and logging libraries?
 
 ## Expected Fable Review
 

@@ -118,7 +118,7 @@ For each plugin type, the table lists test scenarios that MUST pass for a plugin
 | AP-F-01 | AppendEvent; QueryEvents | Event returned in query |
 | AP-F-02 | Append 1000 events; QueryEvents with pagination | All events returned |
 | AP-F-03 | QueryEvents with time range filter | Only events in range returned |
-| AP-F-04 | ExportEvents produces valid NDJSON | All events in output |
+| AP-F-04 | ExportEvents produces provider-supported export | All matching events in output with order preserved |
 | AP-E-01 | AppendEvent with missing required fields | Returns validation error |
 | AP-S-01 | AppendEvent; attempt to modify event | Modification returns error or is rejected |
 

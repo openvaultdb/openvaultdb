@@ -30,7 +30,6 @@ The MVP proceeds only after the trust model, permission model, migration approva
 | Question | Type | Related Specs |
 |---|---|---|
 | Which Fable-approved confirmation pattern should destructive migrations use for non-expert users? | Blocking | [schema/user-visible-migration-flow.md](schema/user-visible-migration-flow.md) |
-| What is the minimum audit-log export format for external review? | Review | [security/audit-log.md](security/audit-log.md) |
 | Which permission changes require migration-style planning? | Review | [schema/migrations.md](schema/migrations.md), [security/permissions-model.md](security/permissions-model.md) |
 | How should third-party extensions be sandboxed or banned in the MVP? | Product | [security/threat-model.md](security/threat-model.md), [mvp/non-goals.md](mvp/non-goals.md) |
 
