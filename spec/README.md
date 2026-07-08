@@ -67,7 +67,7 @@ Implementation-independent specifications for OpenVaultDB.
 
 | Path | Purpose |
 |---|---|
-| [mvp/](mvp/README.md) | Conservative local-first encrypted vault MVP. |
+| [mvp/](mvp/README.md) | Conservative encrypted GitHub/InGitDB-first MVP. |
 
 ### Process
 

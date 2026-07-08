@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-OpenVaultDB uses deny-by-default capability-based permissions. Applications and AI agents are distinct principals. Grants are explicit, scoped, auditable, revocable, and checked against current grant state or freshness metadata. Permission broadening requires approval and permission migrations use the migration workflow.
+OpenVaultDB uses deny-by-default capability-based permissions. Websites, applications, CLIs, and AI agents may call the same API, but authorization is based on authenticated principal and granted capabilities. Grants are explicit, scoped, auditable, revocable, and checked against current grant state or freshness metadata. The MVP may support non-expiring or long-lived grants, with one year as a candidate duration.
 
 ## Key Risks
 
@@ -13,14 +13,14 @@ OpenVaultDB uses deny-by-default capability-based permissions. Applications and 
 
 ## Unresolved Questions
 
-- Should grants expire by default?
+- Should grants default to non-expiring, one year, or another long-lived duration?
 - What field-level permission model is required for MVP?
 - How should active operations respond to revocation?
 - Should signed capability tokens exist, or should grants remain local rows only?
 
 ## Expected Fable Review
 
-Review whether the model prevents confused-deputy behavior, stale authorization, and AI-agent overreach without making ordinary app access unusable.
+Review whether the model prevents confused-deputy behavior and stale authorization without making ordinary app or website access unusable, and whether AI-originated calls require stronger identity capture.
 
 ## Related Specification Files
 

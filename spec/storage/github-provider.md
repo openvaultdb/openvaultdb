@@ -6,8 +6,7 @@
 
 Specify the GitHub repository storage provider: capabilities, limitations, trust assumptions, data model, migration considerations, and security implications.
 
-This provider is the preferred first backend generator target for OpenVaultDB: a
-GitHub repository using InGitDB layout generated from ModelSpec.
+This provider is the preferred first backend generator target for OpenVaultDB: a GitHub repository using InGitDB layout generated from ModelSpec.
 
 ## Overview
 
@@ -122,6 +121,7 @@ Migrations must account for:
 3. **Private repository**: Vault repository MUST be private.
 4. **Token rotation**: Tokens should be rotated periodically; the control plane must support token rotation without vault downtime.
 5. **Audit log integrity**: GitHub history provides some tamper-evidence, but can be overridden by repository admins. Not suitable as the sole audit mechanism for high-security requirements.
+6. **History retention**: Git history MAY support accidental recovery, but it retains deleted content and MUST NOT be treated as a confidentiality control.
 
 ## Open Questions
 
@@ -131,6 +131,7 @@ Migrations must account for:
 4. How should the provider handle GitHub API rate limit exhaustion?
 5. Is GitHub Actions a risk vector? (GitHub Actions may have access to repository contents)
 6. Should vault repositories be archived (read-only) during migrations?
+7. What branch protection settings are mandatory to prevent normal users from deleting repositories or rewriting/squashing history?
 
 ## Risks
 
@@ -138,12 +139,14 @@ Migrations must account for:
 - Users may accidentally make their vault repository public.
 - GitHub Actions or installed GitHub Apps may have unintended access to vault data.
 - GitHub history rewriting could compromise audit log integrity.
+- Git history supports recovery from accidental changes but does not remove confidentiality risk from committed plaintext or weakly encrypted data.
 
 ## Acceptance Criteria
 
 - Provider correctly reads and writes records to GitHub repository.
 - Provider handles rate limit errors with exponential backoff and does not corrupt data.
 - Branch protection enforcement documented and tested.
+- Restore from Git history is documented and tested for accidental write/delete recovery.
 - Migration completes correctly (including partial failure and resume).
 
 ## Related Specifications

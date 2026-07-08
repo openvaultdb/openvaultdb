@@ -27,7 +27,7 @@ Define review-ready migration test scenarios.
 | MIG-005 | Rotate encryption key. | Backup, rollback limits, and audit events required. | [../schema/migrations.md](../schema/migrations.md) |
 | MIG-006 | Kill process mid-batch. | Resume from checkpoint or require rollback. | [../schema/data-migrations.md](../schema/data-migrations.md) |
 | MIG-007 | AI agent proposes migration. | Plan identifies agent and requires user approval. | [../security/ai-agent-access.md](../security/ai-agent-access.md) |
-| MIG-008 | Git backend proposed for vault data. | Rejected as non-MVP. | [../storage/git-backend.md](../storage/git-backend.md) |
+| MIG-008 | Git-backed InGitDB vault migration runs with branch protection enabled. | Plan validates repository protection and restore path. | [../storage/git-backend.md](../storage/git-backend.md) |
 | MIG-009 | Third-party extension transform. | Rejected or sandbox-required. | [../mvp/non-goals.md](../mvp/non-goals.md) |
 | MIG-010 | Backend migration local to future provider. | Plan requires provider trust review. | [../storage/provider-trust.md](../storage/provider-trust.md) |
 

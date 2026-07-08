@@ -15,7 +15,8 @@ Define how principals receive, use, cache, and lose access to vault resources.
 ## Normative Requirements
 
 - Permissions MUST be deny-by-default.
-- Grants MUST be explicit, scoped, time-bounded where useful, and auditable.
+- Grants MUST be explicit, scoped, and auditable.
+- The MVP MAY support non-expiring grants and SHOULD support long-lived grants such as one-year grants.
 - A grant MUST identify the principal, requested capabilities, resources, risk level, approval time, and approving user context.
 - Permission caches MUST include a grant version or equivalent invalidation mechanism.
 - Revocation MUST invalidate future authorization decisions and SHOULD terminate active sessions where practical.
@@ -24,19 +25,19 @@ Define how principals receive, use, cache, and lose access to vault resources.
 
 ## MVP Behavior
 
-Applications register with the vault and request capabilities. The CLI presents requested scopes and risk. The user approves, denies, narrows, or revokes grants. AI agents receive separate delegated grants and do not inherit application write access by default.
+Applications register with the vault and request capabilities. The CLI presents requested scopes and risk. The user approves, denies, narrows, or revokes grants. Websites, applications, CLIs, and AI agents use the same capability model.
 
 ## Risks
 
 - Users may approve broad scopes to avoid friction.
 - Field-level permissions can become inconsistent during schema migration.
-- Long-lived offline grants can outlive user intent.
+- Long-lived or non-expiring grants can outlive user intent.
 - Stale caches can allow access after revocation.
 
 ## Open Questions
 
 - What is the MVP minimum for field-level grants?
-- Should grants require expiration by default?
+- Should one year be the default grant duration, or should grants default to non-expiring?
 - How should active long-running operations respond to revocation?
 
 ## Acceptance Criteria

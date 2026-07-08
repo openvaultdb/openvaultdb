@@ -29,10 +29,10 @@ The MVP proceeds only after the trust model, permission model, AI write-access p
 
 | Question | Type | Related Specs |
 |---|---|---|
-| What key recovery model is acceptable without weakening user ownership? | Blocking | [security/trust-model.md](security/trust-model.md), [mvp/local-first-encrypted-vault.md](mvp/local-first-encrypted-vault.md) |
-| Which AI-agent operations require fresh human approval every time? | Blocking | [security/ai-agent-access.md](security/ai-agent-access.md) |
+| What passphrase recovery or reset model is acceptable for MVP? | Blocking | [security/trust-model.md](security/trust-model.md), [mvp/local-first-encrypted-vault.md](mvp/local-first-encrypted-vault.md) |
+| Should AI-agent initiated calls require additional audit identity beyond normal application principal identity? | Review | [security/ai-agent-access.md](security/ai-agent-access.md) |
 | How should destructive migrations present risk to non-expert users? | Blocking | [schema/user-visible-migration-flow.md](schema/user-visible-migration-flow.md) |
-| Should Git-backed storage ever be supported for secrets-bearing vaults? | Review | [storage/git-backend.md](storage/git-backend.md) |
+| What InGitDB/GitHub repository layout and branch protection rules are mandatory for MVP? | Blocking | [storage/git-backend.md](storage/git-backend.md) |
 | What is the minimum audit-log export format for external review? | Review | [security/audit-log.md](security/audit-log.md) |
 | Which permission changes require migration-style planning? | Review | [schema/migrations.md](schema/migrations.md), [security/permissions-model.md](security/permissions-model.md) |
 | How should third-party extensions be sandboxed or banned in the MVP? | Product | [security/threat-model.md](security/threat-model.md), [mvp/non-goals.md](mvp/non-goals.md) |

@@ -6,7 +6,7 @@ Index OpenVaultDB storage specifications.
 
 ## Key Concepts
 
-- Local-first storage is the MVP posture.
+- InGitDB/Git-backed storage is the first MVP backend target.
 - Providers store encrypted vault bytes and are not trusted with plaintext.
 - Backend choice affects security, auditability, migration, and recovery.
 
@@ -24,10 +24,11 @@ Index OpenVaultDB storage specifications.
 
 - Storage backends MUST preserve confidentiality, integrity, and migration safety requirements for their supported threat model.
 - Provider support MUST NOT imply provider trust.
+- The initial backend order SHOULD be InGitDB/GitHub first, SQLite second, and Firestore third.
 
 ## MVP Behavior
 
-The MVP uses local encrypted storage, likely backed by SQLite or an equivalent local durable store.
+The MVP uses an InGitDB/GitHub-backed vault first, with application-level encryption and Git history as a recovery/audit aid. SQLite is the next local backend target and Firestore follows after provider-trust review.
 
 ## Risks
 
@@ -37,8 +38,8 @@ The MVP uses local encrypted storage, likely backed by SQLite or an equivalent l
 
 ## Open Questions
 
-- Is SQLite the only MVP backend?
-- Should file-level encrypted blob storage be considered before SQLite?
+- What InGitDB repository layout is mandatory for MVP?
+- Which SQLite capabilities are required before it becomes the second backend?
 
 ## Acceptance Criteria
 

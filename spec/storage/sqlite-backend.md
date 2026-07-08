@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define expectations for a likely local MVP storage backend.
+Define expectations for the second OpenVaultDB storage backend after InGitDB/GitHub.
 
 ## Key Concepts
 
@@ -21,7 +21,7 @@ Define expectations for a likely local MVP storage backend.
 
 ## MVP Behavior
 
-The MVP may use SQLite as the local metadata and encrypted payload store if encryption, journaling, and checkpoint behavior are reviewed.
+SQLite is the second backend target after the InGitDB/GitHub MVP. It may become the local metadata and encrypted payload store if encryption, journaling, and checkpoint behavior are reviewed.
 
 ## Risks
 

@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-Schemas are explicit and versioned. Migrations are reviewable plans covering schema, data, permissions, indexes, storage format, encryption, and key rotation. Execution is checkpointed or idempotent, progress is visible, and rollback or resume behavior is part of the plan.
+Schemas are explicit and versioned. Migrations are reviewable plans covering schema, data, permissions, indexes, storage format, encryption, and key rotation. MVP migrations block application writes, fail fast on failed records, are checkpointed or idempotent, show progress, and use backup settings plus Git history restore where applicable.
 
 ## Key Risks
 
@@ -15,9 +15,9 @@ Schemas are explicit and versioned. Migrations are reviewable plans covering sch
 ## Unresolved Questions
 
 - Should all writes be blocked during migration?
-- What backup format is mandatory before destructive migrations?
+- Which backup settings are mandatory before destructive migrations?
 - What transform sandboxing is required?
-- Should failed records block migration or enter quarantine?
+- When should quarantine be added after the fail-fast MVP?
 
 ## Expected Fable Review
 

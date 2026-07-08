@@ -6,43 +6,44 @@ Define the conservative local-first posture for the MVP.
 
 ## Key Concepts
 
-- Local authority: the local vault controls grants and schema state.
-- Offline operation: core operations work without cloud services.
+- Local authority: the vault runtime controls grants and schema state, even when durable storage is a user-owned GitHub repository.
+- Offline operation: local cached operations MAY work without cloud services, but the first GitHub-backed MVP may require network access for durable writes.
 - Local encryption: vault data is encrypted before durable storage.
-- Sync deferral: cloud synchronization is intentionally out of MVP.
+- Git-backed storage: the first MVP backend persists vault state to an InGitDB/GitHub repository.
 
 ## Normative Requirements
 
-- The MVP MUST operate without a cloud account.
+- The MVP SHOULD keep vault authority separate from the storage provider.
 - The MVP MUST encrypt vault contents at rest.
 - Local grant state MUST be authoritative for authorization decisions.
-- Cloud synchronization MUST NOT be added until provider trust, conflict resolution, and rollback risks are specified.
+- GitHub-backed storage MUST be treated as provider-backed durable storage, not as a trusted database.
 - Local backups MUST document whether they include keys, encrypted data, audit logs, and checkpoints.
 
 ## MVP Behavior
 
-Users create and manage a local encrypted vault using the CLI. Applications interact with the local vault authority after registration and grant approval.
+Users create and manage an encrypted vault using the CLI. The first backend stores vault state in an InGitDB/GitHub repository; SQLite follows as a local backend. Applications interact with the vault authority after registration and grant approval.
 
 ## Risks
 
-- Local-only storage can still be copied or deleted.
+- GitHub-backed storage introduces repository visibility, token, API-limit, and history-retention risks.
 - OS-level backup and search tools may expose metadata.
 - Device compromise remains outside the protection boundary.
 
 ## Open Questions
 
-- Which OS keystore integrations are acceptable for MVP?
-- Should vault files be portable by default?
-- Should local network access be supported or banned initially?
+- Which local cache guarantees are required for GitHub-backed MVP operation?
+- Which OS keystore integrations should follow the passphrase MVP?
+- Should GitHub repositories be private-only for all vaults?
 
 ## Acceptance Criteria
 
-- A vault can be created, opened, locked, backed up, and inspected locally.
-- No MVP operation requires cloud synchronization.
-- Documentation clearly states local-first residual risks.
+- A vault can be created, opened, locked, backed up, restored from Git history, and inspected through the CLI.
+- GitHub-backed storage requirements are documented separately from local authority requirements.
+- Documentation clearly states provider-backed residual risks.
 
 ## Related Specifications
 
+- [git-backend.md](git-backend.md)
 - [sqlite-backend.md](sqlite-backend.md)
 - [provider-trust.md](provider-trust.md)
 - [../security/trust-model.md](../security/trust-model.md)

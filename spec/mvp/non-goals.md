@@ -12,26 +12,25 @@ Define what OpenVaultDB will not attempt in the initial MVP.
 
 ## Normative Requirements
 
-- The MVP MUST NOT include cloud synchronization.
-- The MVP MUST NOT support implicit AI write access.
+- The MVP MUST NOT include general-purpose multi-provider cloud synchronization beyond the first GitHub/InGitDB storage target.
+- The MVP MUST NOT give AI agents special privileges beyond the principal and grants used for the call.
 - The MVP MUST NOT support unreviewed third-party extensions.
-- The MVP MUST NOT treat Git-backed storage as approved for vault data.
 - The MVP MUST NOT optimize for multi-device collaboration before local trust and migration models are validated.
 
 ## MVP Behavior
 
-The MVP remains local, explicit, auditable, and CLI-first.
+The MVP remains explicit, auditable, CLI-first, and Git-backed through InGitDB/GitHub storage.
 
 ## Risks
 
-- Users may expect sync and collaboration from a database-like product.
+- Users may expect GitHub-backed storage to provide stronger confidentiality or atomicity than it does.
 - Excluding extensions may limit early ecosystem feedback.
 - Non-goals can be forgotten unless enforced by review.
 
 ## Open Questions
 
 - Which non-goals should become explicit repository issues after Fable review?
-- What criteria allow cloud sync to enter scope?
+- What criteria allow additional cloud sync providers beyond GitHub/InGitDB to enter scope?
 
 ## Acceptance Criteria
 

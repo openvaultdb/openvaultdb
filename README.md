@@ -11,7 +11,7 @@ This repository is the public gravity point for OpenVaultDB specifications, arch
 - Support hostile or compromised applications, confused AI agents, leaked credentials, stale permission caches, and untrusted storage providers.
 - Make schema evolution explicit, reviewable, resumable, reversible where possible, and auditable.
 - Consume ModelSpec directly for logical application schemas, migration planning, backend mapping, GraphQL generation, DTQL typing metadata, DALGO metadata, and backend generators.
-- Start with a conservative local-first encrypted MVP before cloud synchronization.
+- Start with a conservative encrypted MVP using InGitDB/GitHub-backed storage first, SQLite second, and Firestore third.
 
 ## Architecture-First Development
 
@@ -96,9 +96,9 @@ Implementation PRs are expected to cite the specification sections they implemen
 1. **Fable 5 review** of trust, permissions, schema evolution, plugin architecture, Sneat integration, and commercial model.
 2. Resolve blocking open questions and record decisions.
 3. Define executable compliance tests for the MVP.
-4. Build a CLI-first local encrypted vault reference implementation (SQLite + GitHub storage).
-5. Launch `api.openvaultdb.com` hosted service (managed Firestore tier).
-6. Validate provider-trust and synchronization models before adding additional cloud sync backends.
+4. Build a CLI-first encrypted vault reference implementation using InGitDB/GitHub-backed storage.
+5. Add SQLite as the second backend.
+6. Launch `api.openvaultdb.com` hosted service and Firestore-backed storage after provider-trust review.
 7. Publish compatibility test suite for third-party hosting providers.
 8. Release Go SDK and TypeScript SDK.
 

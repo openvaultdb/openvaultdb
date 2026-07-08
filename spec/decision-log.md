@@ -21,11 +21,11 @@ Record provisional project decisions before they are promoted to formal architec
 | Decision | Status | Rationale | Review Trigger |
 |---|---|---|---|
 | Use the main `openvaultdb` repository as the canonical public specification home. | Accepted | Centralizes stars, contributors, architecture, and future implementation. | Repository strategy changes. |
-| Start with a local-first encrypted vault MVP. | Proposed | Reduces provider trust and sync complexity during security validation. | Fable rejects local-first scope. |
+| Start with an InGitDB/GitHub-backed encrypted vault MVP. | Proposed | Git history gives a simple first recovery and audit substrate for the first implementation. | Fable rejects Git-backed storage risk. |
 | Require explicit application registration. | Proposed | Prevents ambient access by installed software. | Application onboarding proves unusable. |
 | Use capability-based permissions. | Proposed | Enables narrow, auditable grants and revocation semantics. | Capability model cannot express common app workflows. |
-| Provide no implicit AI write access. | Proposed | Confused or compromised agents are expected. | A safe delegation model is proven and reviewed. |
-| Treat Git-backed storage as non-MVP. | Proposed | Git history can retain deleted secrets and metadata. | A safe redaction/encryption model is specified. |
+| Treat websites, apps, CLIs, and AI agents as API callers governed by the same capability model. | Proposed | The API should not care about caller implementation, but audit may still need agent delegation metadata. | Fable requires stricter AI-specific authorization. |
+| Make InGitDB/Git-backed storage the first backend. | Proposed | User-owned GitHub repos and history restore are central to the intended MVP. | GitHub provider risks exceed MVP tolerance. |
 | Make migrations reviewable, checkpointed, and auditable. | Proposed | Schema evolution is a core trust boundary. | Migration complexity blocks MVP. |
 
 ## Risks

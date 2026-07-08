@@ -11,6 +11,7 @@ Define who and what OpenVaultDB trusts, distrusts, and constrains.
 - Application principal: an app has identity, registration metadata, and granted capabilities.
 - Provider distrust: storage providers may lose, alter, replay, inspect, or withhold bytes.
 - Key ownership: encryption keys should be controlled by the user or user-controlled device.
+- Passphrase MVP: the first key-ownership mode is expected to be passphrase-based unless review rejects it.
 
 ## Normative Requirements
 
@@ -20,10 +21,11 @@ Define who and what OpenVaultDB trusts, distrusts, and constrains.
 - The active permission state MUST be derived from vault-controlled grant records, not from caller-held claims alone.
 - Providers MUST NOT receive plaintext vault data in the MVP.
 - Key recovery options MUST be explicit and MUST document the tradeoff between recoverability and third-party trust.
+- The MVP SHOULD start with passphrase-based key ownership.
 
 ## MVP Behavior
 
-The MVP trusts the local user session for approval, the local vault authority for grants, and local cryptographic operations for confidentiality. It does not trust cloud storage, hosted AI systems, app self-attestation, or remote policy caches.
+The MVP trusts the user approval flow, vault authority for grants, and cryptographic operations for confidentiality. It does not trust GitHub, hosted AI systems, app self-attestation, or remote policy caches with plaintext data.
 
 ## Risks
 
@@ -35,7 +37,8 @@ The MVP trusts the local user session for approval, the local vault authority fo
 ## Open Questions
 
 - What local authentication step is required before high-risk approvals?
-- Should MVP support passphrase-only, OS keystore, hardware key, or multiple key ownership modes?
+- What passphrase recovery or reset story is acceptable?
+- When should OS keystore or hardware key support follow passphrase mode?
 - How should lost-key recovery be explained without implying a guarantee?
 
 ## Acceptance Criteria

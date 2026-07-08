@@ -20,11 +20,11 @@ Define the implementation-independent API behavior for applications and AI agent
 - APIs MUST expose migration plans as data before execution.
 - Schema APIs MUST accept application-published ModelSpec as the logical schema contract.
 - APIs MUST NOT require callers to publish backend-specific schemas as the primary contract.
-- APIs MUST NOT allow AI agents to self-approve high-risk operations.
+- APIs MUST NOT allow a caller to self-approve high-risk operations unless the authenticated principal has the required approval capability under the configured policy.
 
 ## MVP Behavior
 
-The MVP API may be local-only and CLI-mediated, but the model assumes future application bindings for Go, TypeScript, and other languages.
+The MVP API may be local-only and CLI-mediated, but the model assumes future application bindings for Go, TypeScript, and other languages. The same API may be called by websites, applications, CLIs, services, or AI agents.
 
 ## Risks
 

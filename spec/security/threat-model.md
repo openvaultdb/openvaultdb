@@ -23,7 +23,7 @@ Define expected attackers, abuse cases, and security boundaries.
 
 ## MVP Behavior
 
-The MVP focuses on local attack containment: narrow grants, encrypted storage, append-only audit events, explicit migration approval, and no cloud synchronization.
+The MVP focuses on narrow grants, encrypted storage, append-only audit events, explicit migration planning, and GitHub/InGitDB provider risks.
 
 ## Risks
 

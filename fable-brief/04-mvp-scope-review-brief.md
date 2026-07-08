@@ -2,7 +2,7 @@
 
 ## Current Proposal
 
-The MVP is a local-first encrypted vault with CLI-first workflows, explicit app registration, capability grants, append-only audit logs, versioned schemas, and planned migrations. It excludes cloud sync, implicit AI writes, unreviewed extensions, Git-backed vault data, and multi-device collaboration.
+The MVP is an encrypted InGitDB/GitHub-backed vault with CLI-first workflows, explicit app registration, capability grants, append-only audit logs, versioned schemas, and planned migrations. SQLite is second and Firestore is third. It excludes general-purpose multi-provider sync, unreviewed extensions, and multi-device collaboration beyond the GitHub-backed storage model.
 
 ## Key Risks
 
@@ -10,13 +10,15 @@ The MVP is a local-first encrypted vault with CLI-first workflows, explicit app 
 - A broad MVP could invalidate the security model before review.
 - CLI-only workflows may not represent eventual user approval needs.
 - Local backup and recovery expectations may be under-specified.
+- GitHub history helps restore accidental changes but can retain secrets and metadata.
 
 ## Unresolved Questions
 
 - What minimal API should exist alongside the CLI?
-- What key recovery behavior is acceptable for a first release?
+- What passphrase recovery behavior is acceptable for a first release?
 - Which conformance tests block MVP release?
 - What happens to sibling repositories once this repo becomes canonical?
+- What InGitDB branch protection and repository visibility rules are mandatory?
 
 ## Expected Fable Review
 

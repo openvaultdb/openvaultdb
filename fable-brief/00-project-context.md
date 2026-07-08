@@ -4,21 +4,21 @@
 
 OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. This repository is the canonical public home for specifications, architecture documentation, security model, SpecScore workflow, contributors, and the future reference implementation.
 
-The proposed MVP is a local-first encrypted vault with explicit application registration, capability-based permissions, append-only audit logging, explicit migration approval, and CLI-first workflows.
+The proposed MVP is an encrypted vault using InGitDB/GitHub-backed storage first, with explicit application registration, capability-based permissions, append-only audit logging, migration planning, and CLI-first workflows. SQLite is the second backend target and Firestore is third.
 
 ## Key Risks
 
 - The permission model may be too complex for users to safely approve.
-- Local-first encryption can still fail through key handling, backups, logs, or device compromise.
+- GitHub-backed encryption can still fail through key handling, repository visibility, token leakage, Git history retention, backups, logs, or device compromise.
 - Schema evolution touches permissions, encryption, storage, and auditability.
 - AI-agent delegation can create confused-deputy and prompt-injection paths.
 
 ## Unresolved Questions
 
-- What key recovery model is acceptable?
-- Which AI actions require fresh human approval?
+- What passphrase recovery model is acceptable?
+- Do AI-initiated calls require special identity capture beyond normal application principal identity?
 - What minimum migration UX makes destructive changes understandable?
-- Should SQLite be the only MVP backend?
+- What InGitDB repository protection rules are mandatory?
 
 ## Expected Fable Review
 

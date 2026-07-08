@@ -24,7 +24,7 @@ Define requirements for transforming stored records between schema versions.
 
 ## MVP Behavior
 
-The MVP supports batch data migrations with checkpointed progress, validation, failed-record reporting, and rollback where a backup exists.
+The MVP supports batch data migrations with checkpointed progress, validation, failed-record reporting, fail-fast behavior on failed records, and rollback where a backup or Git history restore path exists.
 
 ## Risks
 
@@ -36,13 +36,13 @@ The MVP supports batch data migrations with checkpointed progress, validation, f
 ## Open Questions
 
 - Should transform code run in a sandbox for MVP?
-- Should failed records block the entire migration or enter quarantine?
+- Should quarantine be added after the fail-fast MVP?
 - What diagnostics can be shown without leaking sensitive data?
 
 ## Acceptance Criteria
 
 - A migration plan shows affected record count or states why it is unknown.
-- Every failed record has a traceable error and recovery state.
+- Every failed record has a traceable error and blocks migration completion in the MVP.
 - Re-running a migration after interruption does not duplicate side effects.
 
 ## Related Specifications

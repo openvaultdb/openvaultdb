@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Index conservative local-first MVP specifications.
+Index conservative encrypted GitHub/InGitDB-first MVP specifications.
 
 ## Key Concepts
 
-- Local encrypted vault first.
+- Encrypted InGitDB/GitHub-backed vault first.
 - Explicit application registration.
 - Capability-based permissions.
 - Append-only audit log.
@@ -27,7 +27,7 @@ Index conservative local-first MVP specifications.
 
 ## MVP Behavior
 
-The MVP is a local encrypted vault controlled through CLI workflows and explicit approvals.
+The MVP is an encrypted GitHub/InGitDB-backed vault controlled through CLI workflows and explicit grants.
 
 ## Risks
 
@@ -41,7 +41,7 @@ The MVP is a local encrypted vault controlled through CLI workflows and explicit
 
 ## Acceptance Criteria
 
-- MVP scope is reviewable and excludes cloud synchronization.
+- MVP scope is reviewable and excludes general-purpose multi-provider synchronization beyond GitHub/InGitDB.
 - Non-goals are clear enough to prevent accidental scope expansion.
 
 ## Related Specifications

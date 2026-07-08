@@ -2,12 +2,13 @@
 
 ## Current Proposal
 
-OpenVaultDB assumes hostile applications, confused AI agents, compromised providers, leaked credentials, stale permission caches, malicious extensions, careless users, and interrupted operations. The MVP minimizes trust through local encrypted storage, explicit registration, capability-scoped grants, revocation, and append-only audit events.
+OpenVaultDB assumes hostile applications, confused AI agents, compromised providers, leaked credentials, stale permission caches, malicious extensions, careless users, and interrupted operations. The MVP minimizes trust through encrypted InGitDB/GitHub-backed storage, explicit registration, capability-scoped grants, revocation, and append-only audit events.
 
 ## Key Risks
 
 - Stale permission caches may authorize after revocation.
 - Provider replay may resurrect old data or grants.
+- GitHub repository visibility, token scope, branch protection, and history retention become MVP security risks.
 - Audit logs can leak sensitive metadata.
 - Key recovery can undermine user ownership.
 - Local malware remains a residual risk.
@@ -15,7 +16,7 @@ OpenVaultDB assumes hostile applications, confused AI agents, compromised provid
 ## Unresolved Questions
 
 - What tamper-evidence level is required for MVP audit logs?
-- What rollback detection is required before any sync?
+- What rollback or history-rewrite detection is required for GitHub-backed storage?
 - Which metadata must be encrypted?
 - What local authentication is required for high-risk approvals?
 
