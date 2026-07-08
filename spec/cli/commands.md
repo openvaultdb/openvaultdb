@@ -9,7 +9,7 @@ Propose the MVP command surface without committing to exact flags.
 - Vault commands: create, lock, unlock, inspect, backup, restore.
 - App commands: register, list, inspect, revoke.
 - Grant commands: request, approve, deny, narrow, revoke.
-- Schema commands: add, inspect, diff, validate, migrate.
+- Schema commands: publish ModelSpec, inspect, diff, validate, migrate.
 - Migration commands: plan, approve, run, status, resume, rollback.
 
 ## Normative Requirements
@@ -26,7 +26,7 @@ Propose the MVP command surface without committing to exact flags.
 | `vault` | `init`, `status`, `lock`, `unlock`, `backup`, `restore` |
 | `app` | `register`, `list`, `inspect`, `revoke` |
 | `grant` | `request`, `approve`, `deny`, `revoke`, `list` |
-| `schema` | `add`, `show`, `diff`, `validate` |
+| `schema` | `publish`, `show`, `diff`, `validate` |
 | `migration` | `plan`, `approve`, `run`, `status`, `resume`, `rollback` |
 | `audit` | `tail`, `show`, `export`, `verify` |
 
@@ -45,6 +45,7 @@ Propose the MVP command surface without committing to exact flags.
 ## Acceptance Criteria
 
 - Command documentation maps each operation to required capabilities.
+- Schema commands document that applications publish ModelSpec and the vault owns backend mapping.
 - Migration status exposes progress, warnings, errors, and checkpoint state.
 - Export and destructive commands are auditable.
 

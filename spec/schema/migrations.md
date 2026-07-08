@@ -7,6 +7,8 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 ## Key Concepts
 
 - Migration plan: reviewable proposal before execution.
+- Current ModelSpec: schema version currently governing stored data.
+- Target ModelSpec: schema version requested by an application, user, or migration.
 - Migration classes: schema, data, permission, index, storage format, encryption, and key rotation.
 - Checkpoint: durable execution state.
 - Rollback: planned return path or compensating action.
@@ -15,6 +17,8 @@ Define planning, approval, execution, rollback, and resume behavior for schema-r
 ## Normative Requirements
 
 - Every migration MUST have a plan before execution.
+- Schema migration planning MUST compare the current ModelSpec and target ModelSpec before producing backend-specific migration steps.
+- Migration plans MUST distinguish ModelSpec semantic changes from OpenVaultDB-owned permission, audit, encryption, and backend changes.
 - A migration plan MUST identify requester, app or AI agent, affected collections, estimated affected records, estimated duration, risk level, reversibility, backup strategy, rollback strategy, required permissions, and user approvals.
 - Migrations MUST be checkpointed or idempotent.
 - Destructive changes, permission broadening, encryption changes, key rotation, storage backend migration, and AI-triggered migrations MUST require explicit approval.
@@ -48,6 +52,7 @@ The MVP runs one migration at a time per vault. The CLI displays a plan, require
 ## Related Specifications
 
 - [data-migrations.md](data-migrations.md)
+- [modelspec-integration.md](modelspec-integration.md)
 - [user-visible-migration-flow.md](user-visible-migration-flow.md)
 - [../security/audit-log.md](../security/audit-log.md)
 - [../testing/migration-test-matrix.md](../testing/migration-test-matrix.md)

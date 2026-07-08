@@ -11,12 +11,14 @@ Provide shared terms for architecture, security, schema, storage, and review dis
 | Vault | A user-owned encrypted data store plus schemas, permissions, audit log, and metadata. |
 | Principal | An actor such as a user, application, AI agent, extension, CLI session, or storage provider. |
 | Application | Software requesting access to vault data or schema operations. |
+| ModelSpec | Independent open specification language for application data models consumed by OpenVaultDB for logical schemas. |
 | AI agent | A delegated principal that can act on behalf of a user or application with explicit limits. |
 | Capability | A scoped, auditable authorization to perform specific operations on specific resources. |
 | Permission grant | A user-approved assignment of capabilities to a principal. |
 | Collection | A named group of records governed by a schema version and permissions. |
 | Record | A stored data item with identity, schema version metadata, and audit-relevant change history. |
-| Schema | A versioned definition of fields, constraints, indexes, and permission-relevant labels. |
+| Schema | A versioned ModelSpec definition plus OpenVaultDB-owned permission, audit, and storage metadata. |
+| Projection | Mapping from a logical ModelSpec model to a backend, API, query, or language representation. |
 | Migration | A planned transition of schema, data, permissions, indexes, storage format, or encryption state. |
 | Checkpoint | Durable migration progress metadata that allows resume or rollback decisions. |
 | Provider | A storage backend or synchronization service that may store encrypted vault bytes. |

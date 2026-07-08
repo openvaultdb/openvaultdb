@@ -6,7 +6,7 @@ Define how schemas are identified, compared, and upgraded.
 
 ## Key Concepts
 
-- Schema version: immutable identifier for a schema definition.
+- Schema version: immutable identifier for a loaded ModelSpec definition plus OpenVaultDB-owned metadata.
 - Compatibility: whether readers or writers can operate across versions.
 - Drift: mismatch between declared schema and stored records.
 - Version pin: application request to use a specific schema version.
@@ -14,6 +14,7 @@ Define how schemas are identified, compared, and upgraded.
 ## Normative Requirements
 
 - A published schema version MUST be immutable.
+- A loaded application schema version MUST record the ModelSpec module id, version, and source digest where available.
 - Schema versions MUST identify parent version or origin.
 - Compatibility metadata MUST state whether reads, writes, and migrations are allowed.
 - Applications MUST declare the schema version they expect or accept.
@@ -44,5 +45,6 @@ The MVP uses monotonically ordered collection schema versions with immutable def
 ## Related Specifications
 
 - [schema-model.md](schema-model.md)
+- [modelspec-integration.md](modelspec-integration.md)
 - [migrations.md](migrations.md)
 - [../cli/commands.md](../cli/commands.md)

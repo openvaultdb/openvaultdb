@@ -7,6 +7,7 @@ Define the project intent for OpenVaultDB before implementation begins.
 ## Key Concepts
 
 - User-controlled vault: the user owns the data, keys, permissions, and migration approvals.
+- ModelSpec consumption: applications publish ModelSpec and the vault maps it to the selected backend.
 - Hostile application assumption: applications are not trusted merely because the user installed them.
 - Specification-first workflow: architecture and security requirements are reviewed before production code.
 - Local-first MVP: the first implementation stores an encrypted vault locally and avoids cloud sync.
@@ -14,13 +15,14 @@ Define the project intent for OpenVaultDB before implementation begins.
 ## Normative Requirements
 
 - OpenVaultDB MUST make user consent explicit for access, schema changes, destructive operations, and migrations.
+- OpenVaultDB MUST consume ModelSpec directly for logical application schemas and MUST NOT require applications to author backend-specific schemas as the primary contract.
 - OpenVaultDB MUST treat applications, AI agents, extensions, and storage providers as separate principals.
 - OpenVaultDB MUST support auditability for permission grants, revocations, reads, writes, migrations, and key events.
 - OpenVaultDB MUST NOT require a trusted cloud provider for the MVP.
 
 ## MVP Behavior
 
-The MVP is a CLI-first encrypted local vault with explicit application registration, capability-based permissions, append-only audit logging, schema versioning, and reviewable migrations.
+The MVP is a CLI-first encrypted local vault with explicit application registration, capability-based permissions, append-only audit logging, ModelSpec-based schema versioning, and reviewable migrations.
 
 ## Risks
 
@@ -46,3 +48,4 @@ The MVP is a CLI-first encrypted local vault with explicit application registrat
 - [security/trust-model.md](security/trust-model.md)
 - [security/threat-model.md](security/threat-model.md)
 - [schema/migrations.md](schema/migrations.md)
+- [schema/modelspec-integration.md](schema/modelspec-integration.md)

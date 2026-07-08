@@ -7,6 +7,7 @@ Define requirements for transforming stored records between schema versions.
 ## Key Concepts
 
 - Transform: deterministic conversion from old record shape to new record shape.
+- ModelSpec diff: semantic difference between current and target ModelSpec versions.
 - Batch: bounded group of records processed between checkpoints.
 - Validation: checking transformed records against target schema.
 - Quarantine: isolated state for records that fail migration.
@@ -14,6 +15,7 @@ Define requirements for transforming stored records between schema versions.
 ## Normative Requirements
 
 - Data migrations MUST be deterministic or explicitly mark non-deterministic inputs.
+- Data migrations caused by schema changes MUST cite the ModelSpec diff that required them.
 - Each transformed record MUST be validated against the target schema before commit.
 - Data migrations MUST preserve record identity unless the plan states otherwise.
 - Failed records MUST be reported with safe diagnostics and MUST NOT be silently dropped.
@@ -46,6 +48,7 @@ The MVP supports batch data migrations with checkpointed progress, validation, f
 ## Related Specifications
 
 - [migrations.md](migrations.md)
+- [modelspec-integration.md](modelspec-integration.md)
 - [schema-model.md](schema-model.md)
 - [../security/capability-model.md](../security/capability-model.md)
 - [../testing/migration-test-matrix.md](../testing/migration-test-matrix.md)

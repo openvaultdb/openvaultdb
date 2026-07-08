@@ -12,7 +12,7 @@ Implementation-independent specifications for OpenVaultDB.
 | [risky-assumptions.md](risky-assumptions.md) | Assumptions that could invalidate the architecture. |
 | [decision-log.md](decision-log.md) | Current high-level decisions before formal ADRs. |
 | [security/](security/README.md) | Trust, threat, permission, capability, AI-agent, and audit models. |
-| [schema/](schema/README.md) | Schema definition, versioning, and migration behavior. |
+| [schema/](schema/README.md) | ModelSpec consumption, schema definition, versioning, and migration behavior. |
 | [storage/](storage/README.md) | Local-first and backend trust assumptions. |
 | [cli/](cli/README.md) | CLI behavior and command surface. |
 | [api/](api/README.md) | Application and agent API model. |
@@ -27,7 +27,7 @@ Implementation-independent specifications for OpenVaultDB.
 
 - Specifications MUST distinguish decisions, assumptions, open questions, and requirements.
 - Security-sensitive behavior MUST reference [security/threat-model.md](security/threat-model.md).
-- Schema-changing behavior MUST reference [schema/migrations.md](schema/migrations.md).
+- Schema-changing behavior MUST reference [schema/modelspec-integration.md](schema/modelspec-integration.md) and [schema/migrations.md](schema/migrations.md).
 - MVP implementation work SHOULD reference [mvp/local-first-encrypted-vault.md](mvp/local-first-encrypted-vault.md).
 
 ## Open Questions

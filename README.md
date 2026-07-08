@@ -1,6 +1,6 @@
 # OpenVaultDB
 
-OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. The project is intended to let users own application data, define schemas explicitly, grant narrow capabilities, audit access, and move between storage providers without trusting any single application or backend with unchecked authority.
+OpenVaultDB is a user-controlled private data vault and database layer for applications and AI agents. The project is intended to let users own application data, publish schemas as ModelSpec, grant narrow capabilities, audit access, and move between storage providers without trusting any single application or backend with unchecked authority.
 
 This repository is the public gravity point for OpenVaultDB specifications, architecture review, security model review, SpecScore reports, contributors, and the future reference implementation.
 
@@ -10,6 +10,7 @@ This repository is the public gravity point for OpenVaultDB specifications, arch
 - Define an implementation-independent vault, schema, permission, storage, and migration model before production code.
 - Support hostile or compromised applications, confused AI agents, leaked credentials, stale permission caches, and untrusted storage providers.
 - Make schema evolution explicit, reviewable, resumable, reversible where possible, and auditable.
+- Consume ModelSpec directly for logical application schemas, migration planning, backend mapping, GraphQL generation, DTQL typing metadata, DALGO metadata, and backend generators.
 - Start with a conservative local-first encrypted MVP before cloud synchronization.
 
 ## Architecture-First Development
