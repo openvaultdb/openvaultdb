@@ -223,6 +223,46 @@ steps:
       database-root: .
 ```
 
+#### Canonical complete-Space snapshot file
+
+The one-time export MUST write exactly one managed data file for its Space:
+`sneat/spaces/<space-id>/space.yaml`. That file MUST use the qualified
+`sneat.app-firestore-space.v1` snapshot format and this deterministic envelope:
+
+```yaml
+snapshotFormat: sneat.app-firestore-space.v1
+spaceId: <space-id>
+document:
+  exists: true
+  fields: {}
+  collections: {}
+```
+
+`document` represents the Firestore document at `spaces/<space-id>`.
+`collections` maps each immediate collection ID to a map of document ID to the
+same recursive document envelope. A missing parent document that owns live
+subcollections MUST be retained with `exists: false`; an existing empty document
+MUST use `exists: true` and `fields: {}`. Collection IDs, document IDs, and field
+names MUST remain unmodified map keys. The encoder MUST sort all map keys and
+MUST NOT derive repository paths from those IDs, so a Firestore ID cannot escape
+the one managed `space.yaml` path.
+
+Firestore scalar values MUST round-trip without ambiguous YAML coercion. Null,
+boolean, string, integer, and floating-point values use their native YAML scalar
+forms. Arrays and maps recurse. Firestore-only values use a reserved map with an
+exact `$firestoreType` discriminator: `timestamp` with RFC 3339 nanosecond UTC
+`value`, `bytes` with base64 `value`, `reference` with canonical Firestore
+document `path`, `geoPoint` with numeric `latitude` and `longitude`, and
+`vector32` or `vector64` with a numeric `value` array. The encoder MUST reject an
+unsupported runtime value instead of emitting a lossy representation.
+
+The Sneat.app backend MUST read the root document and every descendant document,
+including missing parent documents returned by Firestore document-reference
+enumeration, and MUST fail the export if the root Space document is missing. The
+snapshot source revision MUST be derived from the exact canonical `space.yaml`
+bytes and the qualified schema identity. Snapshot plaintext remains request
+scoped and MUST NOT be persisted outside the provider-bound Git tree operation.
+
 #### REQ: managed-space-layout
 
 All Sneat.app Space record data MUST live under
