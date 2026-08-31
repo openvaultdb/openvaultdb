@@ -146,6 +146,53 @@ configuration MUST live at `/.ingitdb/`. The installed workflow MUST validate
 the database from the repository root rather than treating each Space as an
 independent database.
 
+#### Concrete data-free onboarding file profile
+
+The onboarding pull request MUST establish this exact shared-layout profile
+before any Space records are exported:
+
+`.ingitdb/root-collections.yaml`:
+
+```yaml
+spaces: sneat/.collections/spaces
+```
+
+`sneat/.collections/spaces/definition.yaml` MUST declare the collection's data
+directory:
+
+```yaml
+data_dir: spaces
+record_file:
+  name: "{key}/space.yaml"
+  records_dir: .
+  type: "map[string]any"
+  format: yaml
+```
+
+For the shared `.collections/` layout, inGitDB resolves `data_dir` relative to
+the parent of `.collections/`, not relative to the schema directory. Therefore
+the mapping above has base directory `sneat/` and resolves to
+`sneat/spaces/`; a future Space export owns its record subtree at
+`sneat/spaces/<space-id>/`. The onboarding pull request MUST contain these
+configuration and schema files but MUST contain no `sneat/spaces/` records.
+
+The validation workflow MUST grant only repository `contents: read`, invoke
+`ingitdb/ingitdb-action` at the immutable commit
+`e5bf046ef02d9801d047149928e2adb0cb3d9b4e`, pass the exact
+`ingitdb/ingitdb-cli` release `v0.65.14`, and validate `database-root: .` as one
+repository-wide database. A representative invocation is:
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - uses: ingitdb/ingitdb-action@e5bf046ef02d9801d047149928e2adb0cb3d9b4e
+    with:
+      cli-version: v0.65.14
+      database-root: .
+```
+
 #### REQ: managed-space-layout
 
 All Sneat.app Space record data MUST live under
@@ -386,10 +433,12 @@ typed retryable or terminal result suitable for its settings UI.
   checksum-verified GitHub Action used by generated workflows.
 - `openvaultdb/openvaultdb-go` supplies the reference server, GitHub API tree,
   branch, pull-request, check-correlation, and export implementation.
-- The OpenVaultDB Cloud authentication architecture decision that currently
-  assigns provider access to each application must be superseded before this
-  feature is implemented; this feature requires the OpenVaultDB GitHub App to
-  own provider access.
+- The `ingitdb/ingitdb-go` module `v0.6.0` explicit-record-base support is
+  required for `record_file.records_dir: .` in this profile.
+- The OpenVaultDB Cloud authentication architecture decision permits this
+  feature as an optional managed backup/export provider while preserving the
+  decentralized core and self-hosted protocol. This feature uses the managed
+  service's OpenVaultDB GitHub App as its provider principal.
 
 ## Open Questions
 
