@@ -73,7 +73,7 @@ own GitHub Apps for this export contract.
 
 The provider GitHub App MUST have the user-facing name **OpenVaultDB** and be
 owned by the `openvaultdb` organization. Its registration contract MUST use
-`https://openvaultdb.com/` as the homepage, the existing fixed setup callback
+`https://openvaultdb.com/` as the homepage, the existing fixed OAuth callback
 `https://sneat.app/github/ovdb-installed`, and the corresponding installation
 URL `https://github.com/apps/openvaultdb/installations/new` once the App slug is
 registered. Installation MUST request user authorization during installation
@@ -109,10 +109,17 @@ supplies the application-scoped Space identity.
 #### REQ: installation-callback-verification
 
 The connection session MUST bind application, user, Space, intended operation,
-expiry, and a single-use nonce. OpenVaultDB MUST treat callback parameters,
-including `installation_id`, as untrusted and verify through GitHub that the
-returning user controls the installation and selected repository before
-creating a connection.
+expiry, and a single-use nonce. With user authorization requested during
+installation, GitHub redirects to the OAuth callback with a one-time `code` and
+the opaque `state`; it does not guarantee the Setup URL's `installation_id`
+parameter. OpenVaultDB MUST exchange the code server-side, enumerate only the
+returning user's installations for this App and their selected repositories,
+and derive the installation ID, stable repository ID, owner, and repository
+name from GitHub rather than accepting them as browser authority. This milestone
+MUST create a connection only when exactly one private selected repository is
+resolved; zero, multiple, or public repositories produce a typed,
+side-effect-free failure. The user token MUST remain transient and MUST NOT be
+persisted.
 
 #### REQ: least-privilege-github-installation
 
@@ -389,11 +396,11 @@ typed retryable or terminal result suitable for its settings UI.
 **When** the callback is completed
 **Then** OpenVaultDB independently verifies the GitHub user, installation and repository, stores only durable connection metadata, and gives the Sneat.app backend a one-time connection result without exposing a GitHub credential
 
-### AC: spoofed-installation-id-is-rejected (verifies REQ:installation-callback-verification, REQ:cancelled-connect-is-retryable)
+### AC: ambiguous-installation-selection-is-rejected (verifies REQ:installation-callback-verification, REQ:cancelled-connect-is-retryable)
 
-**Given** a valid connection session but an `installation_id` for an installation the returning GitHub user does not control
+**Given** a valid connection session but the OAuth-authorized user has zero or multiple private repositories selected for this App
 **When** OpenVaultDB processes the callback
-**Then** it rejects the connection, emits an audit event, changes no repository file, and returns a typed failure
+**Then** it rejects the connection, changes no repository file, returns a typed failure, and does not accept a browser-supplied installation or repository identity as a fallback
 
 ### AC: cancelled-install-is-side-effect-free (verifies REQ:cancelled-connect-is-retryable)
 
@@ -515,7 +522,7 @@ typed retryable or terminal result suitable for its settings UI.
 - Which managed-provider deployment environment and public API base URL should
   be used for the first production rollout, and how should its
   `sneat.app` application credentials be partitioned from development?
-- Should the fixed setup callback remain the shared `sneat.app` landing route,
+- Should the fixed OAuth callback remain the shared `sneat.app` landing route,
   or should a later OpenVaultDB-owned callback be introduced while preserving
   the same one-time state and OAuth-code verification contract?
 - Should OpenVaultDB attempt to install a GitHub repository ruleset requiring
