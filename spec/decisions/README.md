@@ -11,6 +11,7 @@ format: https://specscore.md/decisions-index-specification
 | [0001](0001-canonical-specification-repository.md) | Canonical Specification Repository | Draft | 2026-07-08 | repository,specification | — |
 | [0002](0002-github-ingitdb-first-generator-layout.md) | GitHub InGitDB First Generator Layout | Approved | 2026-07-08 | storage,github,ingitdb,generator | — |
 | [0003](0003-modelspec-cli-diagnostics.md) | ModelSpec CLI Diagnostics | Approved | 2026-07-08 | modelspec,cli,diagnostics | — |
+| [0004](0004-sneat-co-identity-and-space-principals.md) | Sneat Co. Identity and Space Principals for OpenVaultDB Cloud | Approved | 2026-08-31 | authentication,authorization,cloud,sneat,spaces | [Cloud CLI device login](../features/cloud-cli-device-login/README.md), [Sneat.app Space Export to GitHub](../features/sneat-space-export/README.md) |
 
 ## Open Questions
 

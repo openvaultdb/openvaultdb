@@ -37,8 +37,9 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
      open the printed URL manually; no second command is required.
 2. **Middle — authenticate and decide in the browser.** The page at
    `https://cloud.openvaultdb.com/device` resolves the code, authenticates the
-   person through the existing OpenVaultDB Firebase identity providers, and
-   displays the requesting client plus each requested scope before any grant.
+   person through the shared Sneat Co. Firebase identity, discloses that
+   OpenVaultDB is a Sneat Co. product, and displays the requesting client plus
+   each requested scope before any grant.
    - **Observable good result:** the browser actor sees `OpenVaultDB CLI`, the
      exact `account:read` scope, the account being used, and distinct Approve
      and Deny actions. The waiting terminal does not receive a token before
@@ -83,6 +84,28 @@ The initial registered public client is `ovdb-cli`, named `OpenVaultDB CLI`,
 with `account:read`. Future clients get distinct client registrations and may
 reuse the shared Go module without sharing tokens or product policy.
 
+### Hosted identity and collaboration boundary
+
+OpenVaultDB Cloud uses the verified `sneat-eur3-1` Firebase UID directly as the
+Sneat Co. `userID`; it does not introduce a second OpenVaultDB account ID. The
+device token remains an OpenVaultDB credential bound to the authenticated user,
+registered client, scopes, expiry, and revocation state. It is not accepted as
+a general Sneat Co. API token.
+
+A Sneat Co. Space is a collaborative grant subject independently of whether it
+is presented by `sneat.work`, `sneat.app`, or an extension mini-app. Products,
+extensions, services, and CLIs are registered clients rather than Spaces or
+users, and receive no ambient access from the surface in which they run.
+
+A contact without a linked Sneat Co. `userID` can be the target of a pending
+invitation but not active authenticated access. The long-lived device token
+does not snapshot Space memberships or roles; resource authorization evaluates
+current membership and the current OpenVaultDB grant. Contact invitation and
+resource-grant endpoints are outside this device-login feature.
+
+See
+[Decision 0004](../../decisions/0004-sneat-co-identity-and-space-principals.md).
+
 The OpenVaultDB Cloud service exposes:
 
 | Method and path | Purpose |
@@ -103,7 +126,8 @@ The OpenVaultDB Cloud service exposes:
 - User codes are short-lived and public code creation, lookup, and polling are
   protected by Cloudflare rate-limit bindings.
 - Approval requires a currently valid Firebase ID token whose issuer and
-  audience match the `openvaultdb` Firebase project.
+  audience match the shared Sneat Co. Firebase project `sneat-eur3-1`; its
+  subject is stored directly as the Sneat Co. `userID`.
 - The first-party CLI access token is opaque, capability-scoped, revocable, and
   valid for at most one year. Every authenticated API use checks D1 for expiry
   and revocation.
@@ -122,15 +146,17 @@ The OpenVaultDB Cloud service exposes:
    login/status/logout journey test.
 2. Browser launch failure leaves a manual path and does not cancel polling.
    **Verifies:** shared module browser-fallback test.
-3. The approval page shows the registered client, exact requested scopes, and
-   signed-in account before distinct approve/deny actions. **Verifies:** Worker
-   asset/security test plus human smoke test after deployment.
+3. The approval page shows the registered client, exact requested scopes,
+   signed-in Sneat Co. account, and OpenVaultDB's Sneat Co. product relationship
+   before distinct approve/deny actions. **Verifies:** Worker asset/security
+   test plus human smoke test after deployment.
 4. Pending, excessive polling, denial, expiry, approval, exchange replay, and
    concurrent exchange have RFC-compatible terminal behavior. **Verifies:**
    isolated Worker/D1 protocol tests.
-5. Approval accepts only a verified Firebase identity; unknown clients,
+5. Approval accepts only a verified `sneat-eur3-1` Firebase identity and returns
+   that identity's subject as the OpenVaultDB Cloud `userID`; unknown clients,
    unregistered scopes, and unauthenticated decisions fail. **Verifies:**
-   isolated Worker/D1 negative-path tests.
+   isolated Worker/D1 identity and negative-path tests.
 6. Raw codes and tokens are absent from D1 and the issued token can authenticate
    `/oauth/userinfo`, then fails immediately after revocation. **Verifies:**
    Worker/D1 persistence and revocation tests.

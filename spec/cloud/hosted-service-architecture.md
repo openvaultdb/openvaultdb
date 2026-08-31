@@ -82,11 +82,20 @@ Responsibilities:
 
 The first deployed auth slice is the browser-approved CLI device authorization
 service at `cloud.openvaultdb.com`. It is a Cloudflare Worker with static assets,
-Cloudflare D1 authorization/token state, and Firebase identity verification.
-It exposes RFC 8628 device and token endpoints plus user-info and revocation;
-it does not contain vault data-plane behavior. This focused deployment can be
+Cloudflare D1 authorization/token state, and verification of the shared Sneat
+Co. Firebase identity. The verified Firebase UID is used directly as the Sneat
+Co. `userID`; OpenVaultDB Cloud does not create a parallel account ID. It
+exposes RFC 8628 device and token endpoints plus user-info and revocation; it
+does not contain vault data-plane behavior. This focused deployment can be
 folded into a later general control plane without moving the product-neutral Go
 client implementation or changing the device protocol.
+
+Sneat Co. Spaces are collective grant subjects independent of the product or
+extension mini-app presenting them. Products, extensions, services, and CLIs
+remain distinct registered clients. Device tokens identify a user and client
+but do not freeze Space membership or roles; protected resource access resolves
+current membership and the current OpenVaultDB grant. Third-party OpenVaultDB
+providers can bind the same boundary to another identity and group resolver.
 
 ### Control Plane API
 

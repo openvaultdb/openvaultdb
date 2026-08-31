@@ -11,11 +11,16 @@ Define the authentication and authorization model for OpenVaultDB: identity type
 | Principal Type | Description | Typical Auth Method |
 |---|---|---|
 | User | Human vault owner | OIDC, Passkey, API key |
+| Group / Space | Collaborative grant subject whose members authenticate individually | Authoritative membership resolution |
 | Application | Registered software | Client credentials (ID + secret) |
 | AI Agent | Automated agent delegated by a user | Scoped delegated token |
 | Service Account | Server-to-server communication | Client credentials (signed JWT) |
 
 > **Key distinction**: Applications and AI agents are NOT users. They may act on behalf of users, but their access is governed by explicit capability grants — not by user-level permissions.
+
+A group or Space does not authenticate as a human. It is a collective grant
+subject: an authenticated user acts within it only while the current membership
+and role checks permit it. The hosted Sneat Co. profile below uses a Space.
 
 ## Authentication Mechanisms
 
@@ -58,12 +63,35 @@ Device Authorization Grant. The CLI displays a short-lived user code and opens
 the browser approval page; it never embeds a client secret or asks the user to
 paste an access token into the terminal.
 
-The browser authenticates through Firebase, displays the registered CLI and
-requested scopes, and records an explicit approve or deny decision. Approved
-device codes exchange exactly once for an opaque, capability-scoped token.
+The browser authenticates through the shared Sneat Co. Firebase identity,
+displays the registered CLI and requested scopes, and records an explicit
+approve or deny decision. Approved device codes exchange exactly once for an
+opaque, capability-scoped token.
 OpenVaultDB Cloud stores only token digests and checks expiry and revocation on
 every authenticated use. The initial `ovdb-cli` registration receives only
 `account:read`; its token is revocable and valid for at most one year.
+
+### OpenVaultDB Cloud hosted identity profile
+
+For the Sneat Co.-operated hosted service:
+
+- the verified `sneat-eur3-1` Firebase UID is the canonical Sneat Co. `userID`
+  and OpenVaultDB Cloud MUST use it directly without creating a second account
+  ID;
+- a Sneat Co. Space identified by `spaceID` is a first-class collaborative
+  grant subject regardless of whether `sneat.work`, `sneat.app`, or an extension
+  mini-app presents it;
+- products, extension mini-apps, services, and CLIs are registered clients,
+  separate from the user or Space on whose behalf they may act;
+- a contact without a linked `userID` can receive only a pending invitation,
+  not active authenticated access; and
+- device tokens MUST NOT embed a snapshot of Space membership or roles. The
+  current membership and OpenVaultDB grant are checked when a protected
+  resource is used.
+
+This profile applies to OpenVaultDB Cloud, not to the implementation-independent
+protocol or third-party providers. See
+[../decisions/0004-sneat-co-identity-and-space-principals.md](../decisions/0004-sneat-co-identity-and-space-principals.md).
 
 See [../features/cloud-cli-device-login/README.md](../features/cloud-cli-device-login/README.md)
 for the complete journey, storage policy, and endpoint contract.
