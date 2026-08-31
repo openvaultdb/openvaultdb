@@ -72,11 +72,11 @@ own GitHub Apps for this export contract.
 #### REQ: openvaultdb-github-app-registration
 
 The provider GitHub App MUST have the user-facing name **OpenVaultDB** and be
-owned by the `openvaultdb` organization. Its registration contract MUST use
-`https://openvaultdb.com/` as the homepage, the existing fixed OAuth callback
-`https://sneat.app/github/ovdb-installed`, and the corresponding installation
-URL `https://github.com/apps/openvaultdb/installations/new` once the App slug is
-registered. Installation MUST request user authorization during installation
+owned by the `openvaultdb` organization. The registered App identity is App ID
+`4786001`, OAuth client ID `Iv23liJsM9tKD7ZnLwDo`, and slug `openvaultdb`. Its
+registration contract MUST use `https://openvaultdb.com/` as the homepage, the
+fixed OAuth callback `https://sneat.app/github/ovdb-installed`, and installation
+URL `https://github.com/apps/openvaultdb/installations/new`. Installation MUST request user authorization during installation
 and offer **Only select repositories**; each connection flow MUST select exactly
 one private repository, while one installed repository MAY contain multiple
 Spaces. The App MUST request repository permissions of metadata read, contents
