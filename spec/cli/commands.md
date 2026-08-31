@@ -29,6 +29,13 @@ Propose the MVP command surface without committing to exact flags.
 | `schema` | `publish`, `show`, `diff`, `validate` |
 | `migration` | `plan`, `approve`, `run`, `status`, `resume`, `rollback` |
 | `audit` | `tail`, `show`, `export`, `verify` |
+| `cloud` | `login`, `status`, `logout` |
+
+`cloud login` uses browser-approved OAuth 2.0 device authorization and stores
+the credential in the operating-system keyring by default. It MUST NOT silently
+fall back to plaintext storage. `cloud status` validates the credential with the
+cloud host rather than trusting local presence alone. `cloud logout` revokes
+the remote token before removing the local credential.
 
 ## Risks
 
