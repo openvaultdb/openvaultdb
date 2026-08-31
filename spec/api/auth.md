@@ -51,6 +51,23 @@ For programmatic access and CLI use:
 
 > **Risk**: API key theft grants persistent access until revocation. Short-lived API keys with refresh are more secure but more complex.
 
+### First-party CLI Device Authorization
+
+First-party public CLIs authenticate to OpenVaultDB Cloud with the OAuth 2.0
+Device Authorization Grant. The CLI displays a short-lived user code and opens
+the browser approval page; it never embeds a client secret or asks the user to
+paste an access token into the terminal.
+
+The browser authenticates through Firebase, displays the registered CLI and
+requested scopes, and records an explicit approve or deny decision. Approved
+device codes exchange exactly once for an opaque, capability-scoped token.
+OpenVaultDB Cloud stores only token digests and checks expiry and revocation on
+every authenticated use. The initial `ovdb-cli` registration receives only
+`account:read`; its token is revocable and valid for at most one year.
+
+See [../features/cloud-cli-device-login/README.md](../features/cloud-cli-device-login/README.md)
+for the complete journey, storage policy, and endpoint contract.
+
 ### Application Credentials (Client Credentials)
 
 For registered applications:
@@ -102,6 +119,7 @@ Token lifetimes (draft):
 | User (OIDC) | 15 minutes | 30 days |
 | User (Passkey) | 15 minutes | 30 days |
 | User (API key) | 1 hour | n/a (re-exchange with key) |
+| First-party cloud CLI device token | 1 year maximum | n/a (repeat device authorization) |
 | Application | 15 minutes | 7 days |
 | AI Agent | 15 minutes | n/a (no refresh; re-delegate) |
 

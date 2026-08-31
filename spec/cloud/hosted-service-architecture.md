@@ -80,6 +80,14 @@ Responsibilities:
 
 > **Risk**: Auth Service is a single point of failure for all vault access. Compromise allows impersonation of any user.
 
+The first deployed auth slice is the browser-approved CLI device authorization
+service at `cloud.openvaultdb.com`. It is a Cloudflare Worker with static assets,
+Cloudflare D1 authorization/token state, and Firebase identity verification.
+It exposes RFC 8628 device and token endpoints plus user-info and revocation;
+it does not contain vault data-plane behavior. This focused deployment can be
+folded into a later general control plane without moving the product-neutral Go
+client implementation or changing the device protocol.
+
 ### Control Plane API
 
 Responsibilities:
