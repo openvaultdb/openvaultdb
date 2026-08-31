@@ -14,14 +14,14 @@ status: Draft
 
 ## Summary
 
-OpenVaultDB Cloud receives a complete Sneat.app Space snapshot and opens a repository-wide validated pull request in a user-selected private GitHub repository.
+OpenVaultDB receives a complete Sneat.app Space snapshot and opens a repository-wide validated pull request in a user-selected private GitHub repository.
 
 ## Problem
 
 Sneat Cloud needs to export a complete Space snapshot into a user-owned private
 GitHub repository without teaching Sneat.app, its backend, or every extension
 how to authenticate to GitHub, construct InGitDB paths, publish a branch, or
-resolve concurrent writes. OpenVaultDB Cloud is the owner of that provider
+resolve concurrent writes. OpenVaultDB is the owner of that provider
 boundary, but its current specifications do not define an application-driven
 snapshot export, data-free repository onboarding, multi-Space repository
 profile, pull-request validation state, or durable receipt that binds an
@@ -38,7 +38,7 @@ control plane into a second durable copy of the user's records.
 ### End-to-end journey
 
 1. Sneat.app requests a short-lived connection session from its backend. The
-   backend authenticates to OpenVaultDB Cloud as the registered `sneat.app`
+   backend authenticates to OpenVaultDB as the registered `sneat.app`
    application and redirects the user to install the OpenVaultDB GitHub App on
    one selected private repository.
 2. OpenVaultDB verifies the returning GitHub identity, installation, selected
@@ -64,10 +64,40 @@ control plane into a second durable copy of the user's records.
 
 #### REQ: openvaultdb-github-app-is-provider-principal
 
-OpenVaultDB Cloud MUST use its own GitHub App as the sole provider principal.
+OpenVaultDB MUST use its own GitHub App as the sole provider principal.
 Consuming applications MUST NOT receive the App private key, installation
 tokens, or GitHub OAuth credentials and MUST NOT be required to register their
 own GitHub Apps for this export contract.
+
+#### REQ: openvaultdb-github-app-registration
+
+The provider GitHub App MUST have the user-facing name **OpenVaultDB** and be
+owned by the `openvaultdb` organization. The registered App identity is App ID
+`4786001`, OAuth client ID `Iv23liJsM9tKD7ZnLwDo`, and slug `openvaultdb`. Its
+registration contract MUST use `https://openvaultdb.com/` as the homepage, the
+fixed OAuth callback `https://sneat.app/github/ovdb-installed`, and installation
+URL `https://github.com/apps/openvaultdb/installations/new`. Installation MUST request user authorization during installation
+and offer **Only select repositories**; each connection flow MUST select exactly
+one private repository, while one installed repository MAY contain multiple
+Spaces. The App MUST request repository permissions of metadata read, contents
+write, pull requests write, checks read, and workflows write. The provider MUST
+poll GitHub pull-request, check, and repository APIs; no webhook is required
+for correctness.
+
+#### REQ: openvaultdb-github-app-deployment
+
+The managed provider deployment MUST receive these configuration values:
+`OVDB_GITHUB_APP_ID`, `OVDB_GITHUB_APP_INSTALL_URL`, and
+`OVDB_GITHUB_OAUTH_CLIENT_ID`. It MUST receive
+`OVDB_GITHUB_APP_PRIVATE_KEY` and `OVDB_GITHUB_OAUTH_CLIENT_SECRET` through
+the deployment secret manager. The private key, OAuth client secret, OAuth
+codes, and installation tokens MUST never be committed, stored in repository
+configuration, persisted in the control-plane database, or written to logs.
+Installation tokens are minted ephemerally and kept only in process memory;
+the Sneat.app backend and browser receive neither tokens nor the App private
+key. A deployment MUST fail closed when a required credential or App identity
+is absent, and the deployment environment MUST keep development credentials
+separate from production credentials.
 
 #### REQ: authenticated-application-contract
 
@@ -79,10 +109,17 @@ supplies the application-scoped Space identity.
 #### REQ: installation-callback-verification
 
 The connection session MUST bind application, user, Space, intended operation,
-expiry, and a single-use nonce. OpenVaultDB MUST treat callback parameters,
-including `installation_id`, as untrusted and verify through GitHub that the
-returning user controls the installation and selected repository before
-creating a connection.
+expiry, and a single-use nonce. With user authorization requested during
+installation, GitHub redirects to the OAuth callback with a one-time `code` and
+the opaque `state`; it does not guarantee the Setup URL's `installation_id`
+parameter. OpenVaultDB MUST exchange the code server-side, enumerate only the
+returning user's installations for this App and their selected repositories,
+and derive the installation ID, stable repository ID, owner, and repository
+name from GitHub rather than accepting them as browser authority. This milestone
+MUST create a connection only when exactly one private selected repository is
+resolved; zero, multiple, or public repositories produce a typed,
+side-effect-free failure. The user token MUST remain transient and MUST NOT be
+persisted.
 
 #### REQ: least-privilege-github-installation
 
@@ -125,7 +162,7 @@ browser-derived record list MUST NOT be accepted by this contract.
 
 #### REQ: snapshot-plaintext-is-transient
 
-OpenVaultDB Cloud MAY process snapshot plaintext in memory and provider-bound
+OpenVaultDB MAY process snapshot plaintext in memory and provider-bound
 request streams, but MUST NOT persist record plaintext in its control-plane
 database, logs, traces, error payloads, or audit events. Durable record data is
 the user's Git repository.
@@ -192,6 +229,46 @@ steps:
       cli-version: v0.65.14
       database-root: .
 ```
+
+#### Canonical complete-Space snapshot file
+
+The one-time export MUST write exactly one managed data file for its Space:
+`sneat/spaces/<space-id>/space.yaml`. That file MUST use the qualified
+`sneat.app-firestore-space.v1` snapshot format and this deterministic envelope:
+
+```yaml
+snapshotFormat: sneat.app-firestore-space.v1
+spaceId: <space-id>
+document:
+  exists: true
+  fields: {}
+  collections: {}
+```
+
+`document` represents the Firestore document at `spaces/<space-id>`.
+`collections` maps each immediate collection ID to a map of document ID to the
+same recursive document envelope. A missing parent document that owns live
+subcollections MUST be retained with `exists: false`; an existing empty document
+MUST use `exists: true` and `fields: {}`. Collection IDs, document IDs, and field
+names MUST remain unmodified map keys. The encoder MUST sort all map keys and
+MUST NOT derive repository paths from those IDs, so a Firestore ID cannot escape
+the one managed `space.yaml` path.
+
+Firestore scalar values MUST round-trip without ambiguous YAML coercion. Null,
+boolean, string, integer, and floating-point values use their native YAML scalar
+forms. Arrays and maps recurse. Firestore-only values use a reserved map with an
+exact `$firestoreType` discriminator: `timestamp` with RFC 3339 nanosecond UTC
+`value`, `bytes` with base64 `value`, `reference` with canonical Firestore
+document `path`, `geoPoint` with numeric `latitude` and `longitude`, and
+`vector32` or `vector64` with a numeric `value` array. The encoder MUST reject an
+unsupported runtime value instead of emitting a lossy representation.
+
+The Sneat.app backend MUST read the root document and every descendant document,
+including missing parent documents returned by Firestore document-reference
+enumeration, and MUST fail the export if the root Space document is missing. The
+snapshot source revision MUST be derived from the exact canonical `space.yaml`
+bytes and the qualified schema identity. Snapshot plaintext remains request
+scoped and MUST NOT be persisted outside the provider-bound Git tree operation.
 
 #### REQ: managed-space-layout
 
@@ -319,11 +396,11 @@ typed retryable or terminal result suitable for its settings UI.
 **When** the callback is completed
 **Then** OpenVaultDB independently verifies the GitHub user, installation and repository, stores only durable connection metadata, and gives the Sneat.app backend a one-time connection result without exposing a GitHub credential
 
-### AC: spoofed-installation-id-is-rejected (verifies REQ:installation-callback-verification, REQ:cancelled-connect-is-retryable)
+### AC: ambiguous-installation-selection-is-rejected (verifies REQ:installation-callback-verification, REQ:cancelled-connect-is-retryable)
 
-**Given** a valid connection session but an `installation_id` for an installation the returning GitHub user does not control
+**Given** a valid connection session but the OAuth-authorized user has zero or multiple private repositories selected for this App
 **When** OpenVaultDB processes the callback
-**Then** it rejects the connection, emits an audit event, changes no repository file, and returns a typed failure
+**Then** it rejects the connection, changes no repository file, returns a typed failure, and does not accept a browser-supplied installation or repository identity as a fallback
 
 ### AC: cancelled-install-is-side-effect-free (verifies REQ:cancelled-connect-is-retryable)
 
@@ -435,13 +512,19 @@ typed retryable or terminal result suitable for its settings UI.
   branch, pull-request, check-correlation, and export implementation.
 - The `ingitdb/ingitdb-go` module `v0.6.0` explicit-record-base support is
   required for `record_file.records_dir: .` in this profile.
-- The OpenVaultDB Cloud authentication architecture decision permits this
+- The OpenVaultDB authentication architecture decision permits this
   feature as an optional managed backup/export provider while preserving the
   decentralized core and self-hosted protocol. This feature uses the managed
   service's OpenVaultDB GitHub App as its provider principal.
 
 ## Open Questions
 
+- Which managed-provider deployment environment and public API base URL should
+  be used for the first production rollout, and how should its
+  `sneat.app` application credentials be partitioned from development?
+- Should the fixed OAuth callback remain the shared `sneat.app` landing route,
+  or should a later OpenVaultDB-owned callback be introduced while preserving
+  the same one-time state and OAuth-code verification contract?
 - Should OpenVaultDB attempt to install a GitHub repository ruleset requiring
   the validation check? Recommendation: not in the first release because it
   requires broader administration permissions; document an owner-enabled
@@ -449,6 +532,9 @@ typed retryable or terminal result suitable for its settings UI.
 - Which durable control-plane database should hold connection metadata and
   receipts? The choice must not change the API contract or permit record
   plaintext persistence.
+- Should proactive `installation` and `installation_repositories` webhooks be
+  added for faster revocation status, given that polling and lazy API failures
+  remain the correctness mechanism?
 
 ---
 *This document follows the https://specscore.md/feature-specification*
