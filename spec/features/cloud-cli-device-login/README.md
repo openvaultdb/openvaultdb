@@ -76,8 +76,10 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
 | Component | Responsibility |
 |---|---|
 | `github.com/strongo/deviceauth` | Product-neutral RFC 8628 login UX, best-effort browser launch, OS keyring storage, and explicitly selected plaintext storage. |
-| `github.com/openvaultdb/cloud` | Cloudflare Worker endpoints, browser approval page, Firebase ID-token verification, D1 authorization/token state, rate limits, and revocation. |
-| `github.com/openvaultdb/ovdb` | `cloud login`, `cloud status`, and `cloud logout`; OpenVaultDB endpoints, client registration, scopes, and user-facing output. |
+| `github.com/sneat-co/ovdb/backend` | Registered clients and scopes, device-grant state machine, Firebase-authenticated decisions, Firestore/DALgo persistence, token validation, and revocation. |
+| `github.com/sneat-co/sneat-go` | Wire and configure the OpenVaultDB backend module, Firebase middleware, runtime secrets, and internal routes in the shared Sneat Co. API host. |
+| `github.com/openvaultdb/cloud` | Static browser approval page, stable public OAuth routes, Cloudflare edge rate limits, and an authenticated proxy to the OpenVaultDB backend. It owns no authorization or token state. |
+| `github.com/openvaultdb/ovdb` | `cloud login`, `cloud status`, and `cloud logout`; OpenVaultDB endpoints and user-facing output. |
 | This specification | Product behavior, security invariants, and reusable ownership boundary. |
 
 The initial registered public client is `ovdb-cli`, named `OpenVaultDB CLI`,
@@ -121,16 +123,19 @@ The OpenVaultDB Cloud service exposes:
 ### Security invariants
 
 - Device codes, user codes, and bearer tokens use cryptographic randomness.
-- D1 stores SHA-256 digests, never raw device codes, user codes, or access
-  tokens.
+- The OpenVaultDB backend stores keyed HMAC-SHA-256 lookup identifiers in
+  Firestore through DALgo, never raw device codes, user codes, or access tokens.
+- The backend and Cloudflare Worker share a separate proxy secret. Every
+  internal device-auth route requires that secret so callers cannot bypass the
+  Worker's public rate limits by addressing the shared Sneat Co. API directly.
 - User codes are short-lived and public code creation, lookup, and polling are
   protected by Cloudflare rate-limit bindings.
 - Approval requires a currently valid Firebase ID token whose issuer and
   audience match the shared Sneat Co. Firebase project `sneat-eur3-1`; its
   subject is stored directly as the Sneat Co. `userID`.
 - The first-party CLI access token is opaque, capability-scoped, revocable, and
-  valid for at most one year. Every authenticated API use checks D1 for expiry
-  and revocation.
+  valid for at most one year. Every authenticated API use checks the backend
+  token record for expiry and revocation.
 - The public CLI has no client secret. All production traffic uses HTTPS; HTTP
   host overrides are accepted only for loopback development.
 - Device exchange is atomic and single-use, including concurrent requests.
@@ -152,14 +157,14 @@ The OpenVaultDB Cloud service exposes:
    test plus human smoke test after deployment.
 4. Pending, excessive polling, denial, expiry, approval, exchange replay, and
    concurrent exchange have RFC-compatible terminal behavior. **Verifies:**
-   isolated Worker/D1 protocol tests.
+   isolated backend state-machine and Firestore-adapter tests.
 5. Approval accepts only a verified `sneat-eur3-1` Firebase identity and returns
    that identity's subject as the OpenVaultDB Cloud `userID`; unknown clients,
    unregistered scopes, and unauthenticated decisions fail. **Verifies:**
-   isolated Worker/D1 identity and negative-path tests.
-6. Raw codes and tokens are absent from D1 and the issued token can authenticate
-   `/oauth/userinfo`, then fails immediately after revocation. **Verifies:**
-   Worker/D1 persistence and revocation tests.
+   isolated backend API, identity, and negative-path tests.
+6. Raw codes and tokens are absent from Firestore and the issued token can
+   authenticate `/oauth/userinfo`, then fails immediately after revocation.
+   **Verifies:** backend persistence and revocation tests.
 7. Default credential storage is the operating-system keyring. Plaintext
    storage requires `--insecure-storage`, warns the user, and uses protected
    filesystem modes. **Verifies:** shared credential-store tests and CLI journey
@@ -171,10 +176,11 @@ The OpenVaultDB Cloud service exposes:
    future registered InGitDB or Sneat Co. CLI can provide its own endpoints,
    scopes, and commands. **Verifies:** module dependency review and independent
    module build.
-10. The Cloud Worker passes generated-binding type checking, isolated runtime
-    tests, and Wrangler's dry-deployment build; `ovdb` passes tests, race
-    detection, vetting, and a cross-module local build. **Verifies:** repository
-    validation gates before landing.
+10. The OpenVaultDB backend passes architecture, build, test, coverage, vet, and
+    lint gates. The Cloud Worker passes generated-binding type checking,
+    isolated proxy/runtime tests, and Wrangler's dry-deployment build; `ovdb`
+    passes tests, race detection, vetting, and a cross-module local build.
+    **Verifies:** repository validation gates before landing.
 
 ## Open Questions
 
