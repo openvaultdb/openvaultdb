@@ -30,6 +30,7 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
 
 1. **Start — request a device authorization.** The user runs
    `ovdb cloud login`. The CLI requests an OAuth 2.0 Device Authorization Grant,
+   including its device name, operating system, architecture, and CLI version,
    prints the one-time code and complete verification URL, and attempts to open
    that URL in the default browser.
    - **Observable good result:** the terminal always shows a usable code and
@@ -38,19 +39,21 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
 2. **Middle — authenticate and decide in the browser.** The page at
    `https://cloud.openvaultdb.com/device` resolves the code, authenticates the
    person through the shared Sneat Co. Firebase identity, discloses that
-   OpenVaultDB is a Sneat Co. product, and displays the requesting client plus
-   each requested scope before any grant.
-   - **Observable good result:** the browser actor sees `OpenVaultDB CLI`, the
-     exact `account:read` scope, the account being used, and distinct Approve
-     and Deny actions. The waiting terminal does not receive a token before
-     approval.
+   OpenVaultDB is a Sneat Co. product, and displays the requesting device,
+   client/version/platform metadata, plus each requested scope before any grant.
+   - **Observable good result:** the browser actor sees the device name,
+     `OpenVaultDB CLI`, its version and platform when supplied, the exact
+     `account:read` scope, the account being used, and distinct Approve and Deny
+     actions. Older clients without metadata remain identifiable by registered
+     client name. The waiting terminal does not receive a token before approval.
 3. **End — issue and store one revocable credential.** On approval, the CLI's
    next permitted poll exchanges the device code exactly once. The CLI validates
    the issued token through `/oauth/userinfo`, stores it in the operating-system
    keyring, and reports the account, host, scopes, expiry, and storage class.
    - **Observable good result:** `ovdb cloud status` independently checks the
      token with OpenVaultDB Cloud and reports the signed-in account. The token is
-     never printed.
+     never printed. The browser confirmation lists the permissions that were
+     granted and links to `/devices` so the user can review the grant later.
 
 ### Divergent epilogues
 
@@ -66,6 +69,11 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
 - **Logout:** `ovdb cloud logout` revokes the remote token before deleting the
   local credential. If remote revocation fails, the credential is retained so
   the user can retry and the CLI does not falsely report logout.
+- **Review or revoke later:** `/devices` requires the same Sneat Co. identity,
+  lists only that user's issued device grants with client/device metadata,
+  scopes, authorization/last-use/expiry times, and active/revoked/expired
+  status. Revoking an active row immediately invalidates its access token; doing
+  nothing leaves every grant unchanged.
 - **Headless plaintext storage:** only an explicit `--insecure-storage` flag
   selects an unencrypted JSON file. The CLI warns before login and the directory
   and file are created with modes `0700` and `0600`; there is no automatic
@@ -75,7 +83,7 @@ credential code to OpenVaultDB, Cobra, Firebase, or a particular cloud host.
 
 | Component | Responsibility |
 |---|---|
-| `github.com/strongo/deviceauth` | Product-neutral RFC 8628 login UX, best-effort browser launch, OS keyring storage, and explicitly selected plaintext storage. |
+| `github.com/strongo/deviceauth` | Product-neutral RFC 8628 login UX, optional device/client metadata parameters, best-effort browser launch, OS keyring storage, and explicitly selected plaintext storage. |
 | `github.com/sneat-co/ovdb/backend` | Registered clients and scopes, device-grant state machine, Firebase-authenticated decisions, Firestore/DALgo persistence, token validation, and revocation. |
 | `github.com/sneat-co/sneat-go` | Wire and configure the OpenVaultDB backend module, Firebase middleware, runtime secrets, and internal routes in the shared Sneat Co. API host. |
 | `github.com/openvaultdb/cloud` | Static browser approval page, stable public OAuth routes, Cloudflare edge rate limits, and an authenticated proxy to the OpenVaultDB backend. It owns no authorization or token state. |
@@ -115,6 +123,8 @@ The OpenVaultDB Cloud service exposes:
 | `POST /oauth/device/code` | Create a ten-minute pending grant and return RFC 8628 device/user codes. |
 | `GET /api/device-authorization` | Resolve a user code to its client and requested scopes for display. |
 | `POST /api/device-authorization/decision` | Verify a Firebase ID token and atomically approve or deny a pending grant. |
+| `GET /api/devices` | Verify a Firebase ID token and list only that user's issued device grants. |
+| `POST /api/devices/revoke` | Verify a Firebase ID token and revoke one device grant owned by that user. |
 | `POST /oauth/token` | Enforce polling intervals and exchange an approved device code once. |
 | `GET /oauth/userinfo` | Validate current expiry and revocation state and report the account and grant. |
 | `POST /oauth/revoke` | Idempotently revoke a bearer token. |
@@ -139,6 +149,17 @@ The OpenVaultDB Cloud service exposes:
 - The public CLI has no client secret. All production traffic uses HTTPS; HTTP
   host overrides are accepted only for loopback development.
 - Device exchange is atomic and single-use, including concurrent requests.
+- Device name, operating system, architecture, and CLI version are optional,
+  bounded, untrusted display metadata. They are submitted with the initial
+  device-code request so the consent screen can identify the requester. The
+  server owns user identity, scopes, authorization/usage timestamps, expiry,
+  status, and revocation state.
+- Raw IP addresses are not retained in device grants. Cloudflare may use the
+  request IP transiently as a rate-limit key, but it is not returned on consent
+  or `/devices` and is not written to the Firestore authorization records.
+- Device listing and row revocation derive ownership only from the verified
+  Firebase subject; a caller-supplied user ID is never accepted. Public device
+  IDs do not expose token lookup IDs or bearer-token material.
 - Sensitive responses are marked `no-store`; the approval page denies framing,
   sends no referrer, and limits scripts, connections, and Firebase frames with
   Content Security Policy.
@@ -151,10 +172,13 @@ The OpenVaultDB Cloud service exposes:
    login/status/logout journey test.
 2. Browser launch failure leaves a manual path and does not cancel polling.
    **Verifies:** shared module browser-fallback test.
-3. The approval page shows the registered client, exact requested scopes,
+3. The approval page shows the device name, registered client, CLI version,
+   operating system/architecture when supplied, exact requested scopes,
    signed-in Sneat Co. account, and OpenVaultDB's Sneat Co. product relationship
-   before distinct approve/deny actions. **Verifies:** Worker asset/security
-   test plus human smoke test after deployment.
+   before distinct approve/deny actions. Missing optional metadata has a clear
+   registered-client fallback. **Verifies:** shared metadata transport test,
+   backend preview test, Worker presentation/asset test, and human smoke test
+   after deployment.
 4. Pending, excessive polling, denial, expiry, approval, exchange replay, and
    concurrent exchange have RFC-compatible terminal behavior. **Verifies:**
    isolated backend state-machine and Firestore-adapter tests.
@@ -176,7 +200,16 @@ The OpenVaultDB Cloud service exposes:
    future registered InGitDB or Sneat Co. CLI can provide its own endpoints,
    scopes, and commands. **Verifies:** module dependency review and independent
    module build.
-10. The OpenVaultDB backend passes architecture, build, test, coverage, vet, and
+10. Approval confirmation lists the exact granted permissions and links to
+    `/devices`. The authenticated devices page returns only the signed-in user's
+    grants, handles an empty list, shows device/client metadata and lifecycle
+    times/status, and revokes only a grant owned by that user. **Verifies:**
+    backend service/DAL/API ownership tests, Worker proxy tests, presentation
+    tests, and deployed browser smoke.
+11. Neither the device grant nor the authorized-device response stores or
+    displays a raw IP address. **Verifies:** persistence model/API response
+    review and backend serialization tests.
+12. The OpenVaultDB backend passes architecture, build, test, coverage, vet, and
     lint gates. The Cloud Worker passes generated-binding type checking,
     isolated proxy/runtime tests, and Wrangler's dry-deployment build; `ovdb`
     passes tests, race detection, vetting, and a cross-module local build.
