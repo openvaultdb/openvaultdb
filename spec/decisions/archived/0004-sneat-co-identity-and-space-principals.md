@@ -1,17 +1,17 @@
 ---
 format: https://specscore.md/decision-specification
-status: Approved
+status: Superseded
 ---
 
 # Decision: Sneat Co. Identity and Space Principals for OpenVaultDB Cloud
 
-**Status:** Approved
+**Status:** Superseded
 **Date:** 2026-08-31
 **Owner:** alex
 **Tags:** authentication,authorization,cloud,sneat,spaces
 **Source Idea:** —
 **Supersedes:** —
-**Superseded By:** —
+**Superseded By:** 0005-openvaultdb-is-an-independent-and-isolated-project
 
 ## Context
 
@@ -124,4 +124,8 @@ None observed yet.
 - [Sneat.app Space Export to GitHub](../features/sneat-space-export/README.md)
 
 ---
+
+## Resolution
+
+Decision 0004 rooted OpenVaultDB Cloud's human identity in a consumer's Firebase project and made that consumer's UID the canonical OpenVaultDB principal, which makes multi-provider authentication unsatisfiable and couples OpenVaultDB's trust boundary to one consumer.
 *This document follows the https://specscore.md/decision-specification*
