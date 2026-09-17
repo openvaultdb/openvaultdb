@@ -101,7 +101,7 @@ of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
 
 | Code | Local API HTTP status | `/v1` error codes mapped to it (human output) |
 |---|---|---|
-| `invalid_argument` | 400 | `bad_request`, `invalid_dtql` |
+| `invalid_argument` | 400 | `bad_request`, `invalid_dtql`, `invalid_key` |
 | `confirmation_required` | 400 | — |
 | `unauthorized` | 401 | HTTP 401, `invalid_grant` |
 | `forbidden` | 403 | `forbidden`, `access_denied` |
@@ -121,12 +121,13 @@ of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
 For configuration commands, `--json` output MUST be byte-for-byte the local API response body
 (success or error envelope) with top-level `"schema": 1`; pure reads without a server MUST
 produce the same schema with `server.state` `not_running` and mount state `unknown`. For data
-commands, `--json` MUST print the existing `/v1` response bodies of `list` and `get` and the
-`/v1` error bodies of all five unchanged, and for `set`, `add` and `delete` (no `/v1` body) exactly
-`{"key":"<absolute escaped path>"}`, as documented in
+commands, `--json` MUST print the existing `/v1` response bodies of `list` and `get`, each
+record gaining one CLI-added absolute `path` field alongside the server's untouched `key` and
+`data`, and the `/v1` error bodies of all five unchanged, and for `set`, `add` and `delete` (no
+`/v1` body) exactly `{"key":"<absolute escaped path>"}`, as documented in
 [database context and navigation](../database-context-navigation/README.md), while human
 output maps `/v1` errors into the envelope using the table above. Only JSON goes to stdout
-with `--json`; notices (such as auto-start) go to stderr.
+with `--json`; notices (such as auto-start, or a skipped stale project context) go to stderr.
 
 #### REQ: exit-codes
 

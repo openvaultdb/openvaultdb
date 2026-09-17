@@ -99,7 +99,27 @@ Declined.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-09-17 (increment 3): building `ovdb use`, `cd` and `pwd` found gaps in points 3, 4 and
+  9. (a) Nothing stopped a project context (point 3) from being written at the user's home
+  directory or a filesystem root, where every folder below would share it; storing one there
+  now fails with `invalid_argument`, suggesting `ovdb use --global` or running inside a
+  project folder. (b) `cd` on the "only registered database" rung had no way to persist that
+  choice for later commands, so it now saves a project context the first time, saying
+  `Saved as the project context for {dir}.`. (c) `cd` cannot silently move within a database
+  that came from `--db` or `OVDB_DATABASE`/`OVDB_PATH` (point 2's flag/environment rungs
+  supply no directory to update); it fails, suggesting `OVDB_PATH`. (d) Walk-up (point 4) can
+  reach a directory whose stored database is no longer registered; that rung is now skipped
+  with a notice and lookup falls through instead of failing. Point 3's "hash of the canonical
+  absolute path" also folds case on macOS, as it already did on Windows, since both ignore case
+  by default. See [database context and navigation](../features/database-context-navigation/README.md)
+  REQ:use-sets-scoped-context, REQ:context-lookup and REQ:cd-validates-syntax-not-existence.
+- 2026-09-17 (increment 3 hardening): point 8's escaping keeps a path syntactically safe, but
+  containment inside the inGitDB engine's own file layout (`dalgo2ingitdb`'s
+  `requireContainedPath`) is lexical — `filepath.Rel`/`filepath.IsLocal` on the unresolved
+  path — and does not resolve symlinks placed inside a database's storage folder. This is
+  defense in depth alongside `openvaultdb-go`'s key-segment validation
+  (`core.ValidateSegment`, which rejects the traversal shapes point 8 already describes), not
+  a closed hole; recorded as a known limitation, not a blocker.
 
 ## Affected Features
 

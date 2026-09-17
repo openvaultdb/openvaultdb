@@ -48,6 +48,14 @@ each linked worktree its own root, else the current directory) to the server wit
 instance secret; the server MUST store the context, reset the path to `/` and return copy
 naming the scope, for example `Now using todo for this project (/home/ann/shop)`.
 
+The server MUST refuse to store a project context whose root is the user's home directory or
+a filesystem root, since every folder below would share the choice; it MUST fail with
+`invalid_argument` naming the conflict, with `next` steps to run `ovdb use` inside a project
+folder or use `ovdb use --global <database>` instead. Project-context lookup keys the stored
+context by the hash of the canonicalized directory; on Windows and macOS this hash folds case
+first (`~/Shop` and `~/shop`, like `C:\Work` and `c:\work`, are one directory), since both
+platforms' default file systems ignore case.
+
 #### REQ: context-lookup
 
 Resolution MUST follow `--db` > `OVDB_DATABASE`/`OVDB_PATH` > project context > global default
@@ -56,6 +64,13 @@ context lookup MUST walk up from the current directory to the nearest directory 
 context, not above the Git root when inside a repository. `ovdb use` and `ovdb pwd` MUST name
 the rung and the supplying directory. `OVDB_PATH` without a database MUST be ignored with a
 warning.
+
+A stored project context naming a database that is no longer registered MUST NOT fail lookup
+outright: it MUST be skipped with a notice on stderr naming the directory and the missing
+database, and resolution MUST continue to the next rung (a shallower project context, the
+global default, or the only registered database). `OVDB_PATH` set without `--db` or
+`OVDB_DATABASE` MUST still be syntactically valid; an unparsable one MUST fail with
+`invalid_argument` rather than silently resolving to `/`.
 
 #### REQ: path-resolution
 
@@ -66,11 +81,22 @@ even segments record ids. Ids MUST be written and displayed escaped as `record.E
 `]` → `%5D`); a `%` that does not start one of these escapes MUST fail with `invalid_argument`
 (literal `%` is not a valid id character). Output always shows absolute paths.
 
+Once a segment is unescaped, none of its `/`-separated parts (an id MAY legitimately contain an
+escaped `/`, written `%2F`) may be empty, `.` or `..`, and the segment MUST NOT contain a
+control character (U+0000–U+001F, U+007F); either fails with `invalid_argument`. Names and ids
+that reach human output are shown with any remaining non-printable rune as `\uXXXX`.
+
 #### REQ: cd-validates-syntax-not-existence
 
 `ovdb cd` with no argument or `/` goes to the root. It MUST fail only for invalid paths or an
 unregistered database, print `Nothing here yet` for empty locations, and update the scope that
-currently supplies the database.
+currently supplies the database. When the database came from `--db` or
+`OVDB_DATABASE`/`OVDB_PATH`, `cd` MUST fail with `invalid_argument` instead of moving within
+it (`next`: set `OVDB_PATH=<target>`, or use the target path directly in the next command),
+since there is no context to update. When the current scope is the only-registered-database
+rung (no stored context, flag or variable), `cd` MUST save a project context for the project
+root the same way `use` does and say so (`Saved as the project context for {dir}.`), so a
+later command in that project keeps resolving the same database without `--db`.
 
 Examples from `todo:/lists/to-buy`:
 
@@ -96,16 +122,29 @@ Examples from `todo:/lists/to-buy`:
 
 All accept `--db`, `--json` and `--no-start`; `list` accepts `--limit` (default 50).
 
-`--json` output of reads is the existing `/v1` response body, unchanged; writes, whose `/v1`
-response has no body, print the affected key:
+`--json` output of reads is the existing `/v1` response body, with one field added to each
+record: an absolute escaped `path`, usable as `<path>` in a later command, next to the
+server's untouched `key`; writes, whose `/v1` response has no body, print the affected key:
 
 | Command | `--json` success body | Source |
 |---|---|---|
 | `list` at root | `{"id","engine","schemaMode","collections"}` | `GET /v1/databases/{db}` |
-| `list` at a collection | `{"records":[{"key","data"}]}` | `POST …/query` |
-| `get` | `{"key","data"}` | `GET …/records/{key}` |
+| `list` at a collection | `{"records":[{"key","data","path"}]}` | `POST …/query`, `path` added by the CLI |
+| `get` | `{"key","data","path"}` | `GET …/records/{key}`, `path` added by the CLI |
 | `set`, `add`, `delete` | `{"key":"/lists/to-buy/items/k3f9x2"}` — the affected record's absolute escaped path, usable as `<path>` in the next command | built by the CLI (`PUT`/`PATCH`, `POST` and `DELETE` return no body) |
 | any failure | `{"error":{"code","message"}}` with the `/v1` code | `/v1` error body |
+
+Adding `path` this way answers the earlier open question about `get --json` symmetry without
+breaking "the `/v1` body unchanged": `key` and `data` stay exactly as the server returned them;
+`path` is additive.
+
+A query's `key` for a record in a nested collection is the server's full key from the database
+root (`openvaultdb-go` ≥ v0.6.2, for example `lists/to-buy/items/x`); the CLI prefers this full
+key when computing `path` and still composes one from an older server's shorter key (missing
+its parent) plus the collection asked for. The CLI refuses such ids itself before sending a request (see
+the segment rules above); a `/v1` `400 invalid_key` that still arrives (for example for a key
+another client sent, or a rule only the server enforces) maps to human-output
+`invalid_argument` with the id-escaping guidance and a `next` to list the collection.
 
 Human output (without `--json`) maps `/v1` errors into the envelope using the table in
 [configuration parity](../configuration-parity/README.md).
@@ -139,6 +178,11 @@ affected record's absolute escaped path on stdout: in human output as part of th
 (for example `todo: added /lists/to-buy/items/k3f9x2`), and with `--json` as exactly one object
 `{"key":"<absolute path>"}`, so agents can use the key `add` generated without parsing text or
 reading stderr.
+
+A record missing at `get` or `set --field` MUST exit `1` in both human and `--json` modes
+(there is no special-cased "nothing here yet" success for a missing record, unlike an empty
+collection). `delete` of a missing record MUST fail with `not_found` unless `--if-exists` is
+given, in which case it MUST succeed and say there was nothing to delete.
 
 #### REQ: path-kind-mismatch-guidance
 
@@ -239,7 +283,37 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 **Given** the demo
 **When** `ovdb add /lists/to-buy/items '{"title":"Tea","done":false}' --db todo` prints P, then `set P --field done=true`, `get P --json`, `delete P` run with `--db todo`
-**Then** `add` prints P on stdout, `add --json` prints exactly `{"key":"<P>"}` on stdout, `set --json` and `delete --json` print `{"key":"<P>"}`, `get` prints `{"key":…,"data":{…,"done":true}}`, and a later `get P` exits `1`; its human output uses `not_found` and with `--json` prints the `/v1` error body
+**Then** `add` prints P on stdout, `add --json` prints exactly `{"key":"<P>"}` on stdout, `set --json` and `delete --json` print `{"key":"<P>"}`, `get` prints `{"key":…,"data":{…,"done":true},"path":P}`, and a later `get P` exits `1` in both human and `--json` mode; its human output uses `not_found` and with `--json` prints the `/v1` error body
+
+### AC: delete-missing-needs-if-exists (verifies REQ:get-set-add-delete)
+
+**Given** the demo and a record `P` already deleted
+**When** `ovdb delete P --db todo` runs, and separately `ovdb delete P --db todo --if-exists` runs
+**Then** the first exits `1` with `not_found`, and the second exits `0` saying there was nothing to delete
+
+### AC: use-refuses-home-and-root (verifies REQ:use-sets-scoped-context)
+
+**Given** the current directory is the user's home directory
+**When** `ovdb use todo` runs
+**Then** it exits `1` with `invalid_argument` naming the conflict, and `next` offers running inside a project folder or `ovdb use --global todo`
+
+### AC: cd-saves-only-database-context (verifies REQ:cd-validates-syntax-not-existence)
+
+**Given** only the demo database `todo` registered, no context, flag or variable, in project `/p/shop`
+**When** `ovdb cd /lists` runs in `/p/shop`, then `ovdb pwd` runs again in `/p/shop`
+**Then** the first prints `Saved as the project context for /p/shop.` and `/lists`, and the second reports `todo` from project context `/p/shop` without `--db`
+
+### AC: cd-refuses-flag-and-env-scope (verifies REQ:cd-validates-syntax-not-existence)
+
+**Given** `OVDB_DATABASE=todo` set
+**When** `ovdb cd /lists` runs
+**Then** it exits `1` with `invalid_argument` and `next` suggests `OVDB_PATH=/lists`
+
+### AC: invalid-key-mapped (verifies REQ:server-errors-mapped)
+
+**Given** an id whose decoded form has a `..` part, such as `%2E%2E%2F%2E%2E%2Fsecrets`, and separately a server that answers a data request with `/v1` `400 invalid_key`
+**When** `ovdb get /items/%2E%2E%2F%2E%2E%2Fsecrets` runs, and a data command receives that server answer, each without and with `--json`
+**Then** the first is refused by the CLI before any request, exiting `1` with `invalid_argument`; the second exits `1`, its human output uses `invalid_argument` with the id-escaping guidance, and `--json` prints the `/v1` `invalid_key` error body unchanged
 
 ### AC: kind-mismatch-hint (verifies REQ:path-kind-mismatch-guidance)
 
