@@ -37,7 +37,7 @@ Define the review and implementation sequence for the conservative MVP.
 ## Open Questions
 
 - What is the first public milestone name?
-- Which implementation milestones belong in `openvaultdb-go`, `openvaultdb-ts`, and `openvaultdb-todo-demo`?
+- Which implementation milestones belong in `openvaultdb-go`, `openvaultdb-ts`, and `ovdb`? (`openvaultdb-todo-demo` is superseded as the first-run demo by the TODO demo built into `ovdb`, [decision 0010](../decisions/0010-built-in-todo-demo.md); it may remain as a third-party connect-flow example.)
 
 ## Acceptance Criteria
 

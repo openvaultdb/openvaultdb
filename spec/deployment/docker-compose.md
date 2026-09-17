@@ -18,6 +18,11 @@ After startup:
 - API: `http://localhost:8080`
 - Health check: `http://localhost:8080/health`
 
+> **Local default differs.** Port `8080` is the container deployment default described here.
+> The local `ovdb` binary run on a person's own computer defaults to loopback port `6832`
+> and advertises `http://ovdb.localhost:6832`; see
+> [decision 0007](../decisions/0007-local-ovdb-server-and-web-address.md).
+
 ## Proposed `docker-compose.yml` (Draft)
 
 ```yaml

@@ -147,7 +147,7 @@ The reference implementation includes a compatibility test suite that any implem
 ## Open Questions
 
 1. Which implementation milestones should land first in `openvaultdb-go` and `openvaultdb-ts`?
-2. Should the reference implementation include a web UI, or is CLI-first sufficient for MVP?
+2. ~~Should the reference implementation include a web UI, or is CLI-first sufficient for MVP?~~ Resolved (2026-09-17): the local `ovdb` binary ships a CLI, a terminal UI and an embedded web console as three equal interfaces over one capability layer. See [decision 0006](../decisions/0006-three-equal-configuration-interfaces.md).
 3. How should the compliance test suite be run against third-party implementations?
 4. What CI/CD pipeline is required before the first release?
 5. Should the server support hot-reload of plugin configuration?
@@ -157,7 +157,7 @@ The reference implementation includes a compatibility test suite that any implem
 - Monorepo may slow iteration; but premature split creates coordination overhead.
 - Go is a good choice, but it narrows the contributor base compared to TypeScript/Python.
 - Performance targets may be unrealistic for some storage backends (GitHub API rate limits).
-- Without a web UI, non-technical users cannot use the reference implementation directly.
+- Without a web UI, non-technical users cannot use the reference implementation directly. (Addressed for local use by [decision 0006](../decisions/0006-three-equal-configuration-interfaces.md).)
 
 ## Related Specifications
 

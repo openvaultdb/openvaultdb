@@ -25,6 +25,7 @@ Index OpenVaultDB storage specifications.
 - Storage backends MUST preserve confidentiality, integrity, and migration safety requirements for their supported threat model.
 - Provider support MUST NOT imply provider trust.
 - The initial backend order SHOULD be InGitDB/GitHub first, SQLite second, and Firestore third.
+- This order is the build and rollout order. It is distinct from the order in which the local `ovdb` onboarding lists storage choices (inGitDB and SQLite pinned, then already-implemented engines alphabetically), which lists only engines the binary already supports and adds no synchronization between providers. See [database setup and storage choices](../features/database-setup-and-providers/README.md).
 
 ## MVP Behavior
 

@@ -1,0 +1,24 @@
+---
+format: https://specscore.md/plans-index-specification
+---
+
+# Plans
+
+Canonical index of all plans in this repository. Each plan is a single Markdown file under `spec/plans/` governed by the [plan specification](https://specscore.md/plan-specification).
+
+## Contents
+
+| Plan | Status | Source | Date | Owner |
+|---|---|---|---|---|
+| [ovdb-onboarding-and-configuration](ovdb-onboarding-and-configuration.md) | Approved | idea:ovdb-onboarding-and-configuration | 2026-09-17 | alex |
+
+## Recently Closed
+
+None at this time.
+
+## Open Questions
+
+None at this time.
+
+---
+*This document follows the https://specscore.md/plans-index-specification*

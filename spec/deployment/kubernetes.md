@@ -242,7 +242,7 @@ helm upgrade ovdb openvaultdb/openvaultdb \
   --values my-values.yaml
 ```
 
-> **Risk**: Helm upgrades that include server database schema changes require running `ovdb server migrate` before the new pods start. The Helm chart should include an init container or Job for this.
+> **Risk**: Helm upgrades that include server database schema changes require running `ovdb server migrate` before the new pods start. (Illustrative command name: the local `ovdb server start|stop|restart|status` group is specified in [local server and web console](../features/local-server-and-web-console/README.md); a hosted migration command must not collide with it.) The Helm chart should include an init container or Job for this.
 
 ## Open Questions
 
