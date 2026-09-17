@@ -20,6 +20,7 @@ Define expected attackers, abuse cases, and security boundaries.
 - The system MUST treat migrations as security-sensitive operations.
 - The system MUST record security-relevant denied attempts, approvals, revocations, and migration events.
 - The system MUST NOT rely on hidden prompts or unreviewable agent reasoning for authorization.
+- A local OVDB server reachable from a browser MUST defend against DNS rebinding and cross-site requests (Host allowlist and Origin checks), as specified in [local server and web console](../features/local-server-and-web-console/README.md) (added 2026-09-17).
 
 ## MVP Behavior
 
@@ -28,6 +29,7 @@ The MVP focuses on narrow grants, append-only audit events, explicit migration p
 ## Risks
 
 - Full local device compromise can defeat local-only controls.
+- A loopback server without local authentication is reachable by other OS accounts on a shared machine (accepted for the local onboarding preview; see [decision 0007](../decisions/0007-local-ovdb-server-and-web-address.md)).
 - Record data, collection names, and access timing may be visible to GitHub, hosters, repository admins, and integrations.
 - Git history can preserve deleted secrets because MVP data is not encrypted by OpenVaultDB.
 - Permission broadening during migration can become a privilege escalation path.

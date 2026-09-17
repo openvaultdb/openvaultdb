@@ -31,6 +31,25 @@ Propose the MVP command surface without committing to exact flags.
 | `audit` | `tail`, `show`, `export`, `verify` |
 | `cloud` | `login`, `status`, `logout` |
 
+Local onboarding and configuration commands of the `ovdb` binary (Draft, 2026-09-17; hidden
+behind `OVDB_PREVIEW=1` until approved). These operate on a person's own local OVDB server
+and database registry; the capability rules above apply to data they reach through a
+server with authentication enabled.
+
+| Group | Examples | Specification |
+|---|---|---|
+| (root) | `ovdb`, `status`, `open` | [first-run onboarding](../features/first-run-onboarding/README.md) |
+| `server`, `config` | `start`, `stop`, `status`, `open`; `get`, `set server.port` | [local server and web console](../features/local-server-and-web-console/README.md) |
+| `engines`, `databases` | `engines --filter`; `create`, `connect`, `remove` | [database setup](../features/database-setup-and-providers/README.md) |
+| context and data | `use`, `cd`, `pwd`, `list`, `get`, `set`, `add`, `delete` | [database context and navigation](../features/database-context-navigation/README.md) |
+| `demo` | `install`, `open`, `status` | [TODO demo](../features/todo-demo/README.md) |
+| `skills` | `list`, `install`, `uninstall` | [AI agent skills](../features/ai-agent-skills/README.md) |
+| `explore` | `datatug-cli`, `datatug-app` | [explore data hand-off](../features/explore-data-handoff/README.md) |
+| `telemetry` | `status`, `enable`, `disable` | [telemetry consent](../features/telemetry-consent/README.md) |
+
+The full CLI, TUI and web console capability matrix is in
+[configuration parity](../features/configuration-parity/README.md).
+
 `cloud login` uses browser-approved OAuth 2.0 device authorization and stores
 the credential in the operating-system keyring by default. It MUST NOT silently
 fall back to plaintext storage. `cloud status` validates the credential with the
@@ -62,3 +81,4 @@ the remote token before removing the local credential.
 - [../security/capability-model.md](../security/capability-model.md)
 - [../schema/migrations.md](../schema/migrations.md)
 - [../security/audit-log.md](../security/audit-log.md)
+- [../features/configuration-parity/README.md](../features/configuration-parity/README.md)

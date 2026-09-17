@@ -22,6 +22,10 @@ Provide shared terms for architecture, security, schema, storage, and review dis
 | Migration | A planned transition of schema, data, permissions, indexes, storage format, or encryption state. |
 | Checkpoint | Durable migration progress metadata that allows resume or rollback decisions. |
 | Provider | A storage backend or synchronization service that stores vault data and metadata. |
+| Database | The unit a local OVDB server serves at `/v1/databases/{id}`: one storage location (for example an inGitDB folder or a SQLite file) described by a manifest. Used in local onboarding copy; see Open Questions for its relation to Vault. |
+| Local server (OVDB server) | One per-user OVDB process serving registered databases, the web console and the local API at `http://ovdb.localhost:6832` by default. See [decision 0007](decisions/0007-local-ovdb-server-and-web-address.md). |
+| Context | The database and path an `ovdb` command uses when none is given, remembered per project or as a global default. See [decision 0008](decisions/0008-database-context-scope.md). |
+| Path | A location inside a database written like a file path, alternating collection and record id: `/lists/to-buy/items/42`. |
 | Audit log | Append-only record of security-relevant events and user-visible decisions. |
 
 ## Normative Requirements
@@ -44,6 +48,7 @@ The MVP uses a GitHub/InGitDB-backed vault, registered principals, and CLI-media
 
 - Should "workspace" be a first-class term separate from vault?
 - Should records expose stable global IDs or vault-local IDs only?
+- How do Vault and Database relate? Local onboarding (2026-09-17, [idea](ideas/ovdb-onboarding-and-configuration.md)) uses *database* because the implemented API (`/v1/databases/{id}`) and DataTug (`databaseId`) do, while this glossary and `openvaultdb-com` decision 0003 (In Review, Host / Vault / Namespace) use *vault* for the user-owned unit apps connect to. Candidate reconciliation: a vault is what a person grants apps access to; a database is what a server stores and serves; a vault may map to one database.
 
 ## Acceptance Criteria
 
