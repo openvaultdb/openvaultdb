@@ -74,6 +74,11 @@ SQLite, and an absolute, normalized location. Defaults: inGitDB schemaless at
 `<data home>/<id>/`; SQLite at `<data home>/<id>.sqlite`, where data home is `OVDB_DATA_HOME`
 or `~/ovdb`. The server MUST write `databases/<id>.yaml`, create the storage and mount it
 without restart. The client MUST resolve the data home and send the absolute default location.
+Creating an inGitDB database MUST create its `.ingitdb/` directory at create time (empty is
+fine; `dalgo2ingitdb` otherwise only writes it lazily on the first record write), so a database
+that is removed from OVDB before any write (`REQ:list-and-remove` keeps the data) still
+satisfies `REQ:connect-existing-storage`'s "has a `.ingitdb/` directory" check and can be
+connected again.
 
 #### REQ: create-never-overwrites
 
@@ -248,6 +253,12 @@ What next?
 **Given** temporary `OVDB_HOME` and `OVDB_DATA_HOME`
 **When** the person creates `notes` with defaults in the TUI
 **Then** `<data home>/notes/` exists, the manifest declares `ingitdb` schemaless, and `ovdb add /items '{"title":"Hello"}' --db notes` succeeds without a restart
+
+### AC: create-then-reconnect-without-writes (verifies REQ:create-new-database, REQ:connect-existing-storage)
+
+**Given** a freshly created inGitDB database with no record ever written to it
+**When** `ovdb databases remove <id> --yes` runs, then `ovdb databases connect <id> --engine ingitdb --path <same location>` runs
+**Then** the folder already has `.ingitdb/` from create, and connect succeeds instead of refusing it as a plain Git repository
 
 ### AC: create-refuses-overwrite (verifies REQ:create-never-overwrites)
 

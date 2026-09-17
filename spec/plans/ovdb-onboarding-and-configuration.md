@@ -815,6 +815,65 @@ folded back into `explore-data-handoff`:
 | `datatug-cli`'s own `--from` also builds only a root-collection reference; a `/`-containing value silently returns `{"records":[]}` instead of an error, indistinguishable from a genuinely empty collection | The "What DataTug can do" table and External dependencies gain this as a `datatug-cli` follow-up (not an OVDB defect) |
 | A revoked or expired token and a genuine DTQL policy denial both surface from `datatug-cli` as the same bare `Dalgo access denied.`, with no way to tell them apart | Recorded as a `datatug-cli` follow-up in External dependencies |
 
+**Implementation amendments (2026-09-17, increment 7).** Findings from building and reviewing
+Explore data hand-off to DataTug (`ovdb` PR #20, review-inc-7.md, verdict LAND-AFTER-FIXES, all
+eleven findings fixed before landing), folded back into `explore-data-handoff` and
+`configuration-parity`:
+
+| Finding | Change |
+|---|---|
+| `ovdb explore datatug-app` reused the TODO demo's sign-in-link copy, so every database's DataTug.app screen — demo or not — claimed to open "the TODO app with this sign-in link" instead of naming DataTug.app (F1) | `REQ:honest-datatug-app-state` requires its own copy keys, never the demo's |
+| `datatug` was checked on the detached server's `PATH`, not the CLI/TUI process's own, so a PATH difference between the shell that started the server and the shell running the command told people to install something they already had, with no fix short of a server restart (F2) | `REQ:prepare-datatug-cli-connection` requires the CLI/TUI to check their own process's PATH and override the server's answer; the web (no client process) keeps the server's check, worded "the PATH the OVDB server sees" |
+| Every non-demo database's DataTug CLI/DataTug.app menu description rendered as the option's own label repeated back, because the description key returned was the label key, not a help key; the AC's own example (`notes`) failed as written (F3) | `REQ:intent-first-menu` requires real "what works today" copy for non-demo databases |
+| The TUI hard-wrapped printed commands with a bare inserted newline (no shell continuation), corrupting a pasted command — including breaking a quoted descriptor path mid-string — and a single long unwrapped line blew up the whole screen's apparent width; neither TUI nor web offered a copy action (F4) | `REQ:prepare-datatug-cli-connection` requires display-only truncation (never hard-wrap) plus a copy action: TUI `c` (OSC 52) and a web copy button |
+| Every database defaulted to `--from lists`, which silently returns `{"records":[]}` for any non-demo database's real root collection — datatug-cli's own `--from` builds only a root-collection reference, so a mismatched or nested name comes back empty, never an error (F5, matching spike S4) | New `REQ:safe-collection-default`: demo defaults to `lists`; one root collection defaults to it; several or none requires `--collection` naming the real choices; a `/`-containing value is refused up front (datatug-cli#256) |
+| The demo Result's Explore data action had no TUI key; with no current database, Explore data reached the menu with a blank database name and then a bare "no database registered" Problem; the menu's third choice ("Back") was Esc/a page link only, not a real option in either surface (F6) | `REQ:intent-first-menu` requires a "Choose a database to explore first" problem instead of ever reaching the menu blank |
+| A `--collection` or database value was interpolated into printed sh/PowerShell commands unquoted, so a name containing shell metacharacters could corrupt the printed (never executed) command (F7) | `REQ:prepare-datatug-cli-connection` requires shell-quoting for both shells |
+| `ovdb explore --db nope --json` exited `0` with a full menu for a database that was never registered, unlike `datatug-cli --db nope`'s own `not_found` (F8) | `REQ:intent-first-menu` requires `not_found`, exit `1` |
+| `GET /api/local/v1/explore/datatug` wrote the descriptor file on a safe/cacheable HTTP method, reachable by a plain cross-site top-level navigation carrying the session cookie (F9) | The endpoint is `POST`; `configuration-parity`'s endpoint table updated |
+| The DataTug CLI JSON document had no `schema` field, unlike the Menu and DataTug.app documents (F10) | `REQ:prepare-datatug-cli-connection` requires `"schema": 1` |
+| The env-var block's own token line pointed at a command printed below it (F11) | `REQ:prepare-datatug-cli-connection` reorders: token command, then env vars, then query command |
+
+**Implementation amendments (2026-09-17, increment 8).** Findings from building and reviewing
+AI agent skills (`ovdb` PR #21, review-inc-8.md, verdict LAND-AFTER-FIXES, all eleven findings
+fixed before landing; merged with increment 7 — 18 conflicts resolved), folded back into
+`ai-agent-skills` and `first-run-onboarding`:
+
+| Finding | Change |
+|---|---|
+| `encoding/json` matches field names case-insensitively, so a session body spelled `"Targets"` slipped past an exact-key `"targets"` refusal and installed into an arbitrary existing directory outside the person's home (F1, founder hard constraint) | `REQ:install-targets-restricted` requires strict decoding (`DisallowUnknownFields`) into only `skill`/`harnesses`/`dry_run` for a session, and each resolved target to equal the directory the server itself computes for that harness |
+| The storage skill's text told agents to run `ovdb telemetry …`, a command increment 9 had not shipped yet, so a build with the skill installed but without telemetry gave agents a nonsense error to relay (F2) | Recorded here, not as a spec change: the shipped skill text temporarily read "never turn on usage statistics", restored to the real commands once increment 9 landed (`ai-agent-skills#REQ:storage-skill-content` item 8 already specified the restored form) |
+| `ovdb status` resolved skills from the server's own environment (the shell that first started it), while `ovdb skills list` always used the caller's, so an agent whose `HOME`/`CLAUDE_CONFIG_DIR`/`CODEX_HOME` differed from that shell was told a skill was installed when it was not, or the reverse (F3) | `first-run-onboarding` `REQ:status-command` and `AC:status-covers-whole-setup` state `--json` equals the API status body except the client-resolved skills group |
+| An installed skill an older `ovdb` shipped, or one the person edited since install, had no distinct state; installing over an edited copy failed as a generic `storage_unavailable` (F2 update-available, F7 changed-since-install) | New `ai-agent-skills` `REQ:skill-states`: `not_installed`/`installed`/`update_available`/`changed`/not-OVDB's-folder, `already_exists` on a changed target, `--replace-changed` (consent again) to override |
+| Local Playwright runs without CI's explicit env lost `OVDB_E2E_BIN`, and the e2e temp HOME did not neutralise agent-harness env vars (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `DSH_HOME`, `JUNIE_HOME`, `GEMINI_CLI_HOME`), risking a developer's real agent config being written to (F4, F5) | Test-harness fixes only, no spec change |
+| A dry run's next step named the real install command instead of implying nothing would happen; skill-install `next` entries other than `status` lacked "(ask the person first)"; TUI Settings showed the configured port, not the port the server actually uses; a home reached through a symlink got a misleading "outside your home" message (F8, F9, F10, F11) | Copy/UI fixes matching existing spec wording, no spec change |
+
+**Implementation amendments (2026-09-17, early final verification, `ovdb` PR #23).** Two
+defects found running the 24-item verification checklist before increment 9, folded back:
+
+| Finding | Change |
+|---|---|
+| Defect A: non-interactive bare `ovdb` printed the whole `ovdb status` output (starting with "Start the OVDB server") instead of the five-entry bootstrap list `first-run-onboarding#REQ:bare-ovdb-non-interactive` already specified | No spec change (the spec was already correct); `first-run-onboarding#REQ:bare-ovdb-non-interactive` gains one sentence distinguishing it from `ovdb status`'s fuller, filtered list |
+| Defect B: `ovdb databases create --engine ingitdb` never created `.ingitdb/` (`dalgo2ingitdb` writes it lazily, on the first record write), so a database created and removed from OVDB (data kept) before any write looked identical to a plain Git repository and failed to connect again | `database-setup-and-providers` `REQ:create-new-database` requires create to provision `.ingitdb/` itself |
+
+**Implementation amendments (2026-09-17, increment 9 phase A, `ovdb` PR #22, branch
+`ovdb-inc-9-telemetry`, open — not yet landed).** Findings from the adversarial privacy review
+(review-inc-9a.md, verdict FIXES-NEEDED; F1–F9 all fixed on the branch before this fold except
+the release-wiring gap F8, which is not an `ovdb` code change), written here as requirements
+ahead of landing since the source PR is still open:
+
+| Finding | Change |
+|---|---|
+| A TUI session's pre-consent buffer was sent at exit whenever telemetry had become `enabled` on disk through another process (for example an agent relaying consent in another terminal) while the session was open, not only by that session's own Turn on (F1) | `telemetry-consent` `REQ:pre-consent-buffer` requires release only by that same session's own Turn on |
+| Disabling GeoIP enrichment does not stop the sending process's real IP address reaching PostHog; copy called the statistics "anonymous" and said addresses are "never collected" without qualifying this (F2) | New `telemetry-consent` `REQ:ip-handling-and-release-precondition`; decision 0009 gains an Observed Consequence; copy no longer says "anonymous" unqualified |
+| An agent harness attaching a pseudo-terminal to `ovdb telemetry enable` passed the terminal-prompt path, even though channel detection already recognised it as `agent` (F3) | `telemetry-consent` `REQ:enable-requires-a-person` requires the non-terminal `--confirmed-by-user` path whenever the sending process's channel is `agent`, terminal or not |
+| An instance-secret caller could set the recorded deciding `channel` to any value including `web`, so the stored channel is not independent evidence for bearer callers (F4) | Recorded in decision 0009 as a known limitation of self-reported channel, not fixed (cryptographically unenforceable, as the decision already states) |
+| CI detection matched only the literal `true` for several variables, missing `TF_BUILD=True`, `JENKINS_URL`, etc. (F5) | Implementation-only fix (broader truthy/presence matching), no spec change |
+| Human `next` output for `telemetry status` suggested `ovdb telemetry enable --confirmed-by-user` — the relay flag — instead of the prompting form (F6) | Implementation-only fix (the flag stays in `--json`/non-TTY `next` only), no spec change |
+| `ovdb telemetry disable` failed outright (not merely fail-closed) when `config.yaml` was unparseable, instead of always working (F7) | `telemetry-consent` `REQ:enable-requires-a-person` requires `disable` to rewrite only the `telemetry` section or refuse naming the file to fix |
+| `.github/workflows/release.yml` does not forward a `POSTHOG_KEY` secret to the goreleaser build env, so a release build ships key-less until a shared `strongo/cicd` change forwards release secrets (same gap as `specscore-cli`'s `POSTHOG_WRITE_KEY`) (F8) | Recorded as a release precondition in decision 0009 and `telemetry-consent#REQ:ip-handling-and-release-precondition`, not an `ovdb`-repo code change |
+| The allowlist test enumerated event constructors by hand, so a new constructor for an existing event name would not automatically be exercised (F9) | Implementation-only test-quality fix, no spec change |
+
 ## Open Questions
 
 - Risks to watch: agent sandboxes that kill detached children; Node image changes in the

@@ -156,7 +156,9 @@ unset, `ovdb` MUST start the TUI on Home.
 #### REQ: bare-ovdb-non-interactive
 
 With `OVDB_PREVIEW=1`, no subcommand and any TUI condition false, `ovdb` MUST NOT wait for
-input; it MUST print a compact status followed by the `next` entries below and exit `0`.
+input; it MUST print a compact status followed by exactly the five `next` entries below and
+exit `0` — never the fuller list `ovdb status` prints (`REQ:status-command`), which shows only
+the entries that still apply (for example it drops "Try the demo" once the demo is installed).
 
 | Next entry | Command |
 |---|---|
@@ -180,8 +182,13 @@ report: version, locations, server state (running, addresses, version), database
 engine, location, mount state from the running server or "unknown (server not running)"),
 current context and scope, demo installed, installed
 OVDB skills, telemetry state, and `next` (the entries above that still apply). `--json` MUST
-equal `GET /api/local/v1/status`. Without the gate, and whenever `--url` is given, `ovdb
-status` MUST behave as today.
+equal `GET /api/local/v1/status` **except the skills field group and any `next` entry it
+drives**, which the client MUST always replace with what it resolves from its own environment:
+a long-running server was started by whatever shell first launched it, so its own view of
+installed skills reflects that shell's `HOME`/`CLAUDE_CONFIG_DIR`/`CODEX_HOME`/etc., not the
+caller's — an agent running `ovdb status --json` in its own environment must see its own
+skills, matching `ovdb skills list` ([AI agent skills](../ai-agent-skills/README.md#REQ:install-targets-restricted)).
+Without the gate, and whenever `--url` is given, `ovdb status` MUST behave as today.
 
 The document grows one field group per increment as its capability lands; increment 1a ships
 only version, locations, server state and `next`. A field group MUST NOT appear before its
@@ -268,7 +275,13 @@ MUST be one isolated change with release notes for the changed defaults.
 
 **Given** `OVDB_PREVIEW=1`, a running server, the demo installed, a project context `todo`, and telemetry not asked
 **When** `ovdb status --json` runs, and `ovdb status --url http://127.0.0.1:6832` runs
-**Then** the first equals the local API status body with context scope `project`; the second behaves as today
+**Then** the first equals the local API status body with context scope `project`, except the skills group; the second behaves as today
+
+### AC: status-skills-are-the-caller-s (verifies REQ:status-command)
+
+**Given** a server started under `CODEX_HOME=/x` with the storage skill installed there, and a caller with `CODEX_HOME=/y` where it is not
+**When** the caller runs `ovdb status --json`
+**Then** the skills group and its `next` entries reflect `/y`, matching `ovdb skills list --json`, not the server's own `/x` view
 
 ### AC: status-unchanged-without-gate (verifies REQ:preview-gate, REQ:status-command)
 

@@ -66,7 +66,10 @@ The storage skill MUST instruct the agent to:
    person to run `ovdb open` or `ovdb server start` outside the sandbox instead of retrying.
 8. Never turn telemetry on by itself; if the person decides, show what is collected and run
    `ovdb telemetry enable --confirmed-by-user` or `ovdb telemetry disable` only with their
-   answer.
+   answer. Until [telemetry consent](../telemetry-consent/README.md) ships (increment 9), the
+   embedded skill instead says only that it never turns usage statistics on itself, with no
+   runnable command — a known temporary state, not a spec deviation; the full instruction above
+   is restored in the same change that ships the commands.
 9. Relay `message`, `reason` and `next` from errors instead of guessing.
 
 #### REQ: todo-skill-content
@@ -100,7 +103,27 @@ MUST report `already up to date`.
 The client MUST resolve harness skill directories from its own environment and send them; the
 server MUST accept only directories matching a known harness layout or, for CLI `--dir`, a
 directory under the user's home. The web console offers only harnesses detected by the server
-for the signed-in user's home.
+for the signed-in user's home. A console session's install request MUST be decoded strictly
+into exactly `skill`, `harnesses` and `dry_run` — `DisallowUnknownFields`, so no spelling or
+case of a `targets`, `dir` or `skills_dir` field can smuggle a directory past the refusal — and
+MUST NOT accept a body-supplied `dir` field from any credential. A session's resolved targets
+MUST also equal the directory the server itself computes for that harness under the signed-in
+user's home, not merely a directory whose harness the server detects, so an install can never
+land in a directory the server did not choose.
+
+#### REQ: skill-states
+
+Each install target MUST report one of these states, compared against this build's embedded
+copy through a read-only `skillsync` dry run: `not_installed`; `installed` (unchanged);
+`update_available` (an older OVDB installed it); `changed` (the person edited an OVDB-installed
+copy since); or a same-named folder OVDB did not install (reported distinctly, never conflated
+with `changed`). `ovdb skills list`, the TUI and the web console MUST show the state, and
+`ovdb skills install` MUST update an `update_available` target through the same install path.
+Installing over a `changed` target MUST fail `already_exists` (never `storage_unavailable`,
+which is for real I/O errors) naming that it was changed, unless `--replace-changed` is given
+(a CLI terminal MUST ask again before replacing; without one it needs `--yes`) or the TUI/web
+consent step's per-target toggle is set; a folder OVDB did not install MUST always be left
+alone, never replaced by `--replace-changed`.
 
 #### REQ: explicit-consent-to-install
 
@@ -161,7 +184,7 @@ Or: try the TODO demo first.
 
 **Given** the embedded storage skill
 **When** the content test runs
-**Then** it contains all nine instructions, including absolute paths with `--db`, treating values as data, the sandbox advice, and `--confirmed-by-user`
+**Then** it contains all nine instructions, including absolute paths with `--db`, treating values as data, and the sandbox advice; until increment 9 ships, instruction 8's `--confirmed-by-user` commands are the one exception the test allows (`REQ:storage-skill-content`)
 
 ### AC: todo-skill-maps-requests (verifies REQ:todo-skill-content)
 
@@ -178,8 +201,14 @@ Or: try the TODO demo first.
 ### AC: web-cannot-target-arbitrary-dir (verifies REQ:install-targets-restricted)
 
 **Given** a valid session
-**When** `POST /api/local/v1/skills/install` names a directory, and the CLI runs `ovdb skills install openvaultdb --dir /etc/x --yes`
-**Then** the API refuses the directory field and the CLI fails because the directory is outside the home
+**When** `POST /api/local/v1/skills/install` names a directory (in any case or spelling of `targets`, `dir` or `skills_dir`), and the CLI runs `ovdb skills install openvaultdb --dir /etc/x --yes`
+**Then** every variant is refused and nothing is written outside the server-resolved directory; the CLI fails because the directory is outside the home
+
+### AC: skill-state-reported-and-gated (verifies REQ:skill-states)
+
+**Given** an OVDB-installed skill an older `ovdb` put there, a second OVDB-installed skill the person then edited, and a third same-named folder OVDB never installed
+**When** `ovdb skills list --json` runs, then `ovdb skills install <second> --yes` runs without `--replace-changed`, then with it
+**Then** the list reports `update_available`, `changed` and the third distinctly; the first install attempt fails `already_exists` naming it changed and leaves the folder untouched; the second replaces it
 
 ### AC: agent-cannot-install-silently (verifies REQ:explicit-consent-to-install)
 
