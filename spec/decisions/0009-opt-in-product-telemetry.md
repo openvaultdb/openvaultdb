@@ -117,6 +117,52 @@ Stores behavioural data about someone who has not agreed. Declined.
   agent) enabled telemetry while it was open; only that session's own Turn on releases what it
   buffered, and exit always discards the rest — sharper than decision point 5's original
   wording, which read as "enabled in that session" without saying whose action enables it.
+- 2026-09-17 (final review before landing, `ovdb` PR #22 branch `ovdb-inc-9-telemetry` head
+  `07b6fe9`, review-final.md, verdict FIXES-NEEDED then SHIP-BEHIND-GATE; M1/M2/M3/M5 and
+  L1/L5/L6 fixed on the branch before this fold): (a) the phase-A review also found (F4, plan
+  implementation-amendments table, not one of the lettered points above) that an instance-secret
+  caller could set the recorded deciding `channel` to any value, so it wasn't independent
+  evidence; the fix that landed for it between phase A and this review over-corrected by
+  deriving `channel` from the credential alone instead, so every instance-secret caller — TUI
+  and agent included — was recorded as `cli` (M1). The deciding channel is fixed again, this
+  time by having an instance-secret caller **declare** which local process it is
+  (`cli`, `tui` or `agent`, a validated enum the server checks; a console session's channel
+  stays hard-coded to `web`, and a bearer caller declaring `web` is refused). This keeps the
+  same unenforceable-by-cryptography limitation the decision already names (a caller can still
+  misreport which local process it is) while restoring the distinction the audit trail needs.
+  (b) point (a) above overstated what PostHog's "Discard client IP data" setting controls
+  (L6, per PostHog's own docs): sending the fixed `"$ip": "0.0.0.0"` on every event means
+  PostHog *stores* that placeholder on the event regardless of the project setting — a passed
+  `$ip` is used as given, never replaced by the connection address, on the stored event. The
+  connection's real address still reaches PostHog's edge with every request, which is why the
+  project setting remains a release precondition — in case any pipeline or transformation reads
+  the raw connection address instead of the event's `$ip` property — but "PostHog stores it
+  only if the project keeps client IP data" was not an accurate description of the risk and has
+  been reworded in [telemetry consent](../features/telemetry-consent/README.md#REQ:ip-handling-and-release-precondition)
+  and its copy. (c) every web console action that observes telemetry (create, connect, demo
+  install, explore, skill install) previously waited for the synchronous PostHog send before
+  its own HTTP response could finish, because `WriteJSON` sets no `Content-Length` and the
+  final chunk isn't written until the handler returns — so a slow or hanging endpoint held up
+  the console UI by up to 2 s on every observed action (M5). The server now hands each batch to
+  a small bounded background queue (16 batches, one worker, each batch still bounded by the 2 s
+  send timeout) instead of sending inline; on shutdown it waits for queued batches, bounded to
+  2 s. The CLI and TUI are unaffected — they always flushed at command/process exit, which is
+  when the 2 s bound is expected. (d) `GET /api/local/v1/status` and `ovdb status --json` now
+  carry `telemetry: {state, sending, reason, reason_text}` (M2); it was previously absent
+  despite [first-run onboarding](../features/first-run-onboarding/README.md#REQ:status-command)
+  already listing "telemetry state" as a status field group, so agents reading `ovdb status
+  --json` first (as the storage skill tells them to) could not see the state without a second
+  command. (e) at 80×24, the prompt's "What's collected?" details pushed "Never collected" and
+  the key footer off screen with nothing to scroll to (M3); the Result now shows the prompt and
+  its lists in place of the normal body while details are open. (f) a Result that ran no action
+  ("the TODO demo is already installed") no longer offers the prompt, and Enter no longer
+  answers or dismisses it by accident; Esc dismisses to "decide later" without asking again
+  that session (L5), matching a sharper reading of `REQ:consent-prompt-placement` than the
+  original "ask only once, after the first successful action" wording, which did not
+  distinguish an action from a Result that changed nothing. (g) `onboarding_completed` is now
+  recorded (with `step`) when the person reaches Done on any interface's Result, and `databases`
+  was added to the shared `option`/`step` enum for the Home option of that name — both were
+  specified but unimplemented (L1).
 
 ## Affected Features
 

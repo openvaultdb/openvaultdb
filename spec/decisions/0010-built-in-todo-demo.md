@@ -117,6 +117,15 @@ schema before the first item, and the data would not be human-readable files.
   `openvaultdb-todo-demo` README note has not landed yet; it must name the `ovdb` release that
   ships `demo install`/`demo open` and hold back the connect-flow sentence until increment 6's
   session-gated `/authorize`/`/token` are live, not merely "built into ovdb".
+- 2026-09-17 (final review before landing increment 9, `ovdb` PR #22, review-final.md M4): the
+  inc-4 fix above only reached `configuration-parity`'s Journey D; the TODO AI skill's own
+  spec text ([AI agent skills](../features/ai-agent-skills/README.md#REQ:todo-skill-content))
+  still used "add bananas and coffee to my shopping list" as its mapping example and in its
+  install-offer copy, so an agent following it verbatim created duplicate Bananas/Coffee items
+  (or the app looked unchanged, since `add` always generates a new id). Both now use "add tea
+  to my shopping list and Arrival to my watch list", matching Journey D, and the skill also
+  gained an explicit "check for an existing item with the same title before adding" behaviour,
+  not only a different example.
 
 ## Affected Features
 

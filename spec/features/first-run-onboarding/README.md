@@ -181,7 +181,11 @@ With `OVDB_PREVIEW=1`, `ovdb status` MUST read state files without starting a se
 report: version, locations, server state (running, addresses, version), databases (id,
 engine, location, mount state from the running server or "unknown (server not running)"),
 current context and scope, demo installed, installed
-OVDB skills, telemetry state, and `next` (the entries above that still apply). `--json` MUST
+OVDB skills, telemetry state, and `next` (the entries above that still apply). The telemetry
+group ([telemetry consent](../telemetry-consent/README.md)) MUST be `telemetry: {state,
+sending, reason, reason_text}`, evaluated by the process that answers (`GET
+/api/local/v1/status` for a caller with no local server access), like every other field group
+except skills. `--json` MUST
 equal `GET /api/local/v1/status` **except the skills field group and any `next` entry it
 drives**, which the client MUST always replace with what it resolves from its own environment:
 a long-running server was started by whatever shell first launched it, so its own view of

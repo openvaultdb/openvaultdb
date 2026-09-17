@@ -320,9 +320,13 @@ under `/apps/`.
 
 Every error surfaced by the server to the CLI, TUI, web console, status, `mounts.json` or
 `server.log` MUST pass a redaction layer removing URL user-info, `key=value` pairs whose key
-contains `password`, `secret`, `token` or `key`, and connection-string shapes. Raw driver
-errors MUST NOT leave the server unredacted. Missing environment variables MAY be named, never
-their values.
+contains `password`, `secret`, `token` or `key`, and connection-string shapes. This MUST cover
+a DSN-derived connect error's user, database name and host, not only its password: a driver's
+own `failed to connect to \`user=… database=…\`: host:port (hostname)` message (for example
+pgx's) names the account and server as plainly as a password would, and leaving them unredacted
+while masking only the password still echoes "connection details" the person never typed
+(final review L7). Raw driver errors MUST NOT leave the server unredacted. Missing environment
+variables MAY be named, never their values.
 
 ### Embedded web console
 
@@ -504,6 +508,12 @@ credential-less code exchanges at `/token`) → routes.
 **Given** a PostgreSQL manifest whose connection string `postgres://u:s3cret@nohost/db` is in the server environment
 **When** the mount fails and status, `--json`, the local API, `mounts.json` and `server.log` are inspected
 **Then** neither `s3cret` nor the connection string appears anywhere
+
+### AC: connect-error-redacts-user-and-host (verifies REQ:redacted-errors)
+
+**Given** a Postgres connection failing with a driver message `failed to connect to \`user=alice database=payroll\`: nohost:5432 (nohost)`
+**When** the error reaches the CLI, TUI, web console and `server.log`
+**Then** `alice`, `payroll`, `nohost` and `5432` are all replaced by the redaction mask, leaving only the shape of the message
 
 ### AC: runtime-files-private-and-local (verifies REQ:owner-only-state)
 

@@ -874,6 +874,34 @@ ahead of landing since the source PR is still open:
 | `.github/workflows/release.yml` does not forward a `POSTHOG_KEY` secret to the goreleaser build env, so a release build ships key-less until a shared `strongo/cicd` change forwards release secrets (same gap as `specscore-cli`'s `POSTHOG_WRITE_KEY`) (F8) | Recorded as a release precondition in decision 0009 and `telemetry-consent#REQ:ip-handling-and-release-precondition`, not an `ovdb`-repo code change |
 | The allowlist test enumerated event constructors by hand, so a new constructor for an existing event name would not automatically be exercised (F9) | Implementation-only test-quality fix, no spec change |
 
+**Implementation amendments (2026-09-17, increment 9 final review, `ovdb` PR #22, branch
+`ovdb-inc-9-telemetry`, head `07b6fe9`).** Findings from the final adversarial review across
+the whole plan (review-final.md, verdict FIXES-NEEDED for PR #22 then SHIP-BEHIND-GATE; M1–M5
+and L1–L10 all fixed on the branch before this fold, verified against the code), folded back
+into `telemetry-consent`, `ai-agent-skills`, `first-run-onboarding`, `local-server-and-web-console`
+and decisions 0009/0010; this is the last fold before increment 10 (final verification) and gate
+removal:
+
+| Finding | Change |
+|---|---|
+| The channel-storage fix that landed for phase-A F4 over-corrected: it derived `channel` from the credential alone, so a running server recorded every instance-secret caller (TUI, agent) as `cli`, not just self-reported callers with no independent evidence as F4 described (M1) | `telemetry-consent` `REQ:channel-detection` requires an instance-secret caller to declare `cli`/`tui`/`agent` (validated enum, `web` refused from a bearer); a session stays hard-coded `web`; decision 0009 gains an Observed Consequence |
+| `ovdb status`/`GET /api/local/v1/status` had no `telemetry` field despite `first-run-onboarding#REQ:status-command` already specifying "telemetry state" as a status field group (M2) | `first-run-onboarding#REQ:status-command` now states the exact shape `telemetry: {state, sending, reason, reason_text}` |
+| At 80×24 (the TUI's own documented minimum), the consent prompt's "What's collected?" details pushed "Never collected" and the key footer off screen with no way to scroll to them (M3) | `telemetry-consent#REQ:consent-prompt-placement`'s "dismissible" wording is unchanged; fixed as a rendering defect (Result body replaced by the prompt while details are open), noted in decision 0009 |
+| The TODO AI skill's own mapping example and install-offer copy still said "add bananas and coffee to my shopping list", which duplicates the seeded items — the inc-4 fix reached only `configuration-parity`'s Journey D, not this skill's text (M4) | `ai-agent-skills#REQ:todo-skill-content` and its example copy now use "add tea to my shopping list and Arrival to my watch list", matching Journey D, plus a new "check for an existing item first" behaviour; decision 0010 gains an Observed Consequence |
+| Every observed web console action (create, connect, demo install, explore, skill install) with telemetry on waited for the synchronous PostHog send before its own HTTP response could finish (chunked encoding, no `Content-Length`), stalling the UI by up to 2 s on a slow endpoint, contrary to the sender's own "never delays what the person sees" intent (M5) | `telemetry-consent#REQ:bounded-synchronous-sender` requires the server to send from a small bounded background queue (16 batches) instead of inline, with a bounded drain on shutdown; the CLI/TUI keep their synchronous exit-time flush |
+| `onboarding_completed` was never recorded (no interface's Done action called it) and the Home option `databases` had no value in the shared `option`/`step` enum (L1) | `telemetry-consent`'s closed-event-set table gains `databases` in the option enum and states `onboarding_completed` fires on Done in every interface |
+| The prompt could appear on a Result that ran no action ("already installed"), and Enter (the usual confirm/advance key) silently dismissed it (L5) | `telemetry-consent#REQ:consent-prompt-placement` now says the prompt is offered only on a Result that did something, and that Enter must not answer or dismiss it; Esc dismisses to "decide later" |
+| The `$ip` copy and decision 0009's own wording said PostHog "stores it only if the project keeps client IP data" / "stores the real address unless Discard is on" — per PostHog's docs, a passed `$ip` is stored as given regardless of that setting, which controls the raw connection address at the edge, not the event property (L6) | `telemetry-consent#REQ:ip-handling-and-release-precondition` and its copy reworded; decision 0009 gains an Observed Consequence reconciling both entries; the release precondition itself is unchanged |
+| DSN-derived connect errors (for example pgx's `failed to connect to \`user=… database=…\`: host:port`) redacted only the password segment, still echoing the account and server name (L7) | `local-server-and-web-console#REQ:redacted-errors` now names user, database and host explicitly, with a new AC |
+| TUI Result titles could run past the window edge unwrapped, and next-step labels carried the agent-facing "(ask the person first)" note in front of a person (L8) | Implementation/copy fix (title wrapping, note dropped in TUI/CLI human output, kept in `--json`), no spec change beyond confirming `copy/copy.go`'s existing per-surface stripping now covers the TUI too |
+| Under the preview gate, `ovdb status --help` still described the legacy "Show status of a running OpenVaultDB server" instead of the local setup report it now produces (L9) | Copy fix only (the gated `--help` short text), no spec change |
+| `ovdb skills install todo-demo` in a HOME with no `~/.claude` said it "would be installed" there, while `skills list` correctly reported Claude Code as not found (L10) | Copy fix only (name the harness as not found instead of a hypothetical path), no spec change |
+| CI detection (phase-A F5, implementation-only at the time) is now also recorded in `telemetry-consent`'s state table for precision, since it is user-visible forced-off behaviour, not only an internal fix | `telemetry-consent`'s states table gains the exact variable list and thresholds |
+
+Release preconditions carried forward unchanged from decision 0009: PostHog EU project
+"Discard client IP data" confirmed on, and `strongo/cicd` forwarding `POSTHOG_KEY` into
+`.github/workflows/release.yml`. Both remain founder/ops actions outside this PR.
+
 ## Open Questions
 
 - Risks to watch: agent sandboxes that kill detached children; Node image changes in the
