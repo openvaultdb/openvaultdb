@@ -141,8 +141,9 @@ breaking "the `/v1` body unchanged": `key` and `data` stay exactly as the server
 A query's `key` for a record in a nested collection is the server's full key from the database
 root (`openvaultdb-go` ≥ v0.6.2, for example `lists/to-buy/items/x`); the CLI prefers this full
 key when computing `path` and still composes one from an older server's shorter key (missing
-its parent) plus the collection asked for. A `/v1` `400 invalid_key` (an id whose decoded form
-would escape its collection, such as `%2E%2E%2F%2E%2E%2Fsecrets`) maps to human-output
+its parent) plus the collection asked for. The CLI refuses such ids itself before sending a request (see
+the segment rules above); a `/v1` `400 invalid_key` that still arrives (for example for a key
+another client sent, or a rule only the server enforces) maps to human-output
 `invalid_argument` with the id-escaping guidance and a `next` to list the collection.
 
 Human output (without `--json`) maps `/v1` errors into the envelope using the table in
@@ -310,9 +311,9 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 ### AC: invalid-key-mapped (verifies REQ:server-errors-mapped)
 
-**Given** a record whose escaped id decodes to a relative path component, such as `%2E%2E%2F%2E%2E%2Fsecrets`
-**When** `ovdb get` is called with that id, without and with `--json`
-**Then** the human output exits `1` with `invalid_argument` and the id-escaping guidance, and `--json` prints the `/v1` `invalid_key` error body unchanged
+**Given** an id whose decoded form has a `..` part, such as `%2E%2E%2F%2E%2E%2Fsecrets`, and separately a server that answers a data request with `/v1` `400 invalid_key`
+**When** `ovdb get /items/%2E%2E%2F%2E%2E%2Fsecrets` runs, and a data command receives that server answer, each without and with `--json`
+**Then** the first is refused by the CLI before any request, exiting `1` with `invalid_argument`; the second exits `1`, its human output uses `invalid_argument` with the id-escaping guidance, and `--json` prints the `/v1` `invalid_key` error body unchanged
 
 ### AC: kind-mismatch-hint (verifies REQ:path-kind-mismatch-guidance)
 
