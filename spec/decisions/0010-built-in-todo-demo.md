@@ -98,7 +98,13 @@ schema before the first item, and the data would not be human-readable files.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-09-17 (founder request "reuse todo demo for ingitdb as well"): the inGitDB CLI offers
+  the same demo as `ingitdb demo install`, so the seed data moved out of `ovdb` into the
+  shared package `github.com/ingitdb/ingitdb-go/ingitdb/demos/todo`, defined once for both
+  CLIs ([TODO demo](../features/todo-demo/README.md#REQ:ingitdb-cli-demo-folders),
+  [ingitdb-cli `cli/demo`](https://github.com/ingitdb/ingitdb-cli/blob/main/spec/features/cli/demo/README.md)).
+  Points 1 to 6 are unchanged: OVDB's demo is still its own recorded `todo` database, and a
+  folder made by the inGitDB CLI is an ordinary database to OVDB, not its demo.
 
 ## Affected Features
 

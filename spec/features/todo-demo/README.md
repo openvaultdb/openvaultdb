@@ -40,6 +40,24 @@ Database id `todo`, engine inGitDB, schema mode schemaless, location
 | `/lists/to-watch` | `{"title": "To watch"}` |
 | `/lists/to-watch/items/{id}` | `{"title": "The Matrix", "done": false, "added_at": "…"}`, also Interstellar |
 
+The seed values (list and item ids, titles, `done`, and the `added_at` rule: one second
+apart, the last at install time) are defined once in the Go package
+`github.com/ingitdb/ingitdb-go/ingitdb/demos/todo`. `ovdb` MUST take them from that package
+rather than restate them. The inGitDB CLI uses the same package for `ingitdb demo install`
+([ingitdb-cli `cli/demo`](https://github.com/ingitdb/ingitdb-cli/blob/main/spec/features/cli/demo/README.md)),
+so both CLIs create the same lists. `ovdb` keeps registering its demo as schemaless and
+writing through the data API; only the values move.
+
+#### REQ: ingitdb-cli-demo-folders
+
+A folder created by `ingitdb demo install` is an ordinary inGitDB database to OVDB. It MUST
+NOT be treated as the TODO demo, because the demo is only the database recorded in
+`<OVDB_HOME>/demos.json`: connecting it with `ovdb databases connect <id> --engine ingitdb
+--path <folder>` registers a normal database whose lists the data commands can read, and
+a demo install whose location is that folder is refused as a folder with other files, as
+for any non-empty folder. `ingitdb demo install` points people to `ovdb demo install` and
+`ovdb demo open`, which create OVDB's own copy.
+
 #### REQ: demo-install-idempotent
 
 `ovdb demo install` MUST register database `todo` at `<data home>/demos/todo/` and write the
@@ -143,6 +161,12 @@ server.
 **When** `ovdb demo install` runs without `--yes`
 **Then** it exits `1` with `confirmation_required` naming `--yes` and writes nothing
 
+### AC: ingitdb-demo-folder-not-adopted (verifies REQ:ingitdb-cli-demo-folders)
+
+**Given** an empty OVDB home and a folder created by `ingitdb demo install`
+**When** `ovdb databases connect ingitdb-todo --engine ingitdb --path <folder>` runs
+**Then** `ovdb list /lists/to-buy/items --db ingitdb-todo --json` returns Milk, Bananas and Coffee, no file in the folder changes, and `ovdb demo status` reports the TODO demo as not installed
+
 ### AC: open-starts-server-and-app (verifies REQ:todo-app-same-origin)
 
 **Given** the demo installed and no server running
@@ -178,6 +202,9 @@ server.
 - Should the TODO app also demonstrate sharing a list with another app through the connect
   flow, or leave that to `openvaultdb-todo-demo`? Recommendation: leave it out of MVP.
 - Should `ovdb demo reset` restore the seed data?
+- Should `ovdb demo install` adopt a folder created by `ingitdb demo install` (register it
+  without writing and record it in `demos.json`) so the inGitDB CLI, `ovdb` and the TODO app
+  share one folder? Today each CLI creates its own copy.
 
 ---
 *This document follows the https://specscore.md/feature-specification*
