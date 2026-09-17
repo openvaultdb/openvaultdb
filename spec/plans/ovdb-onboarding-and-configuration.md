@@ -746,12 +746,33 @@ remove and the database registry, folded back into the specs and this plan:
 | Firestore/MySQL/PostgreSQL's spec already pointed at "Connect with a manifest file", a command that does not exist until increment 5 | `REQ:manifest-only-engines-are-honest` now says "put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`" until guided connect ships |
 | Id uniqueness (`already_exists`) was untested against case variants, and two ids differing only by case would otherwise collide on case-insensitive filesystems | `REQ:create-new-database`/`REQ:create-never-overwrites` state the comparison is case-insensitive |
 
+**Implementation amendments (2026-09-17, increment 3).** Findings from building project
+context, the data commands and Browse data, and from the upstream hardening that landed
+alongside them (`openvaultdb-go` v0.6.2, `dalgo2ingitdb` v0.6.1), folded back into the specs
+and this plan:
+
+| Finding | Change |
+|---|---|
+| `list`/`get --json` had no way to hand a record's own address back to an agent without it parsing text | `database-context-navigation` JSON table adds a CLI-computed absolute `path` field to each record, alongside the untouched `key`/`data`; resolves the plan's open question |
+| Nothing stopped a project context from being written at `$HOME` or a filesystem root, where every folder below would share it | `database-context-navigation` `REQ:use-sets-scoped-context` refuses it (`invalid_argument`); decision 0008 gains an Observed Consequence |
+| `cd` on the "only registered database" rung had no way to persist that choice for later commands | `REQ:cd-validates-syntax-not-existence` has `cd` save a project context the first time, saying `Saved as the project context for {dir}.` |
+| `cd` could not sensibly move within a database supplied by `--db` or `OVDB_DATABASE`/`OVDB_PATH` (no directory to update) | `REQ:cd-validates-syntax-not-existence` states `cd` fails there, suggesting `OVDB_PATH` |
+| Project-context path hashing folded case on Windows only; macOS's default file systems also ignore case | `REQ:use-sets-scoped-context` states the hash folds case on both |
+| A stored project context whose database was later deregistered failed lookup outright instead of falling through | `REQ:context-lookup` skips it with a stderr notice and continues to the next rung |
+| Decoded ids could contain relative-path components (`%2E%2E%2F%2E%2E%2Fsecrets`) that were syntactically escaped but unsafe, and a bad `OVDB_PATH` silently resolved to `/` | `REQ:path-resolution` and `REQ:context-lookup` reject empty/`.`/`..` parts and control characters, and an unparsable `OVDB_PATH`, with `invalid_argument` |
+| A missing record printed a friendly "nothing here yet" for human `get`/`list` but `not_found`/exit 1 for `--json`, and `delete` of a missing record always "succeeded" | `REQ:get-set-add-delete` states a missing record exits `1` in both modes; `delete` needs `--if-exists` to treat a missing record as success |
+| `openvaultdb-go`'s own key-segment check (upstream `harden-record-keys`) found the same escaped-`..` gap at the server, now `400 invalid_key`, and query results on nested collections return full keys (`lists/to-buy/items/x`) instead of a parent-less key | `database-context-navigation` maps `invalid_key` to `invalid_argument`; `configuration-parity`'s error table gains the code; the CLI/TUI/web prefer the server's full key and still compose one from an older server |
+| inGitDB's own path containment (`dalgo2ingitdb`) is lexical (`filepath.Rel`/`filepath.IsLocal`), not symlink-resolving, inside a database's storage folder | Recorded as a known limitation under decision 0008's Observed Consequences, not a blocker |
+
 ## Open Questions
 
-- Should `ovdb get --json` also normalize `key` to the absolute path for symmetry with `{"key"}`,
-  at the cost of breaking "`/v1` body unchanged"?
 - Risks to watch: agent sandboxes that kill detached children; Node image changes in the
   release runner; TUI copy width at 80×24 with long commands.
+
+Resolved: "Should `ovdb get --json` also normalize `key` to the absolute path for symmetry
+with `{"key"}`, at the cost of breaking "`/v1` body unchanged"?" — increment 3 added a
+CLI-computed `path` field alongside the untouched `key`/`data` instead, keeping the `/v1` body
+promise while giving `set`/`add`/`delete`-style symmetry (implementation amendments below).
 
 ---
 *This document follows the https://specscore.md/plan-specification*
