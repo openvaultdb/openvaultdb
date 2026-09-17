@@ -44,7 +44,8 @@ Agents use the CLI non-interactively with `--json`. "—" is a documented except
 | 7 | Change server port | `ovdb config set server.port` | Settings | Settings (next start) | same as CLI |
 | 8 | Storage choices | `ovdb engines` | Create/Connect picker | Create/Connect picker | `ovdb engines --json` |
 | 9 | Create database (inGitDB, SQLite) | `ovdb databases create` | Create a database | Create a database | same, after asking |
-| 10 | Connect existing inGitDB folder or SQLite file | `ovdb databases connect` | Connect an existing database | Connect an existing database | same, after asking |
+| 10 | Connect existing inGitDB folder or SQLite file | `ovdb databases connect --path` | Connect an existing database | Connect an existing database | same, after asking |
+| 10a | Connect with a manifest file (any engine) | `ovdb databases connect --manifest` | Connect with a manifest file | Connect with a manifest file | same, after asking |
 | 11 | List databases | `ovdb databases` | Databases | Databases | `--json` |
 | 12 | Remove database registration | `ovdb databases remove` | Databases | Databases | same, after asking |
 | 13 | Choose current database | `ovdb use`, `ovdb use --global` | Use in this project | Use as default (E3) | `--db` preferred |
@@ -59,6 +60,7 @@ Agents use the CLI non-interactively with `--json`. "—" is a documented except
 | 22 | Explore data (DataTug guidance) | `ovdb explore` | Explore data | Explore data | `--json` |
 | 23 | Telemetry status | `ovdb telemetry status` | Settings | Settings | `--json` |
 | 24 | Turn telemetry on or off | `ovdb telemetry enable/disable` | Settings, one-time prompt | Settings, one-time prompt | `--confirmed-by-user` relaying the answer (E6) |
+| 25 | Access tokens and browser app origins | `ovdb token create/list/revoke`, `ovdb config set server.cors` | — (E7) | — (E7; connect-flow consent page) | same as CLI |
 
 #### REQ: matrix-is-normative
 
@@ -76,6 +78,7 @@ row in the same change.
 | E4 | No `cd` in TUI or web | They show a browsable tree; a working directory is a shell concept. |
 | E5 | Record editing is CLI, agents and apps only | OVDB is not a database admin tool; DataTug owns exploration, apps own editing. |
 | E6 | Agents run consent-type commands only as a relay | Skill installs and telemetry are human decisions; enforced by `--yes`/`--confirmed-by-user` and skill text, not cryptographically. |
+| E7 | Access tokens and CORS origins are CLI only | Developer settings for tools and third-party apps; people grant apps access through the connect flow's consent page instead. |
 
 #### REQ: exceptions-need-rationale
 
@@ -90,15 +93,38 @@ Every failure MUST be `{"schema":1,"error":{"code","message","reason"?,"next":[{
 built by the server or the shared Go package, never by a presentation. `code` MUST be one
 of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
 `location_not_empty`, `port_in_use`, `port_unavailable`, `server_not_running`,
-`server_start_failed`, `server_version_mismatch`, `unauthorized`, `storage_unavailable`,
-`schema_required`, `validation_failed`, `unsupported`, `dependency_missing`, `internal`.
-`action` names an in-UI remedy (for example `use_port`); `command` is always runnable.
+`server_start_failed`, `server_version_mismatch`, `server_config_mismatch`, `unauthorized`,
+`forbidden`, `storage_unavailable`, `schema_required`, `validation_failed`, `unsupported`,
+`dependency_missing`, `internal`. `action` names an in-UI remedy (for example `use_port`);
+`command` is always runnable.
+
+| Code | Local API HTTP status | `/v1` error codes mapped to it (human output) |
+|---|---|---|
+| `invalid_argument` | 400 | `bad_request`, `invalid_dtql` |
+| `confirmation_required` | 400 | — |
+| `unauthorized` | 401 | HTTP 401, `invalid_grant` |
+| `forbidden` | 403 | `forbidden`, `access_denied` |
+| `not_found` | 404 | `not_found` |
+| `already_exists` | 409 | `already_exists` |
+| `location_not_empty` | 409 | — |
+| `server_version_mismatch` | 409 | — |
+| `schema_required` | 422 | `schema_validation` when the collection has no declared schema |
+| `validation_failed` | 422 | `schema_validation` otherwise |
+| `unsupported` | 501 | `not_supported`, `authorization_unsupported` |
+| `storage_unavailable` | 503 | `authorization_unavailable` |
+| `internal` | 500 | `internal` and any unknown code |
+| `port_in_use`, `port_unavailable`, `server_not_running`, `server_start_failed`, `server_config_mismatch`, `dependency_missing` | client-side only | — |
 
 #### REQ: json-equals-api
 
-`--json` output MUST be byte-for-byte the local API response body for the same capability,
-with top-level `"schema": 1`, and nothing else on stdout. Human output goes to stdout
-without `--json`; notices (such as auto-start) go to stderr.
+For configuration commands, `--json` output MUST be byte-for-byte the local API response body
+(success or error envelope) with top-level `"schema": 1`; pure reads without a server MUST
+produce the same schema with `server.state` `not_running` and mount state `unknown`. For data
+commands (`list`, `get`, `set`, `add`, `delete`), `--json` MUST print the existing `/v1`
+response and error bodies unchanged, as documented in
+[database context and navigation](../database-context-navigation/README.md), while human
+output maps `/v1` errors into the envelope using the table above. Only JSON goes to stdout
+with `--json`; notices (such as auto-start) go to stderr.
 
 #### REQ: exit-codes
 
@@ -107,26 +133,29 @@ New commands MUST exit `0` on success and `1` on any failure, including usage er
 
 #### REQ: local-api-endpoints
 
-The local API MUST provide at least these endpoints, all authenticated (instance secret or
-session cookie) and versioned by the `v1` path segment:
+The local API MUST provide at least these endpoints, versioned by the `v1` path segment and
+authenticated as in the credential table of
+[local server and web console](../local-server-and-web-console/README.md):
 
 | Method and path | Capability |
 |---|---|
 | `GET /api/local/v1/whoami` | Instance id and version (server identity) |
 | `GET /api/local/v1/status` | 1, 2, 14 |
 | `POST /api/local/v1/server/shutdown` | 5 (instance secret only) |
+| `POST /api/local/v1/login-links` | 6, 19 (instance secret only) |
 | `GET /api/local/v1/engines` | 8 (sorted and pinned server-side) |
 | `GET/POST /api/local/v1/databases`, `DELETE /api/local/v1/databases/{id}` | 9, 11, 12 |
-| `POST /api/local/v1/databases/connect` | 10 |
+| `POST /api/local/v1/databases/connect` | 10, 10a |
 | `GET/PUT /api/local/v1/context` | 13, 14 (project scope with instance secret only) |
 | `GET /api/local/v1/demo`, `POST /api/local/v1/demo/install` | 18, 19 |
 | `GET /api/local/v1/skills`, `POST /api/local/v1/skills/install` | 20, 21 |
 | `GET /api/local/v1/explore/datatug?db=` | 22 |
 | `GET/PUT /api/local/v1/telemetry`, `POST /api/local/v1/telemetry/events` | 23, 24 |
 | `GET/PUT /api/local/v1/config` | 7 |
-| existing `/v1/databases/{db}/…` | 15, 17 |
+| existing `/v1/databases/{db}/…`, `/v1/tokens` | 15, 17, 25 |
 
 GET handlers MUST have no side effects; POST/PUT bodies MUST be `application/json`.
+Requests carry client-resolved values (skill directories, absolute data home) where needed.
 
 #### REQ: copy-catalogue
 
@@ -140,7 +169,7 @@ The work depends on these upstream changes, owned by the same organisation.
 
 | Repository | Change |
 |---|---|
-| `openvaultdb/ovdb` | Upgrade to `openvaultdb-go` v0.5.1 or later |
+| `openvaultdb/ovdb` | Upgrade to `openvaultdb-go` v0.5.1 or later; auth store at `<OVDB_HOME>/auth.json` instead of the working directory |
 | `openvaultdb/openvaultdb-go` | Exported runtime `Mount`/`Unmount` on the server, safe with in-flight requests |
 | `openvaultdb/openvaultdb-go` | Tolerant registry scan: one broken manifest does not stop others (`mount.Dir` returns on first error today); failures reported per database |
 | `openvaultdb/openvaultdb-go` | Configurable inferred-schema catalogue location (today `<folder>/.ovdb/…` or `<file>.inferred.json`) and no git identity change on mount (`ensureGitIdentity`), so connecting does not write into user storage |
@@ -155,10 +184,10 @@ Before feature increments, increment 0 MUST prove, with a pass/fail note each:
 S1 `openvaultdb-go` upgrade with Mount/Unmount, tolerant scan and side-effect-free mount;
 S2 detached start, authenticated readiness and shutdown on Linux, macOS and Windows;
 S3 embedded Vue build through the release pipeline with the `.gitkeep` fallback;
-S4 DataTug CLI end-to-end against a local-mode server;
+S4 DataTug CLI end-to-end against a local-mode server with a read-only token from `ovdb token create`;
 S5 `skillsync` per-skill install;
 S6 `copy/en.json` shared by Go and Vite;
-S7 login link, session cookie, `http.CrossOriginProtection`, Host allowlist and CSP;
+S7 credential table, POST login exchange on both hosts, persisted `SameSite=Lax` sessions, cookie-only `http.CrossOriginProtection`, `server.cors`, Host allowlist and CSP;
 S8 manual `ovdb.localhost` check in Safari (macOS) and Edge (Windows).
 
 ### Tests
@@ -309,7 +338,7 @@ the lists but not their items yet.
 
 ### AC: journey-c-passes (verifies REQ:journey-c-agent)
 
-**Given** stdin closed, `CLAUDECODE=1` and no skills installed
+**Given** `OVDB_PREVIEW=1`, stdin closed, `CLAUDECODE=1` and no skills installed
 **When** the Journey C command script runs
 **Then** `ovdb status --json` lists the five `next` entries, every command finishes, the record round-trips, and telemetry is still `not_asked`
 

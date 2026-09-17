@@ -61,8 +61,10 @@ warning.
 
 A leading `/` is absolute; other paths are relative to the context path; `.` stays; `..` goes
 up one segment, never above `/`; empty segments are ignored. Odd segments are collections,
-even segments record ids. Ids MUST be written and displayed escaped as `dal.EscapeID` does
-(`/` → `%2F`, `.` → `%2E`, and `$ # [ ]`); output always shows absolute paths.
+even segments record ids. Ids MUST be written and displayed escaped as `record.EscapeID`
+(`dal-go/record`) does (`/` → `%2F`, `.` → `%2E`, `$` → `%24`, `#` → `%23`, `[` → `%5B`,
+`]` → `%5D`); a `%` that does not start one of these escapes MUST fail with `invalid_argument`
+(literal `%` is not a valid id character). Output always shows absolute paths.
 
 #### REQ: cd-validates-syntax-not-existence
 
@@ -94,16 +96,35 @@ Examples from `todo:/lists/to-buy`:
 
 All accept `--db`, `--json` and `--no-start`; `list` accepts `--limit` (default 50).
 
+`--json` output is the existing `/v1` response body, unchanged:
+
+| Command | `--json` success body | Source |
+|---|---|---|
+| `list` at root | `{"id","engine","schemaMode","collections"}` | `GET /v1/databases/{db}` |
+| `list` at a collection | `{"records":[{"key","data"}]}` | `POST …/query` |
+| `get` | `{"key","data"}` | `GET …/records/{key}` |
+| `set`, `add`, `delete` | nothing (the `/v1` response has no body); success is exit `0` and the key is printed to stderr | `PUT`/`PATCH`, `POST`, `DELETE` |
+| any failure | `{"error":{"code","message"}}` with the `/v1` code | `/v1` error body |
+
+Human output (without `--json`) maps `/v1` errors into the envelope using the table in
+[configuration parity](../configuration-parity/README.md).
+
 #### REQ: data-commands-use-server
 
 Data commands MUST call the local server's data API with the instance secret and auto-start
 as in [local server](../local-server-and-web-console/README.md); they MUST NOT open storage
 in-process.
 
+#### REQ: database-named-in-output
+
+Every data and context command's human output MUST name the database it acted on (for example
+`todo: added /lists/to-buy/items/k3f9x2`), including when it came from the "only registered
+database" rung.
+
 #### REQ: list-behaviour
 
-At the root `list` MUST list collections; at a collection it MUST list records (id and data;
-`--json`: array of `{"path","id","data"}`); at a record it MUST show the record and say
+At the root `list` MUST list collections; at a collection it MUST list records (id and data,
+`--json` as in the table above); at a record it MUST show the record and say
 `Listing collections inside a record isn't supported yet`; empty locations print
 `Nothing here yet`.
 
@@ -123,8 +144,8 @@ A collection path where a record is required, or the reverse, MUST fail with
 
 #### REQ: server-errors-mapped
 
-Server errors MUST map to the envelope codes (`not_found`, `validation_failed`,
-`schema_required`, `unauthorized`, `unsupported`) with a `next` step.
+Server errors MUST be rendered in human output through the `/v1`-to-envelope mapping with a
+`next` step; with `--json` the `/v1` error body is printed unchanged.
 
 ### Browse data in TUI and web
 
@@ -190,7 +211,7 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 **Given** a schemaless database
 **When** `ovdb set /files/a%2Fb%2Etxt '{"n":1}'` and `ovdb list /files --json` run
-**Then** the server id is `a/b.txt` and the listed path is `/files/a%2Fb%2Etxt`
+**Then** the server id is `a/b.txt`, the human listing shows `/files/a%2Fb%2Etxt`, and `ovdb get /files/50%off` exits `1` with `invalid_argument`
 
 ### AC: data-commands-auto-start (verifies REQ:data-commands-use-server)
 
@@ -202,13 +223,19 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 **Given** the demo data
 **When** `ovdb list /`, `/lists`, `/lists/to-buy`, `/lists/to-buy/items --json` and `/empty` run with `--db todo`
-**Then** they show `lists`, the two lists, the record with the sub-collection note, three items as JSON, and `Nothing here yet`
+**Then** they show `lists`, the two lists, the record with the sub-collection note, `{"records":[…]}` with three items, and `Nothing here yet`
+
+### AC: only-database-is-named (verifies REQ:database-named-in-output)
+
+**Given** only the demo database registered and no context
+**When** `ovdb delete /lists/to-buy/items/<id>` runs
+**Then** the output names `todo` and the absolute path
 
 ### AC: add-set-get-delete (verifies REQ:get-set-add-delete)
 
 **Given** the demo
 **When** `ovdb add /lists/to-buy/items '{"title":"Tea","done":false}' --db todo` prints P, then `set P --field done=true`, `get P --json`, `delete P` run with `--db todo`
-**Then** `get` shows boolean `done: true`, and a later `get P` exits `1` with `not_found`
+**Then** `get` prints `{"key":…,"data":{…,"done":true}}`, and a later `get P` exits `1`; its human output uses `not_found` and with `--json` prints the `/v1` error body
 
 ### AC: kind-mismatch-hint (verifies REQ:path-kind-mismatch-guidance)
 
@@ -220,7 +247,7 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 **Given** a SQLite database `shop` without schemas
 **When** `ovdb add /orders '{"total":1}' --db shop --json` runs
-**Then** it exits `1` with `schema_required` and a `next` step to describe the collection's schema
+**Then** it exits `1` printing the `/v1` `schema_validation` error body, and without `--json` it shows `schema_required` with a `next` step to describe the collection's schema
 
 ### AC: browse-own-data (verifies REQ:browse-data-read-only)
 

@@ -103,8 +103,8 @@ each keep parity and the four canonical journeys passing.
   separately.
 - Local HTTPS and certificates — adds trust-store changes without protecting loopback
   traffic.
-- A built-in data browser in the web console — DataTug is the exploration tool; the TODO
-  app covers the demo.
+- Record editing, querying, or a schema or admin UI in the web console or TUI — read-only
+  Browse data is in scope; apps and agents edit, DataTug owns querying.
 - Full DataTug integration (new DataTug.app routes, nested DTQL) — owned by other
   repositories; recorded as external dependencies.
 - A comprehensive storage skill covering tokens, ACLs and schemas — MVP teaches setup and
@@ -112,8 +112,11 @@ each keep parity and the four canonical journeys passing.
 - Every storage engine in guided flows (GitHub-hosted inGitDB, provisioning database
   servers) — only engines the binary really supports, and only local creation.
 - Remote OVDB servers as contexts — the context keeps a reserved `server` field.
-- Guided connect for Firestore, MySQL and PostgreSQL — their connection details live in the
-  server's environment and error paths can leak secrets; listed with manifest setup instead.
+- Guided connect for Firestore, MySQL and PostgreSQL without a manifest — their connection
+  details live in the server's environment and error paths can leak secrets; they connect
+  through `ovdb init` plus Connect with a manifest file instead.
+- A per-storage-folder lock — one server per OVDB home is the only writer; other tools writing
+  the same folder (another home, legacy `ovdb serve`, editors) are out of scope.
 - Running DataTug from OVDB, `ovdb skills uninstall`, skill refresh after self-update, and
   stopping the server from the web console — cut to keep the first release small.
 - A login item or OS service so the server runs without any terminal or agent — deferred.
@@ -129,7 +132,7 @@ each keep parity and the four canonical journeys passing.
 | Must-be-true | Same-origin serving of the TODO app avoids CORS and token friction | Journey D browser test |
 | Should-be-true | Project root (Git root or cwd) is the scope people and agents expect | Observe Journey A/C sessions; watch for "wrong database" reports |
 | Should-be-true | People will opt in to telemetry often enough to inform decisions | Opt-in rate after the preview gate is removed |
-| Should-be-true | DataTug CLI works against a local OVDB server with a placeholder token | First increment runs `datatug query run` end-to-end |
+| Should-be-true | DataTug CLI works against a local OVDB server with a read-only token created by `ovdb token create` | First increment runs `datatug query run` end-to-end |
 | Should-be-true | A one-time login link is an acceptable step before the web console | Journey B observations; landing-page visits without a session |
 
 ## SpecScore Integration
@@ -174,6 +177,26 @@ but was unavailable because of a usage limit. Verdicts were reconciled by the ar
 | Cut telemetry during preview | Rejected | Founder wants funnel data from MVP; scope simplified instead |
 | Runtime files in roaming profile; pid reuse; Windows reserved ports; `EscapeID` examples | Accepted | Cache-dir runtime files, `OVDB_DATA_HOME`, authenticated stop with start-time check, `port_unavailable`, corrected examples |
 | Scope: remote connect UIs, DataTug run-now, skills uninstall and refresh, web stop, per-capability browser tests | Accepted | Deferred or replaced (web stop is exception E2; browser tests per journey) |
+
+**Architect decisions between rounds.** The instance secret is the owner credential and
+`ovdb token create|list|revoke` work against the local server (auth store in OVDB home);
+`ovdb databases connect --manifest` registers any engine, closing the Firestore/MySQL/PostgreSQL
+dead end; the skills command stays `ovdb skills install <skill>` (sync installs every bundle,
+but the TODO skill needs its own offer).
+
+**Round 2 (2026-09-17).** Reviewer: a fresh Claude Opus, independent and read-only. Verdict:
+ready with fixes; after this round the specifications are approved for planning.
+
+| Finding | Verdict | Change or reason |
+|---|---|---|
+| Local-mode auth rejected scoped tokens; connect flow undefined | Accepted (modified) | Three credentials (instance secret, session cookie, scoped tokens) with a credential×route table; connect flow on, consent needs a session, form posts exempt from the JSON rule |
+| Cross-origin protection blocks third-party browser apps | Accepted (modified) | Applies to cookie-authenticated requests only; bearer requests exempt; apps use `server.cors` origins with tokens |
+| Whoever auto-starts the server fixes its environment and sandbox | Accepted | Clients send skill dirs and data home; home/port mismatch error; Windows breakaway; `server_start_failed` with sandbox advice in output and skill |
+| Login link dead on the 127.0.0.1 fallback; `SameSite=Strict`; GET consumes codes; no endpoint to mint links | Accepted (modified) | Codes valid on all allowed hosts and both links printed; `SameSite=Lax`, port-named cookie, hashed sessions with 30-day sliding expiry; POST-only exchange; `POST /api/local/v1/login-links` |
+| `--json` contract conflicts with data commands | Accepted (modified) | Contract applies to configuration commands; data commands print `/v1` bodies unchanged; error code↔HTTP status and `/v1` mapping table |
+| Idea excluded the data browser; stale token wording; `engines --filter`; "may offer" | Accepted | Fixed |
+| Needs-attention without a server; legacy-create trigger; header order; link printed on start; `record.EscapeID` and `%`; demo path; CLI resolving `ovdb.localhost` | Accepted | `mounts.json` or "unknown"; only explicit `--addr`; headers outermost; link only from `ovdb open` (10-minute code in transcripts accepted); fixed; `<data home>/demos/todo`; CLI and TUI use 127.0.0.1 |
+| Round-1 leftovers: per-storage lock; silent "only database" rung; Windows job objects; server-side skill dirs | Deferred; kept; accepted; accepted | Lock deferred (single writer per home); only-database rung kept but every output names the database; covered by the environment fix |
 
 ## Open Questions
 

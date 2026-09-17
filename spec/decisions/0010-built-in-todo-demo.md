@@ -30,7 +30,8 @@ The founder decided the first-run demo is built into the `ovdb` binary, that
 ## Decision
 
 1. `ovdb` embeds a **TODO demo** with two lists, **To buy** and **To watch**, stored in a
-   local schemaless inGitDB database with id `todo` at `~/ovdb/demos/todo/`.
+   local schemaless inGitDB database with id `todo` at `<OVDB_DATA_HOME>/demos/todo/`
+   (default `~/ovdb/demos/todo/`).
 2. The demo includes a small web app served by the local server at
    `http://ovdb.localhost:6832/apps/todo/`, same-origin with the data API and using the
    console's login session, so it needs no separate token, CORS or connect flow. It renders
@@ -40,8 +41,9 @@ The founder decided the first-run demo is built into the `ovdb` binary, that
 4. Installation is idempotent and never overwrites existing data. An optional TODO AI
    skill lets an agent manage the lists by talking to the same database.
 5. `openvaultdb-todo-demo` is **superseded as the first-run demo**. It MAY remain as the
-   reference example of a *third-party* app using the connect flow; its README should
-   say so and link here. No SpecScore artifact exists there to transition.
+   reference example of a *third-party* app using the connect flow, which local mode
+   supports (bearer tokens plus origins listed in `server.cors`); its README should say so
+   and link here. No SpecScore artifact exists there to transition.
 6. Listus remains a Sneat demo. The `ovdb demo` command namespace MUST keep room for
    `--app listus` (for example `ovdb demo install` defaults to `todo`).
 

@@ -41,7 +41,7 @@ project, and a person may have several terminals open.
 7. **`ovdb use <database>` resets the path to `/`.**
 8. **Paths.** Leading `/` is absolute; otherwise relative to the context path; `.` and `..`
    supported, never above `/`. Odd depth is a collection, even depth a record. Segments are
-   escaped with `dal.EscapeID` for the server (which escapes `/ . $ # [ ]`); display and
+   escaped with `record.EscapeID` for the server (which escapes `/ . $ # [ ]`); display and
    input use the same escaped form.
 9. **`cd` checks syntax and database existence only**, printing `Nothing here yet` for an
    empty location, because schemaless collections exist only once they hold records.

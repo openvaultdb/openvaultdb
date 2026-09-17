@@ -13,10 +13,10 @@ status: Draft
 
 ## Summary
 
-Create a new database or connect an existing inGitDB folder or SQLite file from the CLI, TUI
-or web console, choosing from a catalogue of storage engines OVDB really supports, with
-sensible names and locations and plain notes about each engine's limits. Engines that need a
-database server are listed honestly with how to set them up.
+Create a new database, connect an existing inGitDB folder or SQLite file, or connect any
+engine with a manifest file, from the CLI, TUI or web console, choosing from a catalogue of
+storage engines OVDB really supports, with sensible names and locations and plain notes about
+each engine's limits.
 
 ## Problem
 
@@ -37,11 +37,11 @@ then the rest alphabetically. This display order does not change the backend bui
 
 | Id | Name | Description (copy) | Schema modes (verified) | Guided |
 |---|---|---|---|---|
-| `ingitdb` | inGitDB | Readable files in a folder, with Git history. Recommended to start. | strict, partial, schemaless | create, connect folder |
-| `sqlite` | SQLite | One fast local file. You describe your data (a schema) before storing records. | strict | create, connect file |
-| `firestore` | Firestore | Google Cloud document database. Set up with a manifest. | strict, partial, schemaless | no: `ovdb init --engine firestore` + docs |
-| `mysql` | MySQL | A MySQL server you run. Set up with a manifest. | strict | no: `ovdb init --engine mysql` + docs |
-| `postgres` | PostgreSQL | A PostgreSQL server you run. Set up with a manifest. | strict | no: `ovdb init --engine postgres` + docs |
+| `ingitdb` | inGitDB | Readable files in a folder, with Git history. Recommended to start. | strict, partial, schemaless | create, connect folder or manifest |
+| `sqlite` | SQLite | One fast local file. You describe your data (a schema) before storing records. | strict | create, connect file or manifest |
+| `firestore` | Firestore | Google Cloud document database. Set up with a manifest. | strict, partial, schemaless | manifest: `ovdb init --engine firestore`, then `ovdb databases connect --manifest` |
+| `mysql` | MySQL | A MySQL server you run. Set up with a manifest. | strict | manifest: `ovdb init --engine mysql`, then `ovdb databases connect --manifest` |
+| `postgres` | PostgreSQL | A PostgreSQL server you run. Set up with a manifest. | strict | manifest: `ovdb init --engine postgres`, then `ovdb databases connect --manifest` |
 
 inGitDB stored directly in a GitHub repository is mentioned under inGitDB as "advanced, set up
 with a manifest".
@@ -60,9 +60,9 @@ name and description, keeping returned order.
 
 #### REQ: manifest-only-engines-are-honest
 
-Choosing Firestore, MySQL or PostgreSQL in any interface MUST show "OVDB can use this, but
-setting it up here isn't available yet" with the `ovdb init --engine <id>` command and a
-documentation link, and MUST NOT collect connection details.
+Choosing Firestore, MySQL or PostgreSQL in any interface MUST show "Set this up with a manifest
+file" with the steps `ovdb init --engine <id>` (then edit the file), and **Connect with a
+manifest file**, plus a documentation link, and MUST NOT collect connection details.
 
 ### Create a database
 
@@ -71,7 +71,8 @@ documentation link, and MUST NOT collect connection details.
 Creating MUST take an id (`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`, unique), inGitDB or SQLite, and an
 absolute, normalized location. Defaults: inGitDB schemaless at `<data home>/<id>/`; SQLite at
 `<data home>/<id>.sqlite`, where data home is `OVDB_DATA_HOME` or `~/ovdb`. The server MUST
-write `databases/<id>.yaml`, create the storage and mount it without restart.
+write `databases/<id>.yaml`, create the storage and mount it without restart. The client MUST
+resolve the data home and send the absolute default location.
 
 #### REQ: create-never-overwrites
 
@@ -100,20 +101,31 @@ an absolute path, validate it by mounting once, and MUST NOT write into the user
 `openvaultdb-go` changes listed in [configuration parity](../configuration-parity/README.md)).
 Failures MUST use `storage_unavailable` with a redacted reason.
 
+#### REQ: connect-with-manifest
+
+**Connect with a manifest file** (CLI `ovdb databases connect --manifest <absolute path>`, TUI
+and web with a path field) MUST validate the manifest with the manifest parser, copy it into
+`databases/<id>.yaml` (id from the manifest, relative storage paths made absolute against the
+manifest's folder), mount it once and keep it only if the mount succeeds. When a variable named
+by the manifest (for example `dsn_env`) is missing in the server's environment, it MUST fail
+with `storage_unavailable`, a `reason` naming the variable (never a value) and `next`
+"Set <NAME> and run `ovdb server restart` from that shell".
+
 ### Manage registrations
 
 #### REQ: list-and-remove
 
 With `OVDB_PREVIEW=1`, `ovdb databases` MUST list registered databases (id, engine, location,
-needs attention) from state files without a server; without the gate, or with `--url`, it
-MUST behave as today. `ovdb databases remove <id>` MUST unregister without deleting data, say
+mount state) from state files without a server, taking mount state from the server's
+`mounts.json` when it runs and reporting "unknown (server not running)" otherwise; without the
+gate, or with an explicit `--url`, it MUST behave as today. `ovdb databases remove <id>` MUST unregister without deleting data, say
 where the data remains, and clear any context that pointed to it, saying so.
 
 #### REQ: legacy-create-compatible
 
 `ovdb databases create` MUST keep today's `POST /v1/databases` behaviour without
-`OVDB_PREVIEW`, and with it whenever `--addr`, `--token`, `--owner-token` or
-`OVDB_OWNER_TOKEN` is present.
+`OVDB_PREVIEW`; with it, only when `--addr` is given explicitly (an `OVDB_OWNER_TOKEN`
+variable alone does not select the legacy path).
 
 ### Commands
 
@@ -121,10 +133,11 @@ where the data remains, and clear any context that pointed to it, saying so.
 |---|---|
 | Storage choices | `ovdb engines [--json]` |
 | Create | `ovdb databases create <id> [--engine <ingitdb or sqlite>] [--path <absolute>] [--json]` |
-| Connect | `ovdb databases connect <id> --engine <ingitdb or sqlite> --path <absolute> [--json]` |
+| Connect a folder or file | `ovdb databases connect <id> --engine <ingitdb or sqlite> --path <absolute> [--json]` |
+| Connect with a manifest file | `ovdb databases connect --manifest <absolute path> [--json]` |
 | List | `ovdb databases [--json]` |
 | Remove | `ovdb databases remove <id> [--yes]` |
-| Manifest for other engines | `ovdb init --engine <firestore, mysql or postgres>` (help lists all five engines) |
+| Write a manifest | `ovdb init --engine <engine>` (help lists all five engines) |
 
 ### Example copy
 
@@ -179,7 +192,7 @@ What next?
 
 **Given** the Create flow in TUI and web
 **When** the person picks PostgreSQL
-**Then** both show the "isn't available yet" copy with `ovdb init --engine postgres` and a docs link, and no field for connection details
+**Then** both show "Set this up with a manifest file" with `ovdb init --engine postgres`, Connect with a manifest file and a docs link, and no field for connection details
 
 ### AC: create-ingitdb-default (verifies REQ:create-new-database)
 
@@ -211,6 +224,12 @@ What next?
 **When** each is connected
 **Then** the folder registers with no file added or changed (including `.git/config`), and the text file is rejected with `storage_unavailable`
 
+### AC: connect-postgres-manifest (verifies REQ:connect-with-manifest, REQ:manifest-only-engines-are-honest)
+
+**Given** `crm.yaml` written by `ovdb init --engine postgres` with `dsn_env: CRM_DSN`, and a server started without `CRM_DSN`
+**When** `ovdb databases connect --manifest /abs/crm.yaml --json` runs, then the server is restarted from a shell with `CRM_DSN` set and the command runs again
+**Then** the first fails with `storage_unavailable` naming `CRM_DSN` and no registry entry; the second registers `crm` and `GET /v1/databases/crm` works
+
 ### AC: remove-keeps-data (verifies REQ:list-and-remove)
 
 **Given** `OVDB_PREVIEW=1`, `notes` registered and set as the project context, and no server running
@@ -220,14 +239,14 @@ What next?
 ### AC: legacy-create-still-works (verifies REQ:legacy-create-compatible)
 
 **Given** `OVDB_PREVIEW=1`, `OVDB_OWNER_TOKEN=T` and `ovdb serve --data-dir ./data` on port 7000
-**When** `ovdb databases create crm --addr http://127.0.0.1:7000` runs
-**Then** it calls `POST /v1/databases` as today and writes nothing to the registry
+**When** `ovdb databases create crm --addr http://127.0.0.1:7000` runs, and `ovdb databases create notes` runs
+**Then** the first calls `POST /v1/databases` as today and writes nothing to the registry; the second uses the local server
 
 ## Open Questions
 
 - Should SQLite gain schemaless support in `openvaultdb-go` so it is friendly without a schema?
-- When should guided connect for Firestore, MySQL and PostgreSQL return (it needs a design for
-  connection details that live in the server's environment)?
+- When should guided connect (without a manifest) for Firestore, MySQL and PostgreSQL be
+  designed, given connection details live in the server's environment?
 - Should the inGitDB "with Git history" copy depend on `git` being installed?
 
 ---

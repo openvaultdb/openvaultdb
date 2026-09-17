@@ -89,7 +89,7 @@ MUST NOT offer a control implying otherwise, and MUST offer **Use DataTug CLI in
 | Owner | Needed for | Status |
 |---|---|---|
 | `openvaultdb-go` | Nested-collection queries so DataTug can show `/lists/to-buy/items` | Follow-up |
-| `openvaultdb/ovdb` | Read-only token creation that works in local mode | Spike S4 |
+| `openvaultdb/ovdb` | Read-only token creation against the local server (`ovdb token create`, specified in local server) | Proven in spike S4 |
 | `datatug-apps` | A supported way to open an OVDB database following DataTug's store-id convention | Not started |
 | DataTug.app ↔ loopback | Browser rules for public-site-to-local requests (Chrome's local network access changes); re-verify before designing | Design needed |
 

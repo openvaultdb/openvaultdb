@@ -40,7 +40,7 @@ the machine contracts in [configuration parity](../features/configuration-parity
 |---|---|---|
 | (root) | `ovdb`, `status`, `open` | [first-run onboarding](../features/first-run-onboarding/README.md) |
 | `server`, `config` | `start`, `stop`, `restart`, `status`; `open` (root); `get`, `set server.port` | [local server and web console](../features/local-server-and-web-console/README.md) |
-| `engines`, `databases` | `engines --filter`; `create`, `connect`, `remove` | [database setup](../features/database-setup-and-providers/README.md) |
+| `engines`, `databases`, `token` | `engines`; `create`, `connect` (`--path` or `--manifest`), `remove`; `token create`, `list`, `revoke` against the local server | [database setup](../features/database-setup-and-providers/README.md) |
 | context and data | `use`, `cd`, `pwd`, `list`, `get`, `set`, `add`, `delete` | [database context and navigation](../features/database-context-navigation/README.md) |
 | `demo` | `install`, `open`, `status` | [TODO demo](../features/todo-demo/README.md) |
 | `skills` | `list`, `install` | [AI agent skills](../features/ai-agent-skills/README.md) |

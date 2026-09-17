@@ -40,13 +40,16 @@ differently, one interface gains options the others lack.
    (`/api/local/v1/…` and the existing `/v1/…` data API). If the server is not running, the
    CLI and TUI start it in the background, say so in one line, and continue; `--no-start`
    refuses instead. The server holds one exclusive home lock, so it is the only writer.
+   Clients resolve environment-dependent inputs (skill directories, data home, telemetry
+   opt-outs) and send them with each request.
 3. **Pure reads without a server.** `ovdb status`, `ovdb pwd`, `ovdb engines`,
    `ovdb databases`, `ovdb skills list` and `ovdb telemetry status` read state files
    directly through the same Go package the server uses, so status works before anything
    has started.
 4. **Machine contracts defined once** (in [configuration parity](../features/configuration-parity/README.md)):
    an error envelope `{code, message, reason?, next[]}` with a closed `code` list; `--json`
-   output identical to the local API response body with `"schema": 1`; exit codes `0`
+   output of configuration commands identical to the local API response body with
+   `"schema": 1`, and of data commands identical to the existing `/v1` bodies; exit codes `0`
    success and `1` any failure (the existing `ovdb` contract); one copy catalogue
    `copy/en.json` embedded in Go and imported by the Vue build.
 5. **Strict parity with explicit exceptions.** Every user-visible capability is reachable

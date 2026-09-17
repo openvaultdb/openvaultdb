@@ -42,7 +42,7 @@ actions as commands.
 | Home | Welcome, status line, "What would you like to do?" | `ovdb status` |
 | Try a demo | Install and open the TODO demo | `ovdb demo install`, `ovdb demo open` |
 | Create a database | Choose storage, name, location | `ovdb databases create` |
-| Connect an existing database | Register an inGitDB folder or SQLite file | `ovdb databases connect` |
+| Connect an existing database | Register an inGitDB folder, SQLite file or manifest file | `ovdb databases connect` |
 | OVDB server | Start (TUI), status, open in browser, port | `ovdb server …`, `ovdb open` |
 | Databases | List, choose current, remove registration, Browse data | `ovdb databases`, `ovdb use`, `ovdb list` |
 | Explore data | DataTug guidance | `ovdb explore` |
@@ -61,7 +61,7 @@ Explore data MUST be disabled with "Create or connect a database first" when non
 #### REQ: home-status-line
 
 Home MUST show one status line: server state and address, number of databases (and how many
-need attention), and the current database with its scope.
+need attention, which the running server reports), and the current database with its scope.
 
 #### REQ: copy-from-catalogue
 
@@ -93,7 +93,7 @@ What would you like to do?
   Create a database
     Start fresh, stored on this computer.
   Connect an existing database
-    Use data you already have in a folder or SQLite file.
+    Use data you already have in a folder, SQLite file or manifest file.
   Start the OVDB server
     Open the web console at http://ovdb.localhost:6832
 
@@ -159,7 +159,8 @@ need confirmation MUST fail with `confirmation_required` naming the flag (`--yes
 
 With `OVDB_PREVIEW=1`, `ovdb status` MUST read state files without starting a server and
 report: version, locations, server state (running, addresses, version), databases (id,
-engine, location, needs attention), current context and scope, demo installed, installed
+engine, location, mount state from the running server or "unknown (server not running)"),
+current context and scope, demo installed, installed
 OVDB skills, telemetry state, and `next` (the entries above that still apply). `--json` MUST
 equal `GET /api/local/v1/status`. Without the gate, and whenever `--url` is given, `ovdb
 status` MUST behave as today.
@@ -191,8 +192,8 @@ preference.
 #### REQ: preview-gate
 
 Until founder approval, `OVDB_PREVIEW=1` MUST gate bare-`ovdb` TUI launch, changed defaults of
-existing commands (`status`, `databases`, `databases create`, `serve`, `init`, `token`) and
-help visibility of new commands. New commands remain callable when hidden. Removing the gate
+existing commands (`status`, `databases`, `databases create`, `serve`, `token`; `init` only
+gains engines in its help) and help visibility of new commands. New commands remain callable when hidden. Removing the gate
 MUST be one isolated change with release notes for the changed defaults.
 
 ## Dependencies

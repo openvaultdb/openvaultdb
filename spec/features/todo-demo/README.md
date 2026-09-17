@@ -31,7 +31,7 @@ without first understanding servers, manifests and tokens.
 ### Data
 
 Database id `todo`, engine inGitDB, schema mode schemaless, location
-`~/ovdb/demos/todo/`.
+`<data home>/demos/todo/` (data home is `OVDB_DATA_HOME`, default `~/ovdb`).
 
 | Path | Data |
 |---|---|
@@ -42,7 +42,7 @@ Database id `todo`, engine inGitDB, schema mode schemaless, location
 
 #### REQ: demo-install-idempotent
 
-`ovdb demo install` MUST register database `todo` at `~/ovdb/demos/todo/` and write the
+`ovdb demo install` MUST register database `todo` at `<data home>/demos/todo/` and write the
 seed data. Running it again MUST NOT change existing data and MUST report
 `The TODO demo is already installed`. If `todo` is registered with a different location
 or engine, or the folder exists with other content, install MUST fail without changes and
@@ -71,8 +71,10 @@ The app MUST show both lists with their items, let the person add an item, mark 
 or not done, and delete it, and MUST reflect changes made by other clients (CLI, agents)
 within 3 seconds while visible and immediately when the tab regains focus. It MUST render
 item text as text only (never as HTML). It MUST show
-a short line "Stored in ~/ovdb/demos/todo on this computer" and a link back to the web
-console. It MUST meet the web accessibility basics from
+a short line "Stored in <data home>/demos/todo on this computer" (the actual path) and a link back to the web
+console. It MUST show the session-ended and stopped-server copy from
+[local server and web console](../local-server-and-web-console/README.md) when its requests
+fail. It MUST meet the web accessibility basics from
 [first-run onboarding](../first-run-onboarding/README.md).
 
 ### After installing
@@ -121,7 +123,7 @@ server.
 
 **Given** an empty OVDB home
 **When** `ovdb demo install --yes` runs
-**Then** `ovdb databases` lists `todo` at `~/ovdb/demos/todo/`, and `ovdb list /lists/to-buy/items --db todo --json` returns Milk, Bananas and Coffee, all not done
+**Then** `ovdb databases` lists `todo` at `<data home>/demos/todo/`, and `ovdb list /lists/to-buy/items --db todo --json` returns Milk, Bananas and Coffee, all not done
 
 ### AC: reinstall-keeps-changes (verifies REQ:demo-install-idempotent)
 
