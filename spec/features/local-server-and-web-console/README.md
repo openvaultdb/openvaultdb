@@ -35,7 +35,7 @@ programs or hostile websites.
 | Kind | Default | Override | Content |
 |---|---|---|---|
 | Configuration | `os.UserConfigDir()/ovdb` | `OVDB_HOME` | `config.yaml` (`server.port`, `server.cors`, telemetry, global context), `databases/<id>.yaml`, `contexts/`, `auth.json` (scoped tokens, hashed), existing `cloud/` |
-| Runtime | `os.UserCacheDir()/ovdb/run` | `OVDB_RUNTIME_DIR` (hidden; tests and diagnostics only, not in help) | `server.json` (instance id, OVDB home, pid, process start time, port, version), `home.lock`, `secret`, `sessions.json` (hashed), `mounts.json` (per-database mount state), `server.log` |
+| Runtime | `os.UserCacheDir()/ovdb/run` | `OVDB_RUNTIME_DIR` (hidden; tests and diagnostics only, not in help) | `server.json` (instance id, OVDB home, pid, process identity, port, version), `home.lock`, `secret`, `sessions.json` (hashed), `mounts.json` (per-database mount state), `server.log` |
 | Data | `~/ovdb` | `OVDB_DATA_HOME` | New databases, `demos/todo/` |
 
 #### REQ: owner-only-state
@@ -107,9 +107,10 @@ never resolve `ovdb.localhost`.
 #### REQ: authenticated-stop
 
 `ovdb server stop` MUST call `POST /api/local/v1/server/shutdown` with the instance secret.
-If the server does not answer, it MAY terminate the recorded pid only when the pid's process
-start time matches `server.json`; otherwise it MUST report that it could not confirm the
-process and change nothing.
+If the server does not answer, it MAY terminate the recorded pid only when the pid's current
+process identity matches the opaque `process_identity` token recorded in `server.json` (not a
+raw process start time, which is not reliably comparable across platforms); otherwise it MUST
+report that it could not confirm the process and change nothing.
 
 #### REQ: stale-runtime-state
 
@@ -201,7 +202,9 @@ flags they MUST behave as today.
 The existing connect flow (`/authorize`, `/token`) MUST be served in local mode. Approving on
 `/authorize` MUST require a console session; without one the page MUST show the landing copy
 with a sign-in hint and approve nothing. Its form posts are exempt from the JSON-body rule
-but not from cross-origin protection.
+but not from cross-origin protection. Until increment 6 wires that session check, both routes
+MUST instead return `404` in the existing `/v1` error shape with code `not_supported` — not the
+local API error envelope from [configuration parity](../configuration-parity/README.md#REQ:error-envelope).
 
 #### REQ: login-links
 
@@ -335,7 +338,7 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 
 ### AC: stop-never-kills-reused-pid (verifies REQ:authenticated-stop, REQ:stale-runtime-state)
 
-**Given** `server.json` whose pid now belongs to an unrelated process with a different start time
+**Given** `server.json` whose pid now belongs to an unrelated process with a different process identity
 **When** `ovdb server stop` and `ovdb server status` run
 **Then** the unrelated process keeps running, stop reports it could not confirm the process, and status reports not running
 
@@ -451,6 +454,9 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 
 - Should the background server start at login as an opt-in setting (deferred from MVP)?
 - Log size limit and rotation.
+- Windows: `<OVDB_HOME>/auth.json`'s owner-only protection relies on the home directory's ACL
+  inheritance rather than an explicit ACL on the file itself — is that sufficient? Check in the
+  tokens increment (6).
 
 ---
 *This document follows the https://specscore.md/feature-specification*

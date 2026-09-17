@@ -128,7 +128,13 @@ Declined; usage errors exit `1` with code `invalid_argument`.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-09-17 (increment 1a): The single-transport rule (Decision point 2) has one narrow
+  exception, found while building the port-conflict remedy. `ovdb config set` writes directly
+  to `config.yaml` under an exclusively held `home.lock` when no server is running, taking the
+  lock itself for that single write, because the remedy it offers
+  (`ovdb config set server.port <N+1>`) must work precisely when the server cannot start and so
+  cannot depend on a server being reachable. When a server is running, `config set` goes through
+  it like every other mutation.
 
 ## Affected Features
 

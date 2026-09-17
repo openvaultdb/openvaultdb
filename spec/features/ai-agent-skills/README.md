@@ -89,9 +89,11 @@ demo is missing.
 
 Installation MUST use `github.com/strongo/cli-helpers/skillsync` with each skill as its own
 bundle, so installing one skill never changes the other or skills owned by other tools
-(per-skill install is an external change listed in configuration parity). Harness names and
-discovery MUST come from skillsync's defaults. Installing a current skill MUST report
-`already up to date`.
+(per-skill install is an external change listed in configuration parity). In practice this is
+one `skillsync.Sync` call per skill, each with its own `PluginIdentity{openvaultdb, <skill>}`
+under the shared CLI `Identity{openvaultdb, ovdb}`; S5 found this needs no upstream change.
+Harness names and discovery MUST come from skillsync's defaults. Installing a current skill
+MUST report `already up to date`.
 
 #### REQ: install-targets-restricted
 

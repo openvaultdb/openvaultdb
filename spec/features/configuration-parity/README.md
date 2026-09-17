@@ -142,6 +142,7 @@ authenticated as in the credential table of
 |---|---|
 | `GET /api/local/v1/whoami` | Instance id and version (server identity) |
 | `GET /api/local/v1/status` | 1, 2, 14 |
+| `GET /api/local/v1/server` | 4 (`--json` body shared by `server start`, `server stop`, `server restart` and `server status`) |
 | `POST /api/local/v1/server/shutdown` | 5 (instance secret only) |
 | `POST /api/local/v1/login-links` | 6, 19 (instance secret only) |
 | `GET /api/local/v1/engines` | 8 (sorted and pinned server-side) |

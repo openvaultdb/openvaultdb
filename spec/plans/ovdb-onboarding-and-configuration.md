@@ -342,7 +342,9 @@ screens are therefore subsets, by design.
   - Envelope goldens.
   - CLI: `--json` byte-equal to the API; unknown flag → `invalid_argument`, exit 1.
 - **Manual:** isolation; `ovdb server start | cat` (returns, no code printed); `ovdb server status
-  --json`; `python3 -m http.server 7833` then `OVDB_PORT=7833 ovdb server start` → both fixes;
+  --json`; `ovdb server stop` (a server already running on the default port makes the next check
+  fail with `server_config_mismatch` instead of a real port conflict); `python3 -m http.server
+  7833` then `OVDB_PORT=7833 ovdb server start` → both fixes;
   `curl -i -H 'Host: attacker.example:7832' http://127.0.0.1:7832/` → 403 with headers;
   `ovdb server stop` → stopped copy; `ovdb --help` without the gate is unchanged.
 - **Cross-platform:** LocalAppData runtime, Windows reserved ranges, `::1` missing in containers.
@@ -702,6 +704,19 @@ said ready with fixes. Verdicts reconciled by the architect.
 | 24-item checklist not verbatim (S) | Accepted | Verbatim table in increment 10 |
 | No journey regression gate between increments (S) | Accepted | Every increment from 2 re-runs prior journey scripts |
 | DataTug.app honesty not asserted; OS-specific commands unscoped; two open questions dropped (S) | Accepted (OS commands modified) | Playwright assertion; `runtime.GOOS` shell family only; both questions deferred |
+
+**Implementation amendments (2026-09-17, increment 1a).** Findings from building increment 1a,
+folded back into the spec and this plan:
+
+| Finding | Change |
+|---|---|
+| Task 10's manual port-conflict check ran against an already-running server and got `server_config_mismatch` instead of `port_in_use` | Manual steps stop the server first (this task, above) |
+| `config set` had no path to persist the TUI's "Use port N+1 instead" remedy when the server itself cannot start | Decision 0006 gets a narrow direct-write exception to the single-transport rule |
+| `/api/local/v1/status` did not cover capability 4 (server status) on its own | `configuration-parity` endpoint table gains `GET /api/local/v1/server` |
+| `/authorize` and `/token` in local mode, before increment 6, needed their error shape pinned down | `local-server-and-web-console` clarifies they return `404` in the existing `/v1` shape, not the new envelope |
+| `server.json`'s process field is an opaque process-identity token, not a raw process start time (unreliable to compare across platforms) | `local-server-and-web-console` Locations table, `REQ:authenticated-stop` and its AC renamed accordingly |
+| The status document is built up field group by field group across increments | `first-run-onboarding` `REQ:status-command` notes increment 1a ships only version, locations, server and `next` |
+| S5 confirmed `skillsync` needs one `Sync` call per skill with its own `PluginIdentity`, no upstream change | `ai-agent-skills` `REQ:install-with-skillsync` clarified (no behaviour change) |
 
 ## Open Questions
 
