@@ -112,7 +112,7 @@ of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
 | `schema_required` | 422 | `schema_validation` when the collection has no declared schema |
 | `validation_failed` | 422 | `schema_validation` otherwise |
 | `unsupported` | 501 | `not_supported`, `authorization_unsupported` |
-| `storage_unavailable` | 503 | `authorization_unavailable` |
+| `storage_unavailable` | 503 | `authorization_unavailable`, `git_identity_missing` (local mode only, a write into a Git-backed database with no `git config --global user.name`/`user.email`) |
 | `internal` | 500 | `internal` and any unknown code |
 | `port_in_use`, `port_unavailable`, `server_not_running`, `server_start_failed`, `server_config_mismatch`, `dependency_missing` | client-side only | — |
 
@@ -257,9 +257,10 @@ and reads a record with absolute paths — no command waits for input and teleme
 #### REQ: journey-d-todo-demo
 
 **D — TODO demo.** A person chooses Try a demo, opens the TODO app, installs the TODO AI
-skill after the consent step, asks an agent to "add bananas and coffee to my shopping list",
-sees both items appear in the open app, then opens Explore data and reads that DataTug shows
-the lists but not their items yet.
+skill after the consent step, asks an agent to "add tea to my shopping list and Arrival to
+my watch list" (items not already in the seed, so a real change is visible), sees both items
+appear in the open app, then opens Explore data and reads that DataTug shows the lists but
+not their items yet.
 
 ## Dependencies
 
@@ -355,8 +356,9 @@ the lists but not their items yet.
 ### AC: journey-d-passes (verifies REQ:journey-d-todo-demo)
 
 **Given** a fresh setup
-**When** Journey D runs with the agent step simulated by two `ovdb add` commands
-**Then** Bananas and Coffee appear in the open TODO app within 3 seconds, and Explore data for `todo` states that items are not shown in DataTug yet
+**When** Journey D runs with the agent step simulated by two `ovdb add` commands (Tea to
+`/lists/to-buy/items`, Arrival to `/lists/to-watch/items`)
+**Then** Tea and Arrival appear in the open TODO app within 3 seconds, and Explore data for `todo` states that items are not shown in DataTug yet
 
 ## Open Questions
 

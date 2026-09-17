@@ -764,6 +764,57 @@ and this plan:
 | `openvaultdb-go`'s own key-segment check (upstream `harden-record-keys`) found the same escaped-`..` gap at the server, now `400 invalid_key`, and query results on nested collections return full keys (`lists/to-buy/items/x`) instead of a parent-less key | `database-context-navigation` maps `invalid_key` to `invalid_argument`; `configuration-parity`'s error table gains the code; the CLI/TUI/web prefer the server's full key and still compose one from an older server |
 | inGitDB's own path containment (`dalgo2ingitdb`) is lexical (`filepath.Rel`/`filepath.IsLocal`), not symlink-resolving, inside a database's storage folder | Recorded as a known limitation under decision 0008's Observed Consequences, not a blocker |
 
+**Implementation amendments (2026-09-17, increment 4).** Findings from building and reviewing
+the TODO demo (`ovdb` PR #16), folded back into the specs and this plan:
+
+| Finding | Change |
+|---|---|
+| A database counted as "the TODO demo" whenever it sat in a folder named `demos/<id>`, so a user's own database at such a path was mistaken for the demo, and `demo install` reported success against it without writing anything | `todo-demo` `REQ:demo-install-idempotent` states the demo is only the database a `demo install` recorded in `<OVDB_HOME>/demos.json` |
+| A concurrent `demo install` returned `already_installed` before the winner had seeded, so a loser could read empty lists right after a `200` | `REQ:demo-install-idempotent` requires install requests to be serialized |
+| Reinstalling into a folder left behind by `ovdb databases remove todo` (data kept) was refused as non-empty, with no way forward short of a second copy | `REQ:demo-install-idempotent` has it reconnect and serve that folder instead |
+| Journey D's example ("add bananas and coffee to my shopping list") already matches the shared seed, so it added nothing new and the AC passed vacuously | `configuration-parity` `REQ:journey-d-todo-demo` and `AC:journey-d-passes` use items not in the seed (Tea, Arrival), matching the shipped test; decision 0010 gains an Observed Consequence |
+| The companion `openvaultdb-todo-demo` README (superseding note, decision 0010 point 5) advertised `demo install`/`demo open` and the connect flow before any released `ovdb` shipped them | Recorded in decision 0010's Observed Consequences: the README must name the shipping release and hold back the connect-flow sentence until increment 6, and has not landed yet |
+
+**Implementation amendments (2026-09-17, increment 5).** Findings from building and reviewing
+connect for an existing inGitDB folder, SQLite file or manifest (`ovdb` PR #18), folded back
+into the specs and this plan:
+
+| Finding | Change |
+|---|---|
+| Guided connect had shipped, but `REQ:manifest-only-engines-are-honest` and its AC still described the pre-increment-5 "put the manifest in `<OVDB_HOME>/databases` and reload" fallback as the next step | Both now say the next step is **Connect with a manifest file** (`ovdb databases connect --manifest`) unconditionally |
+| Any readable folder connected as inGitDB, including a code project's own Git repository with no `.ingitdb/`; a first write then committed into the person's branch | `database-setup-and-providers` `REQ:connect-existing-storage` refuses a folder engine `ingitdb` with no `.ingitdb/` (including an empty folder) as `invalid_argument`, pointing at Create or the real `.ingitdb` folder |
+| A connected SQLite file's manifest declared a table only when the table had an `id` column, but the whole file (including undeclared tables and columns) stayed readable, and `ID` in upper case was not detected | `REQ:connect-existing-storage` states this: no qualifying table is `schema_required`; the case-sensitivity gap and whole-file readability are recorded as known limitations the Result must disclose |
+| Connecting an inGitDB folder adds `.git/dalgo2ingitdb/transaction.lock`, which the spec's "no file added or changed" AC did not allow for, and the original test fixture pre-mounted the repo so the gap was invisible | `AC:connect-leaves-folder-untouched` now allows that one file; `REQ:connect-existing-storage` records it as a known `dalgo2ingitdb` limitation |
+| A YAML merge key under `storage`/`acl_store` could make the location the checks read and the location the mount used disagree | `REQ:connect-with-manifest` requires both to be derived from the decoded, typed manifest and to be re-checked equal before registering |
+| A manifest with `acl.enabled: true` and no `acl_store` pointed at policy files relative to the manifest's own folder, which the copy under `databases/` does not have | `REQ:connect-with-manifest` refuses it as `unsupported`, suggesting an `acl_store` folder instead |
+| Concurrent connects of the same storage under different ids could all succeed before the second overlap check ran | `REQ:connect-existing-storage` requires the overlap check to run again under the registry lock immediately before registering |
+| A write to a Git-backed database with no git identity returned a bare local API `500`; the human-facing `git_identity_missing` code and its `503` status had no place in the shared error table | `configuration-parity`'s `storage_unavailable` row gains `git_identity_missing` |
+
+**Implementation amendments (2026-09-17, increment 6).** Findings from building and reviewing
+tokens, CORS origins and the local-mode connect flow (`ovdb` PR #17), folded back into the
+specs and this plan:
+
+| Finding | Change |
+|---|---|
+| The spec said `server.cors` origins get CORS on `/v1/…` and `/token`, but did not say a `/token` request carrying the session cookie is a CSRF-protected write, not a CORS one, so the credentials table's "allowed" for a console session there read as unconditional | `local-server-and-web-console` `REQ:cross-origin-protection` and `REQ:route-layout` state CORS on `/token` is for credential-less code exchanges only |
+| `/token` returns a bearer secret but had no `Cache-Control: no-store`, unlike every other secret-bearing local response | `REQ:security-headers` adds it |
+| `/authorize` used `openvaultdb-go`'s library consent page, whose inline stylesheet the CSP blocks; `redirect_uri` accepted any `https`/`http` URL including one with userinfo or a fragment, shown and followed as given | `REQ:connect-flow-in-local-mode` states OVDB renders its own consent page and validates `redirect_uri` (https, or http to loopback, no userinfo, no fragment) before consent renders and before any redirect |
+| The consent page listed raw capability ids with no explanation, and a database-scoped connect request could carry the server-level `databases:create` capability, which can never do anything on a database-scoped grant | `REQ:connect-flow-in-local-mode` requires plain-language capability labels and refuses `databases:create` on a `db`-scoped request before consent, matching `token create --db … --scope create-db` |
+| `<OVDB_HOME>/auth.json`'s owner-only protection relied only on the home directory's ACL inheritance on Windows (an open question since increment 1b) | `REQ:owner-only-state` requires an explicit reprotect at start and after every write; the Open Question is resolved |
+| Connect-flow tokens' one-hour expiry (`openvaultdb-go`'s `auth.TokenTTL`) was implied by the library but not stated for OVDB's own connect flow | `REQ:connect-flow-in-local-mode` states it |
+| `ovdb token create\|list\|revoke`'s local-server path was documented for "no explicit `--addr` or `--owner-token`" without saying an `OVDB_OWNER_TOKEN` variable alone does not select the legacy path, unlike the matching database-create rule | `REQ:tokens-against-local-server` states it, cross-referencing `database-setup-and-providers` |
+
+**Implementation amendments (2026-09-17, spike S4).** DataTug CLI against a local-mode server
+with a read-only token passed on all three pass criteria (`scratchpad/spike-s4.md`); findings
+folded back into `explore-data-handoff`:
+
+| Finding | Change |
+|---|---|
+| A fresh machine or agent has no `~/.datatug/policies`, so the plain `datatug query run` command the spec described would fail immediately with "No access policies loaded" before reaching OVDB | `REQ:prepare-datatug-cli-connection` requires the printed command to always include `--no-policies` |
+| The descriptor's `principalId`/`--as` match is a `datatug-cli`-side destination-binding convention checked entirely inside `datatug-cli`; OVDB accepts the token regardless of `--as` | `REQ:prepare-datatug-cli-connection` states OVDB does not validate a principal, so copy must not imply it does |
+| `datatug-cli`'s own `--from` also builds only a root-collection reference; a `/`-containing value silently returns `{"records":[]}` instead of an error, indistinguishable from a genuinely empty collection | The "What DataTug can do" table and External dependencies gain this as a `datatug-cli` follow-up (not an OVDB defect) |
+| A revoked or expired token and a genuine DTQL policy denial both surface from `datatug-cli` as the same bare `Dalgo access denied.`, with no way to tell them apart | Recorded as a `datatug-cli` follow-up in External dependencies |
+
 ## Open Questions
 
 - Risks to watch: agent sandboxes that kill detached children; Node image changes in the
