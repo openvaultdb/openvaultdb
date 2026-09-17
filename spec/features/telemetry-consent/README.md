@@ -39,6 +39,12 @@ change their mind anywhere.
 | forced off | `OVDB_TELEMETRY=0`, `DO_NOT_TRACK` set (not `0`/`false`) or CI detected, in the sending process | No |
 | unavailable | Build has no PostHog key | No; state still recorded |
 
+CI detection (final review F5) treats any of `CI`, `GITHUB_ACTIONS`, `GITLAB_CI`, `BUILDKITE`,
+`CIRCLECI`, `TF_BUILD` (Azure Pipelines), `TRAVIS` or `APPVEYOR` set to a value other than
+empty, `0` or `false` as CI, and the mere presence of `JENKINS_URL`, `TEAMCITY_VERSION`,
+`BITBUCKET_BUILD_NUMBER` or `CODEBUILD_BUILD_ID` (their values are build identifiers, not
+booleans).
+
 #### REQ: opt-in-state
 
 Telemetry MUST start `not_asked` and send nothing until `enabled`. State, `decided_at` and the
@@ -73,9 +79,15 @@ a terminal is attached.
 
 #### REQ: consent-prompt-placement
 
-The TUI and web console MUST ask only once, after the first successful action, dismissible,
-with **Turn on** and **No thanks** equally prominent and a **What's collected?** link. The CLI
-MUST never prompt.
+The TUI and web console MUST ask only once per session, on the Result of the first action that
+actually did something while the state is `not_asked` — never on a Result that ran no action,
+for example "the TODO demo is already installed" (final review L5) — dismissible, with
+**Turn on** and **No thanks** equally prominent and a **What's collected?** link. **No thanks**
+MUST set `disabled`, so the person is never asked again. Dismissing without an answer (Esc in
+the TUI, closing the prompt in the web console) MUST leave the state `not_asked` — decide
+later — and MUST NOT ask again in that session; Enter, the key that otherwise confirms or moves
+on, MUST NOT itself answer or dismiss the prompt (final review L5), so a person moving through
+Results quickly cannot lose the choice by accident. The CLI MUST never prompt.
 
 #### REQ: pre-consent-buffer
 
@@ -98,7 +110,7 @@ Only these events MAY be sent, with only the listed properties plus `channel` (`
 | Event | Additional properties |
 |---|---|
 | `onboarding_started` | — |
-| `onboarding_option_selected` | `option` (`demo`, `create`, `connect`, `server`, `browse`, `explore`, `skills`, `settings`) |
+| `onboarding_option_selected` | `option` (`demo`, `create`, `connect`, `server`, `browse`, `explore`, `skills`, `settings`, `databases`) |
 | `engine_selected` | `engine` |
 | `database_created` | `engine`, `success`, `duration_ms` |
 | `existing_database_connected` | `engine`, `success`, `duration_ms` |
@@ -108,7 +120,7 @@ Only these events MAY be sent, with only the listed properties plus `channel` (`
 | `skill_installed` | `skill` (`openvaultdb`, `todo-demo`), `harness` (skillsync harness name), `success` |
 | `explore_data_selected` | `target` (`datatug_cli`, `datatug_web`), `datatug_found` |
 | `telemetry_consent_changed` | `state` (`enabled` only) |
-| `onboarding_completed` | `step` |
+| `onboarding_completed` | `step` (same options as above), recorded when the person reaches Done on a Result screen in any interface |
 | `onboarding_error` | `step`, `error_code` (envelope code) |
 
 Events MUST be a closed Go struct. One test MUST marshal every event with worst-case inputs
@@ -124,29 +136,53 @@ text, user names or e-mail addresses.
 #### REQ: ip-handling-and-release-precondition
 
 Disabling GeoIP enrichment does not stop the sending process's IP address from reaching
-PostHog: PostHog records the connection address regardless. Every event MUST carry a fixed
-`"$ip": "0.0.0.0"` property (PostHog's own documented mechanism for this — its "Hiding customer
-IP address" tutorial), but PostHog still stores the real address unless the EU project's own
-**"Discard client IP data"** setting is on. Copy MUST NOT call the statistics "anonymous" or
-claim addresses are never collected without naming this: the person is told their IP address
-reaches PostHog with each send, and that OVDB puts a placeholder in the event in its place. This
-project setting, and forwarding a `POSTHOG_KEY` release secret into the `ovdb` release build
-(currently absent from `.github/workflows/release.yml`; needs a `strongo/cicd` change shared
-with other products, for example `specscore-cli`'s `POSTHOG_WRITE_KEY`), are both release
-preconditions: no build MUST ship an active key before the PostHog project setting is confirmed
-on ([decision 0009](../../decisions/0009-opt-in-product-telemetry.md) Observed Consequences).
+PostHog's servers with every request: that is how the connection works, and OVDB cannot change
+it. Every event MUST instead carry a fixed `"$ip": "0.0.0.0"` property (PostHog's own documented
+mechanism — its "Hiding customer IP address" tutorial and privacy docs: PostHog uses the client
+IP address it received only when an event's own `$ip` property is absent), so the address
+**stored on the event** is the placeholder, not the real one, independent of any project
+setting. Copy MUST NOT call the statistics "anonymous" or claim addresses are "never collected"
+without naming this precisely: the person is told their IP address reaches PostHog with each
+send, and that OVDB puts a placeholder in the event in its place — not that PostHog "stores it
+only if" a project setting is on (final review L6; that framing overstated what the project
+setting controls). The EU project's own **"Discard client IP data"** setting remains a release
+precondition regardless, in case any pipeline, transformation or export ever reads the raw
+connection address rather than the event's stored `$ip` property. This setting, and forwarding
+a `POSTHOG_KEY` release secret into the `ovdb` release build (currently absent from
+`.github/workflows/release.yml`; needs a `strongo/cicd` change shared with other products, for
+example `specscore-cli`'s `POSTHOG_WRITE_KEY`), are both release preconditions: no build MUST
+ship an active key before the PostHog project setting is confirmed on
+([decision 0009](../../decisions/0009-opt-in-product-telemetry.md) Observed Consequences).
 
 #### REQ: channel-detection
 
 `channel` MUST be derived by the sending process: `web` for web console actions, `tui` for TUI
 actions, `agent` when a known agent harness variable is present (for example `CLAUDECODE`,
-`CODEX_*`), otherwise `cli`.
+`CODEX_*`), otherwise `cli`. A web console session's `PUT /api/local/v1/telemetry` request MUST
+always be recorded as `web`, whatever the request body says. An instance-secret caller (the
+owner's own local CLI, TUI or an agent harness running one of them) instead declares which of
+`cli`, `tui` or `agent` it is; the server MUST accept only that validated enum from a bearer
+caller and refuse any other value, including `web`, with `invalid_argument` — deriving the
+stored channel from the credential alone is not enough, since it recorded every instance-secret
+caller (TUI and agent included) as `cli` and lost the distinction `REQ:enable-requires-a-person`
+depends on (final review M1, correcting decision 0009's "self-reported and unenforceable"
+characterization: the channel is now a validated enum per caller kind, though a caller can still
+misreport which local process it is).
 
 #### REQ: bounded-synchronous-sender
 
-A small sender without a PostHog SDK MUST POST one batch to the PostHog EU capture endpoint at
-the end of a command or step, synchronously, with a 2-second total timeout; failures MUST be
-silent and MUST NOT change output or exit code.
+A small sender without a PostHog SDK MUST POST one batch to the PostHog EU capture endpoint,
+each batch bounded by a 2-second total timeout (connection included) and carrying only
+`Content-Type: application/json` and `User-Agent: ovdb`; failures MUST be silent and MUST NOT
+change output or exit code. The CLI and TUI MUST flush their own pending batch synchronously,
+within that 2-second bound, at command or process exit. The server MUST NOT make a console
+action's own HTTP response wait for PostHog: it hands each batch to a small bounded background
+queue (capacity 16 batches; a full queue drops the new batch rather than blocking) with one
+worker sending batches one at a time, each still bounded by the 2-second timeout, so a slow or
+unreachable endpoint never delays what the console shows (final review M5 — the response body
+was previously flushed only after the synchronous send completed, chunked-encoding every
+observed console action by up to 2 s). On shutdown the server MUST wait for queued batches to
+finish sending, bounded to at most 2 seconds, before exiting.
 
 ### Example copy
 
@@ -162,8 +198,8 @@ What's collected
   • Which setup steps you use and whether they succeed
   • Storage type chosen (for example inGitDB), error types, timings
   • OVDB version, operating system, a random install id
-  • Your IP address reaches PostHog with each send; OVDB puts a placeholder in its place in
-    the event, and PostHog stores it only if the project keeps client IP data
+  • Your IP address reaches PostHog with each send; OVDB puts a placeholder in the event in
+    its place, so the address itself isn't stored on the event
 
 Never collected
   • Your data, database names, file paths, or database and server addresses
@@ -224,6 +260,12 @@ Change it any time: ovdb telemetry enable / ovdb telemetry disable
 **When** the first successful action completes
 **Then** one prompt shows Turn on and No thanks with equal weight and a What's collected link
 
+### AC: prompt-skips-no-op-result-and-survives-enter (verifies REQ:consent-prompt-placement)
+
+**Given** the TUI with `not_asked` and the demo already installed
+**When** the person installs the demo again (a Result that changes nothing) and presses Enter on it, then creates a database
+**Then** no prompt appears on the already-installed Result and Enter does not dismiss anything there; the prompt appears on the database-created Result instead, and pressing Esc there leaves the state `not_asked` without asking again this session
+
 ### AC: buffer-flushed-or-dropped (verifies REQ:pre-consent-buffer)
 
 **Given** a recording endpoint and `not_asked`
@@ -246,7 +288,7 @@ Change it any time: ovdb telemetry enable / ovdb telemetry disable
 
 **Given** a recording endpoint and telemetry enabled
 **When** any event is sent, and telemetry status/settings copy is read
-**Then** the event's `$ip` property is the fixed placeholder, never the sender's real address, and no shown copy calls the statistics "anonymous" or claims addresses are never collected without naming the IP address behaviour
+**Then** the event's `$ip` property is the fixed placeholder, never the sender's real address, and no shown copy calls the statistics "anonymous" or claims addresses are never collected without naming the IP address behaviour, and no copy claims PostHog stores the real address conditionally on a project setting
 
 ### AC: channel-derived (verifies REQ:channel-detection)
 
@@ -254,11 +296,23 @@ Change it any time: ovdb telemetry enable / ovdb telemetry disable
 **When** `ovdb demo install --yes` runs, and the same action runs in the web console
 **Then** the CLI event has `channel: agent` and the web event `channel: web`
 
+### AC: server-validates-declared-channel (verifies REQ:channel-detection)
+
+**Given** a running server, telemetry `not_asked`, and the instance secret
+**When** the TUI turns telemetry on (declaring `tui`), then a separate `CLAUDECODE=1` process runs `ovdb telemetry enable --confirmed-by-user` (declaring `agent`) against the same server, then a bearer request declares `channel: "web"`
+**Then** `config.yaml` records `channel: tui` after the first and `channel: agent` after the second, never `cli` for either; the third is refused `invalid_argument` and the stored channel is unchanged
+
 ### AC: events-delivered-within-bound (verifies REQ:bounded-synchronous-sender)
 
 **Given** telemetry enabled and a recording endpoint, then an endpoint that never responds
 **When** `ovdb databases create notes` runs against each
 **Then** the first receives `database_created` before the process exits; the second adds at most 2 s and output and exit code are unchanged
+
+### AC: console-not-blocked-by-send (verifies REQ:bounded-synchronous-sender)
+
+**Given** telemetry enabled in the web console and an endpoint that never responds
+**When** the person creates a database from the web console
+**Then** the HTTP response with the created database completes immediately (not chunked, not held for up to 2 s), and the endpoint still receives the `database_created` batch shortly after
 
 ## Open Questions
 
