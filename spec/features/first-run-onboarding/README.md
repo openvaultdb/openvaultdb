@@ -76,7 +76,10 @@ need attention, which the running server reports), and the current database with
 When at least one database is registered, Home MUST keep the same question and menu in every
 interface and show above it a one-line summary, for example
 `2 databases · using todo (this project) · OVDB server running at http://ovdb.localhost:6832`
-(or `OVDB server not running`). Home MUST NOT switch to a database-first layout.
+(or `OVDB server not running`). Home MUST NOT switch to a database-first layout. The secondary
+group MUST also gain a **Databases** option (list, choose current, remove registration, Browse
+data) once at least one database is registered; with none it stays absent, not disabled, since
+there is nothing yet to list.
 
 #### REQ: copy-from-catalogue
 
@@ -235,7 +238,7 @@ MUST be one isolated change with release notes for the changed defaults.
 
 **Given** databases `todo` and `notes`, project context `todo` and a running server
 **When** the person opens Home in the TUI and in the web console, and `ovdb` runs non-interactively
-**Then** all show `2 databases · using todo …` with the server address above the unchanged question and options
+**Then** all show `2 databases · using todo …` with the server address above the unchanged question and options, and the secondary group now includes **Databases**
 
 ### AC: result-lists-next-actions (verifies REQ:after-action-result, REQ:copy-from-catalogue)
 

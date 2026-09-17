@@ -732,6 +732,20 @@ sign-in flow and the TUI Home screen, folded back into the specs and this plan:
 | The CSP allowed form submission to non-`self` origins, and authenticated responses had no cache directive | CSP gains `form-action 'self'`; `Cache-Control: no-store` added to `/api/local/v1/…` and authenticated HTML |
 | Home's "Start the OVDB server" description was static text that stayed accurate only while stopped | Its description is now state-dependent (stopped vs running), driven by `description_key` |
 
+**Implementation amendments (2026-09-17, increment 2).** Findings from building create, list,
+remove and the database registry, folded back into the specs and this plan:
+
+| Finding | Change |
+|---|---|
+| Returning users had no way back to their database list from Home; it only appeared under Browse data | `first-run-onboarding` `REQ:returning-user-home` adds a **Databases** option to the secondary group once at least one database is registered |
+| A manifest edited by hand, or a manifest-only engine dropped straight into `databases/`, had no way to take effect short of a full server restart | `database-setup-and-providers` gains `REQ:reload-database` (`ovdb databases reload <id>\|--all`); `configuration-parity` gains matrix row 12a and its endpoints |
+| Mounting every manifest before the listener started meant one slow or hanging database delayed every request, including `whoami` | `local-server-and-web-console` `REQ:registry-serving` now starts the listener first and mounts in the background, one per-database deadline each |
+| A database whose storage had been deleted out from under OVDB (folder or SQLite file gone) was indistinguishable from a broken manifest, and a careless fix could recreate it silently | `REQ:registry-serving` states missing storage as its own "needs attention" case that is never recreated |
+| Nothing stopped a new database's location from landing inside `OVDB_HOME`, the runtime directory, or another database's own storage | `database-setup-and-providers` gains `REQ:create-refuses-unsafe-locations` (`invalid_argument`, naming the conflict) |
+| SQLite's schema-first next step left a person with an empty manifest and no working example to edit | Creating SQLite now declares a placeholder `example` collection; the next step is edit the manifest, then `ovdb databases reload <id>` |
+| Firestore/MySQL/PostgreSQL's spec already pointed at "Connect with a manifest file", a command that does not exist until increment 5 | `REQ:manifest-only-engines-are-honest` now says "put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`" until guided connect ships |
+| Id uniqueness (`already_exists`) was untested against case variants, and two ids differing only by case would otherwise collide on case-insensitive filesystems | `REQ:create-new-database`/`REQ:create-never-overwrites` state the comparison is case-insensitive |
+
 ## Open Questions
 
 - Should `ovdb get --json` also normalize `key` to the absolute path for symmetry with `{"key"}`,
