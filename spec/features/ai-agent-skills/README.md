@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: AI agent skills
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/ai-agent-skills?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/ai-agent-skills?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/ai-agent-skills?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/ai-agent-skills?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary

@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: Configuration parity
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/configuration-parity?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/configuration-parity?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/configuration-parity?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/configuration-parity?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary
@@ -181,7 +181,9 @@ The work depends on these upstream changes, owned by the same organisation.
 
 #### REQ: increment-zero-spikes
 
-Before feature increments, increment 0 MUST prove, with a pass/fail note each:
+Increment 0 consists of these spikes. Each MUST be proven, with a pass/fail note and evidence,
+before the first increment that depends on it (not all before any increment); a failed spike
+MUST change the specification before that increment starts:
 S1 `openvaultdb-go` upgrade with Mount/Unmount, tolerant scan and side-effect-free mount;
 S2 detached start, authenticated readiness and shutdown on Linux, macOS and Windows;
 S3 embedded Vue build through the release pipeline with the `.gitkeep` fallback;
@@ -189,7 +191,8 @@ S4 DataTug CLI end-to-end against a local-mode server with a read-only token fro
 S5 `skillsync` per-skill install;
 S6 `copy/en.json` shared by Go and Vite;
 S7 credential table, POST login exchange on both hosts, persisted `SameSite=Lax` sessions, cookie-only `http.CrossOriginProtection`, `server.cors`, Host allowlist and CSP;
-S8 manual `ovdb.localhost` check in Safari (macOS) and Edge (Windows).
+S8 a founder-run manual check in Safari (macOS) and Edge (Windows): the login link signs in on
+`ovdb.localhost` and `127.0.0.1` and the session survives a reload and a server restart.
 
 ### Tests
 
@@ -303,9 +306,9 @@ the lists but not their items yet.
 
 ### AC: spikes-recorded (verifies REQ:increment-zero-spikes)
 
-**Given** increment 0 is complete
-**When** the plan is reviewed
-**Then** S1–S8 each have a recorded pass or fail with evidence, and any failed spike has a changed specification before feature increments start
+**Given** a feature increment that depends on spikes
+**When** that increment starts
+**Then** each of its spikes has a recorded pass or fail with evidence, and any failed one has already changed the specification
 
 ### AC: tests-per-capability (verifies REQ:presentation-tests)
 

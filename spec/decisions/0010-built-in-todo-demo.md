@@ -1,10 +1,10 @@
 ---
 format: https://specscore.md/decision-specification
-status: Draft
+status: Approved
 ---
 # Decision: Built-in TODO demo is the first-run demo
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
 **Tags:** onboarding,demo,ai-agents

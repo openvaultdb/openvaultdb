@@ -1,10 +1,10 @@
 ---
 format: https://specscore.md/decision-specification
-status: Draft
+status: Approved
 ---
 # Decision: Database context scope for `ovdb use`, `ovdb cd` and `ovdb pwd`
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
 **Tags:** onboarding,cli,context,ai-agents

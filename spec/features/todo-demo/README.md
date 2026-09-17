@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: TODO demo
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary

@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: First-run onboarding
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/first-run-onboarding?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/first-run-onboarding?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/first-run-onboarding?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/first-run-onboarding?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary
@@ -19,7 +19,7 @@ of what happened and what to do next. Non-interactive callers (AI agents, script
 compact status and the same next options as data instead of a prompt.
 
 Originating idea: [OVDB onboarding and configuration](../../ideas/ovdb-onboarding-and-configuration.md)
-(Draft; `Source Ideas` is set once approved). Architecture:
+(Specified). Architecture:
 [decision 0006](../../decisions/0006-three-equal-configuration-interfaces.md). Machine
 contracts (error envelope, JSON, exit codes, copy catalogue) are defined in
 [configuration parity](../configuration-parity/README.md).
@@ -57,11 +57,21 @@ database**, **Connect an existing database**, **Start the OVDB server**, then a 
 group: **Browse data**, **Explore data**, **AI agent skills**, **Settings**. In the web
 console the fourth option MUST read **OVDB server** and show its state. Browse data and
 Explore data MUST be disabled with "Create or connect a database first" when none exists.
+This is the founder's order (2026-09-16): trying comes before committing to storage, and
+starting the server comes last because the other options start it when needed. The web wording
+differs because a page served by the server cannot start it (parity E1); it can only show it.
 
 #### REQ: home-status-line
 
 Home MUST show one status line: server state and address, number of databases (and how many
 need attention, which the running server reports), and the current database with its scope.
+
+#### REQ: returning-user-home
+
+When at least one database is registered, Home MUST keep the same question and menu in every
+interface and show above it a one-line summary, for example
+`2 databases · using todo (this project) · OVDB server running at http://ovdb.localhost:6832`
+(or `OVDB server not running`). Home MUST NOT switch to a database-first layout.
 
 #### REQ: copy-from-catalogue
 
@@ -212,6 +222,12 @@ MUST be one isolated change with release notes for the changed defaults.
 **When** the person opens the TUI with `OVDB_PREVIEW=1 ovdb` and the web console via `ovdb open`
 **Then** both show the same status facts, the question, the four primary options in order (web shows "OVDB server"), and Browse data and Explore data disabled with "Create or connect a database first"
 
+### AC: returning-user-summary (verifies REQ:returning-user-home)
+
+**Given** databases `todo` and `notes`, project context `todo` and a running server
+**When** the person opens Home in the TUI and in the web console, and `ovdb` runs non-interactively
+**Then** all show `2 databases · using todo …` with the server address above the unchanged question and options
+
 ### AC: result-lists-next-actions (verifies REQ:after-action-result, REQ:copy-from-catalogue)
 
 **Given** a person creates `notes` in the TUI, in the web console and with `ovdb databases create notes --json`
@@ -268,7 +284,8 @@ MUST be one isolated change with release notes for the changed defaults.
 
 ## Open Questions
 
-- Should Home for returning users lead with their databases instead of the question?
+- Resolved (plan review 2026-09-17): returning users keep the same Home with a one-line
+  summary (`REQ:returning-user-home`).
 - Which languages beyond English does `copy/en.json` need first?
 
 ---

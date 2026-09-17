@@ -10,7 +10,7 @@ Pre-spec one-pagers. Each Idea is a lint-clean problem-direction-MVP one-pager t
 
 | Idea | Status | Date | Owner | Promotes To |
 |------|--------|------|-------|-------------|
-| [ovdb-onboarding-and-configuration](ovdb-onboarding-and-configuration.md) | Draft | 2026-09-17 | alex | — |
+| [ovdb-onboarding-and-configuration](ovdb-onboarding-and-configuration.md) | Specified | 2026-09-17 | alex | ai-agent-skills, configuration-parity, database-context-navigation, database-setup-and-providers, explore-data-handoff, first-run-onboarding, local-server-and-web-console, telemetry-consent, todo-demo |
 
 ## Open Questions
 

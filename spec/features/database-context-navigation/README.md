@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: Database context and navigation
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/database-context-navigation?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/database-context-navigation?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/database-context-navigation?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/database-context-navigation?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary

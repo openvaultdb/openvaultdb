@@ -1,10 +1,10 @@
 ---
 format: https://specscore.md/decision-specification
-status: Draft
+status: Approved
 ---
 # Decision: Opt-in product telemetry with PostHog
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
 **Tags:** telemetry,privacy,onboarding,ai-agents

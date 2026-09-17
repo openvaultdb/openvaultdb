@@ -1,10 +1,10 @@
 ---
 format: https://specscore.md/decision-specification
-status: Draft
+status: Approved
 ---
 # Decision: Local OVDB server model and web address
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
 **Tags:** onboarding,local-server,web-ui,security,networking

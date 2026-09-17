@@ -1,13 +1,13 @@
 ---
 format: https://specscore.md/idea-specification
-status: Draft
+status: Specified
 ---
 # Idea: OpenVaultDB onboarding, configuration and AI storage experience
 
-**Status:** Draft
+**Status:** Specified
 **Date:** 2026-09-17
 **Owner:** alex
-**Promotes To:** —
+**Promotes To:** ai-agent-skills, configuration-parity, database-context-navigation, database-setup-and-providers, explore-data-handoff, first-run-onboarding, local-server-and-web-console, telemetry-consent, todo-demo
 **Supersedes:** —
 **Related Ideas:** —
 
@@ -146,8 +146,8 @@ each keep parity and the four canonical journeys passing.
   [ai-agent-skills](../features/ai-agent-skills/README.md),
   [explore-data-handoff](../features/explore-data-handoff/README.md),
   [telemetry-consent](../features/telemetry-consent/README.md),
-  [configuration-parity](../features/configuration-parity/README.md). They are drafted
-  now; their `Source Ideas` will reference this idea once it is approved.
+  [configuration-parity](../features/configuration-parity/README.md). They are approved
+  for implementation and reference this idea as their `Source Ideas`.
 - **Existing Features affected:** none directly. Sneat's `listus-local-demo` (in
   `sneat-co/ovdb`) shares the `ovdb demo` namespace.
 - **Dependencies:** decisions 0006–0010; `strongo/cli-helpers` (skillsync,

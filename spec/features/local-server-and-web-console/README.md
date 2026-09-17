@@ -1,14 +1,14 @@
 ---
 format: https://specscore.md/feature-specification
-status: Draft
+status: Approved
 ---
 # Feature: Local server and web console
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/local-server-and-web-console?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/local-server-and-web-console?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/local-server-and-web-console?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/local-server-and-web-console?op=request-change) |
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
-**Source Ideas:** —
+**Source Ideas:** ovdb-onboarding-and-configuration
 **Supersedes:** —
 
 ## Summary
@@ -35,14 +35,19 @@ programs or hostile websites.
 | Kind | Default | Override | Content |
 |---|---|---|---|
 | Configuration | `os.UserConfigDir()/ovdb` | `OVDB_HOME` | `config.yaml` (`server.port`, `server.cors`, telemetry, global context), `databases/<id>.yaml`, `contexts/`, `auth.json` (scoped tokens, hashed), existing `cloud/` |
-| Runtime | `os.UserCacheDir()/ovdb/run` | — | `server.json` (instance id, OVDB home, pid, process start time, port, version), `home.lock`, `secret`, `sessions.json` (hashed), `mounts.json` (per-database mount state), `server.log` |
+| Runtime | `os.UserCacheDir()/ovdb/run` | `OVDB_RUNTIME_DIR` (hidden; tests and diagnostics only, not in help) | `server.json` (instance id, OVDB home, pid, process start time, port, version), `home.lock`, `secret`, `sessions.json` (hashed), `mounts.json` (per-database mount state), `server.log` |
 | Data | `~/ovdb` | `OVDB_DATA_HOME` | New databases, `demos/todo/` |
 
 #### REQ: owner-only-state
 
-Configuration and runtime directories and their files MUST be created owner-only with
-`strongo/cli-helpers/daemonlifecycle` (`ProtectOwnerOnly`, validated with
-`ValidateOwnerOnly`) on every platform, and written atomically.
+Directories OVDB creates for configuration and runtime state, and every file it writes there,
+MUST be owner-only through `strongo/cli-helpers/daemonlifecycle` (`ProtectOwnerOnly`, validated
+with `ValidateOwnerOnly`) on every platform, and written atomically. OVDB MUST NOT change the
+permissions of a directory it did not create (for example an existing `OVDB_HOME`, or a
+configuration directory created earlier by `ovdb cloud`). If an existing OVDB home or runtime
+directory is accessible to other users, OVDB MUST print a warning with the fix (for example
+`chmod 700 <dir>`); if it is the runtime directory, OVDB MUST also refuse to write the instance
+secret there, failing server start with `forbidden`.
 
 ### Server modes
 
@@ -397,7 +402,7 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 ### AC: dns-rebinding-blocked (verifies REQ:host-allowlist)
 
 **Given** a local-mode server
-**When** requests arrive with `Host: attacker.example:6832`, `Host: localhost.:6832` and no Host
+**When** requests arrive with `Host: attacker.example:6832` and `Host: localhost.:6832` (a trailing dot is rejected, not normalized)
 **Then** each gets `403` with the security headers
 
 ### AC: cross-site-cookie-post-blocked (verifies REQ:cross-origin-protection)
@@ -423,6 +428,12 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 **Given** a fresh setup on each platform
 **When** `ovdb server start` runs
 **Then** runtime files are under the user cache directory (LocalAppData on Windows), and `ValidateOwnerOnly` passes for config and runtime directories
+
+### AC: existing-dirs-not-chmodded (verifies REQ:owner-only-state)
+
+**Given** on Unix an existing `OVDB_HOME` and an existing runtime directory, both with mode `0755`
+**When** `ovdb server start` runs
+**Then** neither mode changes, warnings name both directories with the `chmod 700` fix, no instance secret is written, and start exits `1` with `forbidden`
 
 ### AC: not-built-fallback (verifies REQ:embedded-assets)
 

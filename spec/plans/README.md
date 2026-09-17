@@ -10,7 +10,7 @@ Canonical index of all plans in this repository. Each plan is a single Markdown 
 
 | Plan | Status | Source | Date | Owner |
 |---|---|---|---|---|
-| [ovdb-onboarding-and-configuration](ovdb-onboarding-and-configuration.md) | Draft | idea:ovdb-onboarding-and-configuration | 2026-09-17 | alex |
+| [ovdb-onboarding-and-configuration](ovdb-onboarding-and-configuration.md) | Approved | idea:ovdb-onboarding-and-configuration | 2026-09-17 | alex |
 
 ## Recently Closed
 

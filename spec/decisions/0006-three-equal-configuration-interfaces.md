@@ -1,10 +1,10 @@
 ---
 format: https://specscore.md/decision-specification
-status: Draft
+status: Approved
 ---
 # Decision: Three equal configuration interfaces over one shared capability layer
 
-**Status:** Draft
+**Status:** Approved
 **Date:** 2026-09-17
 **Owner:** alex
 **Tags:** onboarding,cli,tui,web-ui,architecture,parity
