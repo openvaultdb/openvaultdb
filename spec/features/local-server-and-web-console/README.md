@@ -234,8 +234,8 @@ with a `400` problem page before any redirect happens. The consent page MUST sho
 requested capability, a plain-language label of what it allows, calling out `policies:admin`
 and `access:*` as powerful; a database-scoped request (a `db` value present) carrying the
 server-level `databases:create` capability MUST be refused before consent is shown, the same
-way `ovdb token create --db … --scope create-db` already is. A code issued by `/token` MUST
-expire one hour after issue (`openvaultdb-go`'s `auth.TokenTTL`); the client that receives it is
+way `ovdb token create --db … --scope create-db` already is. An access token issued by `/token` in
+exchange for a code MUST expire one hour after issue (`openvaultdb-go`'s `auth.TokenTTL`); the client that receives it is
 expected to store it and treat that lifetime as fixed, not to assume it never expires.
 
 Before increment 6 wired the session check, both routes instead returned `404` in the existing
