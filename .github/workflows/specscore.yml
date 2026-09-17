@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Install pinned SpecScore CLI
         env:
-          SPECSCORE_VERSION: 0.37.6
+          SPECSCORE_VERSION: 0.52.0
           SPECSCORE_SHA256: 32c9c8707dc6c46c664105cff5cefcb8f72c1b6148b7b2d18de2f96f719fbe58
         run: |
           set -euo pipefail
