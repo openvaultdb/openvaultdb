@@ -1,11 +1,11 @@
 ---
 format: https://specscore.md/feature-specification
-status: Approved
+status: Amending
 ---
 # Feature: TODO demo
 
 > [SpecScore.**Studio**](https://specscore.studio): | [Explore](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=explore) | [Edit](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=edit) | [Ask question](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=ask) | [Request change](https://specscore.studio/app/github.com/openvaultdb/openvaultdb/spec/features/todo-demo?op=request-change) |
-**Status:** Approved
+**Status:** Amending
 **Date:** 2026-09-17
 **Owner:** alex
 **Source Ideas:** ovdb-onboarding-and-configuration
@@ -39,6 +39,44 @@ Database id `todo`, engine inGitDB, schema mode schemaless, location
 | `/lists/to-buy/items/{id}` | `{"title": "Milk", "done": false, "added_at": "<RFC 3339>"}`, also Bananas, Coffee |
 | `/lists/to-watch` | `{"title": "To watch"}` |
 | `/lists/to-watch/items/{id}` | `{"title": "The Matrix", "done": false, "added_at": "…"}`, also Interstellar |
+
+#### REQ: seed-from-shared-package
+
+The seed records (list and item ids, list and item titles, `done`, and the `added_at` rule:
+one second apart, the last at install time) and the list paths MUST come from the Go package
+`github.com/ingitdb/ingitdb-go/ingitdb/demos/todo`, which imports only the standard library;
+`ovdb` MUST NOT restate them. The titles are English demo data owned by that package, not
+user-interface copy: [configuration parity's copy
+catalogue](../configuration-parity/README.md#REQ:copy-catalogue) covers UI strings, not seed records, so `copy/en.json` has no `demo.seed.*` keys
+and the seed titles are not localised. The inGitDB CLI uses the same package for
+`ingitdb demo install`
+([ingitdb-cli `cli/demo`](https://github.com/ingitdb/ingitdb-cli/blob/main/spec/features/cli/demo/README.md)),
+so both CLIs create the same lists. `ovdb` keeps registering its demo as schemaless and
+writing through the data API; the seeded records are unchanged.
+
+#### REQ: ingitdb-cli-demo-folders
+
+A folder created by `ingitdb demo install` is an ordinary inGitDB database to OVDB. It MUST
+NOT be treated or adopted as the TODO demo, because the demo is only the database recorded in
+`<OVDB_HOME>/demos.json`: connecting it with `ovdb databases connect <id> --engine ingitdb
+--path <absolute folder>` registers a normal database whose lists the data commands can read,
+without changing its working tree, index or `HEAD`, and a demo install whose location is that
+folder is refused as a folder with other files, as for any non-empty folder. People who want
+OVDB and the inGitDB CLI on one folder use `ovdb databases connect`; `ingitdb demo install`
+points people to `ovdb demo install` and `ovdb demo open`, which create OVDB's own copy.
+Revisit adoption only if users ask for it.
+
+#### Known limitations of the demo folder
+
+Not fixed by this feature, tracked separately:
+
+- `ingitdb validate` fails on OVDB's demo folder (and every schemaless OVDB inGitDB database),
+  because inferred definitions declare the advisory `id` column non-nullable, written as
+  `required: true`:
+  [openvaultdb-go#25](https://github.com/openvaultdb/openvaultdb-go/issues/25).
+- After `ovdb demo install`, `git status` in the folder is not clean: driver commits use a
+  temporary index, never update `.git/index`, and do not include definition files:
+  [dalgo2ingitdb#12](https://github.com/ingitdb/dalgo2ingitdb/issues/12).
 
 #### REQ: demo-install-idempotent
 
@@ -142,6 +180,18 @@ server.
 **Given** a non-interactive environment
 **When** `ovdb demo install` runs without `--yes`
 **Then** it exits `1` with `confirmation_required` naming `--yes` and writes nothing
+
+### AC: seed-from-shared-package (verifies REQ:seed-from-shared-package)
+
+**Given** the `ovdb` build after the switch to the shared package
+**When** the demo is installed with a fixed clock
+**Then** the batch of seeded records sent to the data API is byte-identical to the golden batch captured before the switch, the existing demo tests pass unmodified, and `copy/en.json` has no `demo.seed.*` key
+
+### AC: ingitdb-demo-folder-not-adopted (verifies REQ:ingitdb-cli-demo-folders)
+
+**Given** an empty OVDB home and a folder created by `ingitdb demo install`
+**When** `ovdb databases connect ingitdb-todo --engine ingitdb --path <absolute folder>` runs
+**Then** `ovdb list /lists/to-buy/items --db ingitdb-todo --json` returns Milk, Bananas and Coffee, `git status --porcelain` in the folder is empty and `HEAD` is unchanged, and `ovdb demo status` reports the TODO demo as not installed
 
 ### AC: open-starts-server-and-app (verifies REQ:todo-app-same-origin)
 
