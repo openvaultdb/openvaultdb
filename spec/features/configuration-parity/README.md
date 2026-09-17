@@ -142,9 +142,11 @@ authenticated as in the credential table of
 |---|---|
 | `GET /api/local/v1/whoami` | Instance id and version (server identity) |
 | `GET /api/local/v1/status` | 1, 2, 14 |
-| `GET /api/local/v1/server` | 4 (`--json` body shared by `server start`, `server stop`, `server restart` and `server status`) |
+| `GET /api/local/v1/server` | 4 (`--json` body shared by `server start`, `server stop`, `server restart` and `server status`; includes `next`) |
+| `GET /api/local/v1/home` | 1 (Home document: status line and ordered options — `label_key`, `web_label_key`, `description_key`, `badge` — plus `next`; shared by TUI and web) |
 | `POST /api/local/v1/server/shutdown` | 5 (instance secret only) |
 | `POST /api/local/v1/login-links` | 6, 19 (instance secret only) |
+| `POST /logout` | Sign out (clears the console session; see [local server and web console](../local-server-and-web-console/README.md#REQ:logout)) |
 | `GET /api/local/v1/engines` | 8 (sorted and pinned server-side) |
 | `GET/POST /api/local/v1/databases`, `DELETE /api/local/v1/databases/{id}` | 9, 11, 12 |
 | `POST /api/local/v1/databases/connect` | 10, 10a |
@@ -153,7 +155,7 @@ authenticated as in the credential table of
 | `GET /api/local/v1/skills`, `POST /api/local/v1/skills/install` | 20, 21 |
 | `GET /api/local/v1/explore/datatug?db=` | 22 |
 | `GET/PUT /api/local/v1/telemetry`, `POST /api/local/v1/telemetry/events` | 23, 24 |
-| `GET/PUT /api/local/v1/config` | 7 |
+| `GET/PUT /api/local/v1/config` | 7 (`PUT` response includes `changed`) |
 | existing `/v1/databases/{db}/…`, `/v1/tokens` | 15, 17, 25 |
 
 GET handlers MUST have no side effects; POST/PUT bodies MUST be `application/json`.

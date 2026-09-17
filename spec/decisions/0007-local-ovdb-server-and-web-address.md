@@ -163,7 +163,13 @@ Needs installation privileges and per-OS packaging. Deferred beyond MVP.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-09-17 (increment 1b): Decision point 4's "30-day sliding expiry" needed per-host scoping,
+  found while building the login flow: browsers do not isolate cookies by port, so a session
+  cookie created on a fallback host (`127.0.0.1`, `localhost`, `[::1]`) would otherwise reach any
+  other local server sharing that host. Sessions created on `ovdb.localhost` — a host no other
+  local server shares — keep the 30-day sliding expiry; sessions created on a fallback host are
+  instead browser-session cookies with an 8-hour absolute, non-renewing lifetime. See
+  [local server and web console](../features/local-server-and-web-console/README.md#REQ:sessions).
 
 ## Affected Features
 

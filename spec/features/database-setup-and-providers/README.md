@@ -109,7 +109,10 @@ and web with a path field) MUST validate the manifest with the manifest parser, 
 manifest's folder), mount it once and keep it only if the mount succeeds. When a variable named
 by the manifest (for example `dsn_env`) is missing in the server's environment, it MUST fail
 with `storage_unavailable`, a `reason` naming the variable (never a value) and `next`
-"Set <NAME> and run `ovdb server restart` from that shell".
+"Set <NAME> and run `ovdb server restart` from that shell". Under `openvaultdb-go` v0.5.1+, a
+manifest's access-control policies (`acl.enabled`) bind the owner too: the instance secret and
+a forwarded console-session cookie are subject to those policies exactly like any other
+principal, not only scoped tokens (see [local server and web console](../local-server-and-web-console/README.md#REQ:credentials)).
 
 ### Manage registrations
 
