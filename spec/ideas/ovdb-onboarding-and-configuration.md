@@ -44,17 +44,20 @@ structured data within minutes and knows what to do next?
 
 ## Recommended Direction
 
-Build onboarding as **one capability layer with three thin presentations**. Plain Go
-services own state, validation and a single typed error vocabulary; the CLI, the TUI and
-an embedded web console only render them, with the same words from one message catalogue.
-A capability matrix with a registry test keeps them equal, and the few justified gaps are
-written down as exceptions ([decision 0006](../decisions/0006-three-equal-configuration-interfaces.md)).
+Build onboarding as **one capability layer with three thin presentations**. Go services
+run inside the local server and own state, validation, next actions and one error envelope;
+the CLI, the TUI and an embedded web console call them over one authenticated HTTP transport
+and render them with the same words from `copy/en.json`. A capability matrix with a registry
+test keeps them equal, and justified gaps are written down as exceptions
+([decision 0006](../decisions/0006-three-equal-configuration-interfaces.md)).
 
 Centre everything on **one local OVDB server per user** at `http://ovdb.localhost:6832`,
 started in the background on demand, serving all registered databases, the web console,
-the TODO app and a local API, and guarded by Host and Origin checks
-([decision 0007](../decisions/0007-local-ovdb-server-and-web-address.md)). CLI data
-commands are HTTP clients of it, so apps, agents and the web see the same data at once.
+the TODO app and a local API. It always authenticates (an instance secret for CLI and TUI,
+one-time login links for browsers) and is hardened against cross-site attacks, while legacy
+`ovdb serve` stays unchanged ([decision 0007](../decisions/0007-local-ovdb-server-and-web-address.md)).
+Apps, agents and the web see the same data at once, and a read-only Browse data view lets
+people see their own data without a terminal.
 Remember the working database **per project** rather than per machine, so parallel agents
 do not interfere, and give agents a tiny filesystem-like vocabulary: `use`, `cd`, `pwd`,
 `list`, `get`, `set`, `add`, `delete` ([decision 0008](../decisions/0008-database-context-scope.md)).
@@ -84,12 +87,13 @@ setup as equals. Hand exploration to DataTug honestly, and measure onboarding wi
 One job: **a newcomer, human or agent, goes from installed binary to their own data
 stored, seen in an app and readable by an agent in under five minutes**, through any of
 the three interfaces. Concretely: first-run Home with four options; background local
-server with web console; create inGitDB/SQLite and connect existing storage from a
-truthful catalogue; project-scoped context and minimal data commands; TODO demo with web
-app; storage and TODO skills with explicit install consent; Explore data hand-off to
-DataTug; opt-in telemetry with parity; everything behind `OVDB_PREVIEW=1` until the
-founder approves, delivered in vertical increments that each keep parity and the four
-canonical journeys passing.
+server with authenticated web console; create inGitDB/SQLite and connect an existing
+inGitDB folder or SQLite file from a truthful catalogue; project-scoped context, minimal data
+commands and read-only Browse data; TODO demo with web app; storage and TODO skills with
+explicit install consent; Explore data guidance for DataTug; opt-in telemetry with parity;
+everything (including changed defaults of existing commands) behind `OVDB_PREVIEW=1` until
+the founder approves, starting with an increment 0 of spikes, then vertical increments that
+each keep parity and the four canonical journeys passing.
 
 ## Not Doing (and Why)
 
@@ -108,6 +112,11 @@ canonical journeys passing.
 - Every storage engine in guided flows (GitHub-hosted inGitDB, provisioning database
   servers) — only engines the binary really supports, and only local creation.
 - Remote OVDB servers as contexts — the context keeps a reserved `server` field.
+- Guided connect for Firestore, MySQL and PostgreSQL — their connection details live in the
+  server's environment and error paths can leak secrets; listed with manifest setup instead.
+- Running DataTug from OVDB, `ovdb skills uninstall`, skill refresh after self-update, and
+  stopping the server from the web console — cut to keep the first release small.
+- A login item or OS service so the server runs without any terminal or agent — deferred.
 - Marketplace publication of skills — follow-up once the preview gate is removed.
 
 ## Key Assumptions to Validate
@@ -121,7 +130,7 @@ canonical journeys passing.
 | Should-be-true | Project root (Git root or cwd) is the scope people and agents expect | Observe Journey A/C sessions; watch for "wrong database" reports |
 | Should-be-true | People will opt in to telemetry often enough to inform decisions | Opt-in rate after the preview gate is removed |
 | Should-be-true | DataTug CLI works against a local OVDB server with a placeholder token | First increment runs `datatug query run` end-to-end |
-| Might-be-true | Shared multi-user machines are rare enough to defer local authentication | Security review; user reports |
+| Should-be-true | A one-time login link is an acceptable step before the web console | Journey B observations; landing-page visits without a session |
 
 ## SpecScore Integration
 
@@ -142,6 +151,30 @@ canonical journeys passing.
   daemonlifecycle); `openvaultdb-go` (nested DTQL); `datatug-cli` and `datatug-apps`
   (OVDB source routes).
 
+## Review History
+
+**Round 1 (2026-09-17).** Reviewers: Claude Opus (security and platform), Claude Sonnet (UX,
+agents and scope), Claude Opus (requirements and architecture). A Codex review was attempted
+but was unavailable because of a usage limit. Verdicts were reconciled by the architect.
+
+| Finding | Verdict | Change or reason |
+|---|---|---|
+| Unauthenticated local API can write files and agent skills; clickjacking; stored XSS | Accepted (modified) | Local mode always authenticates (instance secret, one-time login link, session cookie, landing page); CSP, frame denial, nosniff, text-only rendering, `http.CrossOriginProtection`, Host allowlist |
+| Connection strings leak through mount errors | Accepted | Redaction of all surfaced errors; upstream driver fix listed; guided SQL/Firestore connect deferred |
+| Two transports and in-process writes race with auto-start | Accepted | Single transport: all mutations and data via the server; pure reads from files |
+| Changed defaults of existing commands not gated; new commands broke `ovdb serve` deployments and Listus | Accepted | `OVDB_PREVIEW` gates changed defaults; legacy `ovdb serve` untouched |
+| Required upstream changes unstated | Accepted | External changes table and increment-0 spikes S1–S8 |
+| Machine contracts under-specified | Accepted | Error envelope with closed codes and `next[]`, `--json` equals API body with `schema: 1`, endpoint table, `copy/en.json` |
+| Exit code 2 for usage errors | Rejected | Keeps `ovdb`'s existing 0/1 contract |
+| Web-only users cannot see their own data | Accepted (modified) | Read-only Browse data in TUI and web; editing stays CLI, agents and apps |
+| Journey B cold start without a terminal | Accepted (modified) | Journey B starts from a link given by an agent, `ovdb open` or the TUI; login item deferred |
+| Skill-less agents never learn setup paths | Accepted | `next` entries in `ovdb status --json` include skill install |
+| Shared `cd` path across agents; context lost in sub-folders | Accepted (modified) | Skills use absolute paths and `--db`; walk-up context lookup |
+| Telemetry: wrong process environment, undelivered events, unenforced agent consent | Accepted (modified) | Sending process decides; synchronous ≤2 s sender without SDK; `--confirmed-by-user` |
+| Cut telemetry during preview | Rejected | Founder wants funnel data from MVP; scope simplified instead |
+| Runtime files in roaming profile; pid reuse; Windows reserved ports; `EscapeID` examples | Accepted | Cache-dir runtime files, `OVDB_DATA_HOME`, authenticated stop with start-time check, `port_unavailable`, corrected examples |
+| Scope: remote connect UIs, DataTug run-now, skills uninstall and refresh, web stop, per-capability browser tests | Accepted | Deferred or replaced (web stop is exception E2; browser tests per journey) |
+
 ## Open Questions
 
 - Vocabulary: onboarding copy says *database*, matching the implemented API
@@ -149,8 +182,6 @@ canonical journeys passing.
   `openvaultdb-com` decision 0003 (In Review) proposes Host / Vault / Namespace. Should
   *database* be the unit a local OVDB server serves and *vault* stay the app-access
   concept, or should one term win?
-- Is loopback without local authentication acceptable for the preview, given shared
-  multi-user machines?
 - Should SQLite gain schemaless support so it is a friendly second choice, or should
   onboarding keep recommending inGitDB only?
 

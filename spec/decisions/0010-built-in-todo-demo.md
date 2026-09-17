@@ -32,8 +32,9 @@ The founder decided the first-run demo is built into the `ovdb` binary, that
 1. `ovdb` embeds a **TODO demo** with two lists, **To buy** and **To watch**, stored in a
    local schemaless inGitDB database with id `todo` at `~/ovdb/demos/todo/`.
 2. The demo includes a small web app served by the local server at
-   `http://ovdb.localhost:6832/apps/todo/`, same-origin with the data API, so it needs no
-   token, CORS or connect flow.
+   `http://ovdb.localhost:6832/apps/todo/`, same-origin with the data API and using the
+   console's login session, so it needs no separate token, CORS or connect flow. It renders
+   item text as text only. Only first-party embedded apps are served under `/apps/`.
 3. Data is nested to show OpenVaultDB paths: `/lists/{list-id}` and
    `/lists/{list-id}/items/{item-id}`.
 4. Installation is idempotent and never overwrites existing data. An optional TODO AI
@@ -90,8 +91,8 @@ schema before the first item, and the data would not be human-readable files.
 - `openvaultdb-todo-demo` needs a README note; [roadmap](../mvp/roadmap.md) wording that
   names it as a milestone home is updated.
 - `ovdb demo` must coexist with the Sneat `ovdb demo serve --app listus` command shape.
-- Exploring the nested demo items in DataTug CLI is limited until root-only DTQL is
-  lifted (see the explore-data feature).
+- DataTug CLI shows only the two lists, not their nested items, until nested-collection
+  queries exist upstream; the Explore data copy for the demo says so at that moment.
 
 ## Observed Consequences
 

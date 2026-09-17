@@ -13,139 +13,120 @@ status: Draft
 
 ## Summary
 
-Create a new database or connect existing storage from the CLI, TUI or web console, by
-choosing where to store data from a catalogue that lists only storage engines OVDB really
-supports, with sensible names and locations and an honest note about each engine's
-limits.
+Create a new database or connect an existing inGitDB folder or SQLite file from the CLI, TUI
+or web console, choosing from a catalogue of storage engines OVDB really supports, with
+sensible names and locations and plain notes about each engine's limits. Engines that need a
+database server are listed honestly with how to set them up.
 
 ## Problem
 
 `ovdb init` writes a manifest in the current directory and its help lists only
-`sqlite | ingitdb`, although the binary also supports Firestore, MySQL and PostgreSQL.
-`ovdb databases create` only works against a server started with `--data-dir` and always
-creates inGitDB. A person has to learn the manifest format, choose a schema mode and
-start a server with the right flags before the first record. Nothing warns that SQLite,
-MySQL and PostgreSQL mounts accept writes only to collections with a declared schema.
+`sqlite | ingitdb`, although the binary supports Firestore, MySQL and PostgreSQL too.
+`ovdb databases create` needs a server started with `--data-dir`. A person must learn the
+manifest format and server flags before the first record, and nothing warns that SQLite,
+MySQL and PostgreSQL accept writes only to collections with a declared schema.
 
 ## Behavior
 
 ### Storage catalogue
 
-The catalogue is data in the shared services, derived from engines compiled into the
-binary (`openvaultdb-go/pkg/mount`). Listing order is: pinned **inGitDB**, pinned
-**SQLite**, then the rest alphabetically by display name. This is a *display* order and
-does not change the backend build order in [storage](../../storage/README.md).
+The catalogue is data in the shared Go package, derived from engines the binary can mount
+(`openvaultdb-go/pkg/mount`), and sorted server-side: pinned **inGitDB**, pinned **SQLite**,
+then the rest alphabetically. This display order does not change the backend build order in
+[storage](../../storage/README.md).
 
-| Id | Display name | One-line description (copy) | Needs | Schema modes (verified) | New | Existing |
-|---|---|---|---|---|---|---|
-| `ingitdb` | inGitDB | Readable files in a folder, with Git history. Recommended. | folder | strict, partial, schemaless | yes | folder |
-| `sqlite` | SQLite | One fast local file. Collections need a schema before you add records. | file | strict | yes | file |
-| `firestore` | Firestore | Google Cloud document database you already use. | project id, optional database id; Google credentials in the environment | strict, partial, schemaless | — | project |
-| `mysql` | MySQL | A MySQL server you already run. Collections need a schema. | name of an environment variable holding the connection string | strict | — | server |
-| `postgres` | PostgreSQL | A PostgreSQL server you already run. Collections need a schema. | name of an environment variable holding the connection string | strict | — | server |
+| Id | Name | Description (copy) | Schema modes (verified) | Guided |
+|---|---|---|---|---|
+| `ingitdb` | inGitDB | Readable files in a folder, with Git history. Recommended to start. | strict, partial, schemaless | create, connect folder |
+| `sqlite` | SQLite | One fast local file. You describe your data (a schema) before storing records. | strict | create, connect file |
+| `firestore` | Firestore | Google Cloud document database. Set up with a manifest. | strict, partial, schemaless | no: `ovdb init --engine firestore` + docs |
+| `mysql` | MySQL | A MySQL server you run. Set up with a manifest. | strict | no: `ovdb init --engine mysql` + docs |
+| `postgres` | PostgreSQL | A PostgreSQL server you run. Set up with a manifest. | strict | no: `ovdb init --engine postgres` + docs |
 
-inGitDB stored directly in a GitHub repository (`storage.ingitdb.github`) supports only
-strict and partial modes and needs a token. It is shown under inGitDB as "Store in a
-GitHub repository (advanced)" with a link to the manifest documentation, not as a guided
-flow in MVP.
+inGitDB stored directly in a GitHub repository is mentioned under inGitDB as "advanced, set up
+with a manifest".
 
 #### REQ: catalogue-lists-only-supported-engines
 
-The catalogue MUST contain exactly the engines the running binary can mount, with id,
-display name, description, needs, supported schema modes, and whether it supports
-creating new storage. A test MUST fail if an engine accepted by the manifest parser is
-missing from the catalogue or the catalogue lists one the parser rejects. Unsupported
-engines (for example SQL Server) MUST NOT appear.
+The catalogue MUST contain exactly the engines the binary can mount, with id, name,
+description, schema modes and guided support. A test MUST fail if the manifest parser
+accepts an engine missing from the catalogue or rejects one it lists.
 
 #### REQ: catalogue-order-and-filter
 
-All interfaces MUST list inGitDB first and SQLite second, then the remaining engines
-sorted alphabetically by display name, and MUST offer a case-insensitive filter over id,
-display name and description. Filtering MUST keep the pinned engines pinned when they
-match.
+`GET /api/local/v1/engines` and `ovdb engines` MUST return inGitDB, SQLite, then the rest by
+name. Interfaces MAY filter the returned list locally by case-insensitive substring over id,
+name and description, keeping returned order.
 
-#### REQ: engine-limits-are-stated
+#### REQ: manifest-only-engines-are-honest
 
-Wherever an engine is offered or a database using it is created or connected, a
-strict-only engine MUST carry the note "Collections need a schema before you add
-records", and the Result screen MUST explain where schemas are declared.
+Choosing Firestore, MySQL or PostgreSQL in any interface MUST show "OVDB can use this, but
+setting it up here isn't available yet" with the `ovdb init --engine <id>` command and a
+documentation link, and MUST NOT collect connection details.
 
 ### Create a database
 
 #### REQ: create-new-database
 
-Creating a database MUST take: an id (pattern `^[a-zA-Z0-9][a-zA-Z0-9_-]*$`, unique in
-the registry), an engine that supports new storage, and a location. Defaults: inGitDB
-schemaless at `~/ovdb/<id>/`; SQLite strict at `~/ovdb/<id>.sqlite`. The service MUST
-write `databases/<id>.yaml`, create the storage (inGitDB folder initialised as the
-existing runtime creation does; SQLite file), and mount it on the running server if any.
+Creating MUST take an id (`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`, unique), inGitDB or SQLite, and an
+absolute, normalized location. Defaults: inGitDB schemaless at `<data home>/<id>/`; SQLite at
+`<data home>/<id>.sqlite`, where data home is `OVDB_DATA_HOME` or `~/ovdb`. The server MUST
+write `databases/<id>.yaml`, create the storage and mount it without restart.
 
 #### REQ: create-never-overwrites
 
-Creation MUST fail without changing anything when the id is already registered, when the
-target inGitDB folder exists and is not empty, or when the target SQLite file exists. The
-hint MUST offer a different id, `--path`, or "Connect an existing database".
+Creation MUST fail without changes with `already_exists` for a registered id, or
+`location_not_empty` when the inGitDB folder exists and is not empty or the SQLite file
+exists; `next` MUST offer another name, another location, or Connect.
 
-#### REQ: remote-engines-route-to-connect
+#### REQ: sqlite-next-step-is-schema
 
-Choosing Firestore, MySQL or PostgreSQL in the Create flow MUST explain "OVDB uses a
-database server you already run" and continue in the Connect flow with that engine
-selected; the CLI `databases create --engine postgres` MUST fail with the hint
-`ovdb databases connect <id> --engine postgres --dsn-env <NAME>`.
+Creating a SQLite database MUST end with the next step to describe a first collection's
+schema (command and documentation link), stated before any write is suggested; the Result
+MUST NOT suggest adding a record that would fail.
+
+#### REQ: create-result-next-actions
+
+The Result of creating or connecting MUST offer: **Browse data**, **Explore data**, **Connect
+an app or AI assistant** (AI agent skills), **Done**, each with its command.
 
 ### Connect an existing database
 
 #### REQ: connect-existing-storage
 
-Connecting MUST register existing storage without moving or modifying data: an inGitDB
-folder that exists and is readable; a file that is a valid SQLite database; a Firestore
-project id; or for MySQL/PostgreSQL the *name* of an environment variable that holds the
-connection string. The service MUST validate by mounting it once and MUST report the
-mount error with the problem pattern if it fails. Connection strings MUST NOT be written
-to OVDB files, logs or telemetry.
-
-#### REQ: env-var-visible-to-server
-
-For engines that read environment variables, the Result MUST state that the variable must
-be set in the environment of the OVDB server process, and `ovdb status` MUST flag a
-database whose variable is missing in the server's environment.
+Connecting MUST register an existing readable inGitDB folder or a valid SQLite file given as
+an absolute path, validate it by mounting once, and MUST NOT write into the user's storage
+(no inferred-schema catalogue and no git configuration there; depends on the
+`openvaultdb-go` changes listed in [configuration parity](../configuration-parity/README.md)).
+Failures MUST use `storage_unavailable` with a redacted reason.
 
 ### Manage registrations
 
 #### REQ: list-and-remove
 
-`ovdb databases` MUST list registered databases (id, engine, location, mount state)
-without needing a running server; `--url` MUST keep today's behaviour of calling
-`GET /v1/databases`. `ovdb databases remove <id>` MUST unregister a database and
-MUST NOT delete its data; it MUST say where the data remains. Removing a database that is
-the current context MUST clear that context and say so.
+With `OVDB_PREVIEW=1`, `ovdb databases` MUST list registered databases (id, engine, location,
+needs attention) from state files without a server; without the gate, or with `--url`, it
+MUST behave as today. `ovdb databases remove <id>` MUST unregister without deleting data, say
+where the data remains, and clear any context that pointed to it, saying so.
+
+#### REQ: legacy-create-compatible
+
+`ovdb databases create` MUST keep today's `POST /v1/databases` behaviour without
+`OVDB_PREVIEW`, and with it whenever `--addr`, `--token`, `--owner-token` or
+`OVDB_OWNER_TOKEN` is present.
 
 ### Commands
 
 | Action | CLI |
 |---|---|
-| List storage choices | `ovdb engines [--filter <text>] [--json]` |
-| Create | `ovdb databases create <id> [--engine <ingitdb or sqlite>] [--path <p>] [--json]` |
-| Create on a server started with `--data-dir` (existing) | `ovdb databases create <id> --addr <url> [--token …]` (unchanged when `--addr`, `--token` or `--owner-token` is given explicitly) |
-| Connect a folder or file | `ovdb databases connect <id> --engine <ingitdb or sqlite> --path <p> [--schema-mode <m>]` |
-| Connect Firestore | `ovdb databases connect <id> --engine firestore --project <id> [--firestore-database <id>]` |
-| Connect MySQL or PostgreSQL | `ovdb databases connect <id> --engine <mysql or postgres> --dsn-env <NAME>` |
+| Storage choices | `ovdb engines [--json]` |
+| Create | `ovdb databases create <id> [--engine <ingitdb or sqlite>] [--path <absolute>] [--json]` |
+| Connect | `ovdb databases connect <id> --engine <ingitdb or sqlite> --path <absolute> [--json]` |
 | List | `ovdb databases [--json]` |
 | Remove | `ovdb databases remove <id> [--yes]` |
-
-`ovdb init` remains as the low-level manifest writer; its help MUST list all five
-engines.
-
-#### REQ: legacy-remote-create-compatible
-
-`ovdb databases create` MUST keep today's HTTP behaviour (`POST /v1/databases` against
-`--addr`) whenever `--addr`, `--token` or `--owner-token` is given explicitly. Without
-them it MUST use the local registry flow. This changes the default of a command whose
-`--addr` previously defaulted to the local server, so release notes MUST call it out.
+| Manifest for other engines | `ovdb init --engine <firestore, mysql or postgres>` (help lists all five engines) |
 
 ### Example copy
-
-Where to store your data (TUI; web shows the same as selectable cards with a search box):
 
 ```
 Create a database
@@ -153,28 +134,13 @@ Create a database
 Where should OVDB keep your data?
 Filter: _
 
-> inGitDB      Readable files in a folder, with Git history. Recommended.
-  SQLite       One fast local file. Collections need a schema before you add records.
+> inGitDB      Readable files in a folder, with Git history. Recommended to start.
+  SQLite       One fast local file. You describe your data (a schema) before storing records.
   ─────────────
-  Firestore    Google Cloud document database you already use.
-  MySQL        A MySQL server you already run. Collections need a schema.
-  PostgreSQL   A PostgreSQL server you already run. Collections need a schema.
+  Firestore    Google Cloud document database. Set up with a manifest.
+  MySQL        A MySQL server you run. Set up with a manifest.
+  PostgreSQL   A PostgreSQL server you run. Set up with a manifest.
 ```
-
-Name and location:
-
-```
-Create a database · inGitDB
-
-Name        notes
-Location    ~/ovdb/notes/
-
-Names can use letters, numbers, - and _.
-
-[ Create database ]   Back
-```
-
-Result:
 
 ```
 Created database notes
@@ -182,10 +148,10 @@ Created database notes
 Stored in ~/ovdb/notes/ as readable files with Git history.
 
 What next?
-  Use it in this project      ovdb use notes
-  Add your first record       ovdb add /items '{"title":"Hello"}' --db notes
-  Explore data                ovdb explore
-  Open the web console        ovdb open
+  Browse data                          ovdb list / --db notes
+  Explore data                         ovdb explore --db notes
+  Connect an app or AI assistant       ovdb skills install openvaultdb
+  Done
 ```
 
 ## Dependencies
@@ -193,78 +159,76 @@ What next?
 - local-server-and-web-console
 - first-run-onboarding
 - database-context-navigation
+- configuration-parity
 
 ## Acceptance Criteria
 
 ### AC: catalogue-matches-binary (verifies REQ:catalogue-lists-only-supported-engines)
 
-**Given** the engine list accepted by the manifest parser in the linked `openvaultdb-go` version
+**Given** the manifest parser in the linked `openvaultdb-go`
 **When** the catalogue test runs
-**Then** it passes only if the catalogue contains exactly `firestore`, `ingitdb`, `mysql`, `postgres`, `sqlite` with the schema modes each mount returns
+**Then** it passes only if the catalogue has exactly `firestore`, `ingitdb`, `mysql`, `postgres`, `sqlite` with the schema modes each mount returns
 
 ### AC: pinned-then-alphabetical (verifies REQ:catalogue-order-and-filter)
 
-**Given** the CLI, TUI and web console
-**When** the catalogue is shown unfiltered, then filtered by `sql`, then by `google`
-**Then** the order is inGitDB, SQLite, Firestore, MySQL, PostgreSQL; `sql` shows SQLite, MySQL, PostgreSQL with SQLite first; `google` shows Firestore
+**Given** `ovdb engines --json` and the TUI and web pickers
+**When** shown unfiltered and filtered by `sql`
+**Then** the order is inGitDB, SQLite, Firestore, MySQL, PostgreSQL, and `sql` shows SQLite, MySQL, PostgreSQL in that order
+
+### AC: postgres-is-manifest-only (verifies REQ:manifest-only-engines-are-honest)
+
+**Given** the Create flow in TUI and web
+**When** the person picks PostgreSQL
+**Then** both show the "isn't available yet" copy with `ovdb init --engine postgres` and a docs link, and no field for connection details
 
 ### AC: create-ingitdb-default (verifies REQ:create-new-database)
 
-**Given** an empty OVDB home and a running server
+**Given** temporary `OVDB_HOME` and `OVDB_DATA_HOME`
 **When** the person creates `notes` with defaults in the TUI
-**Then** `~/ovdb/notes/` exists, `databases/notes.yaml` declares engine `ingitdb` and mode `schemaless`, and `ovdb add /items '{"title":"Hello"}' --db notes` succeeds without restarting the server
-
-### AC: create-sqlite-states-schema-need (verifies REQ:create-new-database, REQ:engine-limits-are-stated)
-
-**Given** an empty OVDB home
-**When** `ovdb databases create shop --engine sqlite` runs and then `ovdb add /orders '{"total":1}' --db shop`
-**Then** the create result mentions that collections need a schema and where to declare it, and the add fails with the problem pattern explaining strict mode instead of a raw validation error
+**Then** `<data home>/notes/` exists, the manifest declares `ingitdb` schemaless, and `ovdb add /items '{"title":"Hello"}' --db notes` succeeds without a restart
 
 ### AC: create-refuses-overwrite (verifies REQ:create-never-overwrites)
 
-**Given** `~/ovdb/notes/` contains files
+**Given** `<data home>/notes/` contains files
 **When** the person creates `notes` in the web console
-**Then** nothing is written, and the problem offers another name, a different location and "Connect an existing database"
+**Then** nothing is written and the problem has `location_not_empty` with next actions for another name, another location and Connect
 
-### AC: postgres-create-routes-to-connect (verifies REQ:remote-engines-route-to-connect)
+### AC: sqlite-points-to-schema (verifies REQ:sqlite-next-step-is-schema)
 
-**Given** the Create flow
-**When** the person picks PostgreSQL in the TUI, and runs `ovdb databases create crm --engine postgres`
-**Then** the TUI continues in Connect with PostgreSQL selected, and the CLI exits `1` with the `databases connect` hint
+**Given** a fresh setup
+**When** `ovdb databases create shop --engine sqlite --json` runs
+**Then** `next` starts with describing a collection schema and contains no add-record command
 
-### AC: connect-validates-and-keeps-data (verifies REQ:connect-existing-storage)
+### AC: result-next-actions (verifies REQ:create-result-next-actions)
 
-**Given** an existing inGitDB folder with records, a text file named `x.sqlite`, and a PostgreSQL connection string in `CRM_DSN`
+**Given** a database created in the TUI and one connected in the web console
+**When** each Result shows
+**Then** both list Browse data, Explore data, Connect an app or AI assistant, Done, with commands
+
+### AC: connect-leaves-folder-untouched (verifies REQ:connect-existing-storage)
+
+**Given** an existing inGitDB Git repository with records and only a global git identity, and a text file named `x.sqlite`
 **When** each is connected
-**Then** the folder registers with no file modified, the text file is rejected as not a SQLite database, and the PostgreSQL manifest contains `dsn_env: CRM_DSN` but not the connection string, which also appears in no log
-
-### AC: missing-env-var-flagged (verifies REQ:env-var-visible-to-server)
-
-**Given** a connected PostgreSQL database with `dsn_env: CRM_DSN` and a background server started without `CRM_DSN`
-**When** `ovdb status` runs
-**Then** it lists the database as not mounted with "CRM_DSN is not set for the OVDB server" and the restart hint
-
-### AC: legacy-create-still-works (verifies REQ:legacy-remote-create-compatible)
-
-**Given** a server started with `ovdb serve --data-dir ./data --owner-token T` on port 7000
-**When** `ovdb databases create crm --addr http://127.0.0.1:7000 --owner-token T` runs
-**Then** it calls `POST /v1/databases` as today, creates `./data/crm/`, and writes nothing to the OVDB home registry
+**Then** the folder registers with no file added or changed (including `.git/config`), and the text file is rejected with `storage_unavailable`
 
 ### AC: remove-keeps-data (verifies REQ:list-and-remove)
 
-**Given** `notes` registered and set as the project context, and no server running
+**Given** `OVDB_PREVIEW=1`, `notes` registered and set as the project context, and no server running
 **When** `ovdb databases` and then `ovdb databases remove notes --yes` run
-**Then** the list shows notes without contacting a server, removal leaves `~/ovdb/notes/` intact, says where it is, and reports that the project context was cleared
+**Then** the list works without starting a server, removal leaves the data folder intact and names it, and reports the cleared context
+
+### AC: legacy-create-still-works (verifies REQ:legacy-create-compatible)
+
+**Given** `OVDB_PREVIEW=1`, `OVDB_OWNER_TOKEN=T` and `ovdb serve --data-dir ./data` on port 7000
+**When** `ovdb databases create crm --addr http://127.0.0.1:7000` runs
+**Then** it calls `POST /v1/databases` as today and writes nothing to the registry
 
 ## Open Questions
 
-- Should OVDB offer to declare a first collection schema for SQLite during creation, or
-  should SQLite gain schemaless support in `openvaultdb-go` (JSON column) so it is
-  friendly without schemas? Recommendation: keep inGitDB as the recommended default and
-  file the SQLite schemaless work in `openvaultdb-go`.
-- Should a guided "Store in a GitHub repository" flow reuse `ovdb cloud login` or a
-  personal token?
-- Should `databases remove --delete-data` exist, given the risk?
+- Should SQLite gain schemaless support in `openvaultdb-go` so it is friendly without a schema?
+- When should guided connect for Firestore, MySQL and PostgreSQL return (it needs a design for
+  connection details that live in the server's environment)?
+- Should the inGitDB "with Git history" copy depend on `git` being installed?
 
 ---
 *This document follows the https://specscore.md/feature-specification*

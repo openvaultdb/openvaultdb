@@ -14,100 +14,83 @@ status: Draft
 
 ## Context
 
-The onboarding work needs evidence about where people stop: which first-run option they
-choose, which provider, whether the demo opens, where errors happen. OpenVaultDB is a
-product about data ownership, so collecting that evidence must never feel like a breach
-of the promise. `ovdb` has no telemetry today.
-
-Two precedents exist in the fleet. `specscore-cli/internal/telemetry` confines the
-PostHog SDK to one package (enforced by a boundary test), uses a closed `Event` struct,
-a per-machine install id, an EU endpoint and a write key injected through `-ldflags`; it
-is opt-out. `datatug-cli/pkg/dtlog` sends PostHog events with no opt-out found. The
-founder chose PostHog EU with the key supplied later through the GitHub secret
-`POSTHOG_KEY`, opt-in consent, no sensitive data, and that an AI agent never consents on
-the user's behalf.
+Onboarding decisions need evidence about where people stop. OpenVaultDB is about data
+ownership, so collecting that evidence must never feel like a breach. `ovdb` has no
+telemetry. `specscore-cli/internal/telemetry` (opt-out, closed event struct, ldflags key,
+EU endpoint) is the fleet precedent, but it only enqueues into `posthog-go`, which batches
+every 5 s, so short CLI processes can exit before sending. `datatug-cli` sends events with
+no opt-out. The founder chose PostHog EU, key via GitHub secret `POSTHOG_KEY`, opt-in, no
+sensitive data, funnel telemetry from MVP, and that an agent never consents on the user's
+behalf.
 
 ## Decision
 
-1. **Opt-in.** Telemetry is disabled until a person explicitly enables it. States:
-   `not asked`, `enabled`, `disabled`. `OVDB_TELEMETRY=0`, `DO_NOT_TRACK=1` and detected
-   CI environments force it off for that process regardless of the stored state.
-2. **Unavailable builds.** A build without an injected PostHog key reports
-   `unavailable in this build`; consent can still be recorded, and nothing is sent.
-3. **Ask once, late and lightly.** The TUI and web console ask after the first
-   successful action, never before it and never blocking it. The CLI never prompts;
-   `ovdb telemetry enable|disable|status` exist on all channels.
-4. **Pre-consent buffer.** During an interactive TUI or web onboarding session events
-   are kept in memory only. They are sent if the person enables telemetry in that
-   session, and discarded on decline, on exit or when the session ends. Nothing is
-   written to disk before consent.
-5. **Closed data model.** Events are a closed set with allowlisted properties only:
-   channel (`cli`, `tui`, `web`, `agent`, derived from the environment, never from user
-   input), step, option id, provider id from the closed catalogue, success, error
-   category from a closed enum, duration in milliseconds, OVDB version, OS and
-   architecture, and an anonymous per-machine install id. Never collected: database
-   names or ids, paths, repository names, URLs or connection strings, record data,
-   queries, schemas, tokens, free text, IP-derived location beyond what PostHog
-   receives at transport level (PostHog GeoIP enrichment disabled).
-6. **Agents never consent.** No command enables telemetry implicitly. `ovdb telemetry
-   enable` run by an agent is valid only as the relay of a person's explicit answer;
-   skills instruct agents to ask and to show what is collected, and the command output
-   repeats what is and is not collected.
-7. **Implementation boundary.** Fork the `specscore-cli` telemetry design: a single
-   package imports the PostHog SDK, a boundary test enforces it, events are a closed
-   Go struct, the key is injected with `-ldflags`, the endpoint is PostHog EU.
+1. **Opt-in.** States `not asked`, `enabled`, `disabled`. Nothing is sent unless `enabled`.
+   `OVDB_TELEMETRY=0`, `DO_NOT_TRACK=1` and detected CI force it off, evaluated in the
+   **process that sends** the event.
+2. **Who sends.** CLI and TUI send their own events after reading the consent state; the
+   server sends events originating in the web console. The server's environment therefore
+   never overrides a CLI user's `DO_NOT_TRACK`.
+3. **How it sends.** No PostHog SDK: a small sender POSTs one batch to the EU capture
+   endpoint synchronously at the end of a command (or TUI/web step) with a 2-second
+   timeout; failures are silent. Builds without an injected key report
+   `unavailable in this build`.
+4. **Ask once, late and lightly** in the TUI and web console, after the first successful
+   action; the CLI never prompts.
+5. **Pre-consent buffer** in memory only (TUI process, web page), sent if the person turns
+   telemetry on in that session, discarded otherwise.
+6. **Closed data model.** A closed Go struct with allowlisted properties (channel, step,
+   option, engine id, success, error code, duration, version, OS, architecture, anonymous
+   install id). One test marshals every event and fails on any forbidden key or value.
+   Never collected: database names or ids, paths, URLs, connection details, record data,
+   queries, schemas, tokens, free text. GeoIP enrichment disabled.
+7. **Agents never consent on their own.** `ovdb telemetry enable` in a terminal asks for
+   confirmation; without a terminal it requires `--confirmed-by-user` and otherwise prints
+   what is collected and exits `1`. Skills tell agents to ask the person and never infer
+   consent. This cannot be cryptographically enforced, and the decision says so.
 
 ## Rationale
 
-- Opt-in is the only default consistent with a data-ownership product and with EU
-  expectations for non-essential analytics.
-- Asking after the first success means the question never stands between a person and
-  their goal, and the person already knows what OVDB does when deciding.
-- Buffering in memory lets the first session's funnel be measured *if* the person agrees,
-  without storing anything if they do not.
-- A closed struct and allowlist make any new property a reviewed code change, not a
-  string added to a map.
-- Deriving the channel from the environment gives reliable agent-versus-human data
-  without asking agents to self-report.
-- Forcing off in CI keeps automated runs from polluting data and from surprising
-  maintainers.
+- Opt-in is the only default consistent with a data-ownership product and EU expectations.
+- Evaluating opt-outs in the sending process makes a person's own environment decisive,
+  even when a long-running server was started by someone else.
+- A synchronous, bounded batch send actually delivers CLI events; an SDK with a background
+  queue does not in short-lived processes.
+- A closed struct plus one serialization test makes new properties a reviewed change.
+- `--confirmed-by-user` lets agents relay a person's explicit answer (which the founder
+  allows) while making silent enabling an explicit, visible act.
 
 ## Declined Alternatives
 
-### Opt-out telemetry (as `specscore-cli`)
+### Opt-out telemetry
 
-Gives more data, but contradicts the product promise and the founder's instruction.
-Declined.
+Contradicts the product promise and the founder's instruction. Declined.
 
-### No telemetry at all
+### No telemetry during the preview
 
-Private by construction, but leaves onboarding decisions to guesswork. Declined; opt-in
-with a narrow schema is a better balance.
+Suggested in review to cut scope. Declined: the founder wants funnel data from MVP; scope
+was reduced instead (no SDK, no fuzzing).
 
-### Persist pre-consent events to disk and send after a later consent
+### `posthog-go` SDK with an asynchronous queue
 
-More complete funnel data, but it stores behavioural data about a person who has not
-agreed. Declined.
+Drops events from processes that exit within the batch interval. Declined.
 
-### Let agents enable telemetry with a flag during automated setup
+### Refuse `telemetry enable` in any non-terminal environment
 
-Convenient for setup scripts, but it makes consent something an agent can do on a
-person's behalf. Declined; agents may only relay an explicit answer.
+Stronger, but blocks the founder-approved path where an agent runs the command after the
+person decides. Declined in favour of `--confirmed-by-user`.
 
-### Self-hosted analytics endpoint
+### Persist pre-consent events to disk
 
-Stronger data locality, but an operational burden before there is traffic. Declined for
-MVP; PostHog EU is the founder's choice.
+Stores behavioural data about someone who has not agreed. Declined.
 
 ## Consequences at Decision Time
 
-- `ovdb` gains a telemetry package, a boundary test, `ovdb telemetry` commands, TUI and
-  web settings screens, and consent state in `config.yaml`.
-- Release builds need the `POSTHOG_KEY` secret wired into GoReleaser `ldflags`; until
-  then every build reports `unavailable in this build`.
-- Data volume is lower and skewed towards people who opt in; funnel analysis must say so.
-- OVDB's bar is stricter than DataTug CLI's current behaviour; the difference is
-  recorded as an open question in the telemetry feature.
+- `ovdb` gains a sender package, `ovdb telemetry` commands, TUI and web settings, and
+  consent in `config.yaml`.
+- Release builds need `POSTHOG_KEY` in `ldflags`; until then builds report unavailable.
+- Commands with telemetry on may take up to 2 s longer when PostHog is unreachable.
+- Data skews to people who opt in; analysis must say so.
 
 ## Observed Consequences
 
@@ -117,7 +100,7 @@ None observed yet.
 
 - [Telemetry consent](../features/telemetry-consent/README.md) — states, parity, events and copy.
 - [First-run onboarding](../features/first-run-onboarding/README.md) — when consent is asked.
-- [AI agent skills](../features/ai-agent-skills/README.md) — agents must not consent.
+- [AI agent skills](../features/ai-agent-skills/README.md) — agents relay, never infer, consent.
 
 ---
 *This document follows the https://specscore.md/decision-specification*

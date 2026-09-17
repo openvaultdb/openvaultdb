@@ -13,145 +13,214 @@ status: Draft
 
 ## Summary
 
-The normative capability matrix for OVDB onboarding and configuration across the CLI, the
-TUI, the web console and AI agents, the documented exceptions with their reasons, how
-parity is tested, and the four canonical journeys every increment is checked against.
+The normative capability matrix across CLI, TUI, web console and AI agents; the machine
+contracts every interface shares (errors, JSON, exit codes, local API, copy); the upstream
+changes and increment-0 spikes the work depends on; how parity is tested; and the four
+canonical journeys.
 
 Decision: [0006 three equal configuration interfaces](../../decisions/0006-three-equal-configuration-interfaces.md).
 
 ## Problem
 
-"Equal interfaces" is easy to promise and hard to keep. Without one list of capabilities
-and a test that fails when an interface misses one, the web console will lag the CLI, the
-TUI will gain a shortcut nobody else has, and agents will hit a step only a human can do.
+"Equal interfaces" drift without one list of capabilities, one set of contracts and a test
+that fails when an interface misses something. Agents are a primary audience and need
+stable JSON; the plan also depends on changes in other repositories that must be proven
+before building on them.
 
 ## Behavior
 
 ### Capability matrix
 
-AI agents use the CLI non-interactively with `--json`; the agent column shows the form
-they use. "—" means a documented exception below.
+Agents use the CLI non-interactively with `--json`. "—" is a documented exception.
 
 | # | Capability | CLI | TUI | Web console | AI agent |
 |---|---|---|---|---|---|
-| 1 | Guided first run | `ovdb` (non-TTY: status + next commands) | Home | Home | `ovdb status --json` |
+| 1 | Guided first run | `ovdb` (non-TTY: status + `next`) | Home | Home | `ovdb status --json` |
 | 2 | Whole-setup status | `ovdb status` | Home status line | Home status line | `ovdb status --json` |
 | 3 | Start server | `ovdb server start` | Start the OVDB server | — (E1) | `ovdb server start` |
-| 4 | Server status | `ovdb server status` | OVDB server | OVDB server | `ovdb server status --json` |
-| 5 | Stop server | `ovdb server stop` | OVDB server | OVDB server (confirm) | `ovdb server stop` |
-| 6 | Open web console | `ovdb open` | OVDB server › Open in browser | — (E2) | `ovdb open --print-url` |
-| 7 | Change server port | `ovdb config set server.port` | Settings | Settings | same as CLI |
-| 8 | List and filter storage choices | `ovdb engines --filter` | Create/Connect picker | Create/Connect picker | `ovdb engines --json` |
-| 9 | Create database (inGitDB, SQLite) | `ovdb databases create` | Create a database | Create a database | same as CLI, after asking the person |
-| 10 | Connect existing database | `ovdb databases connect` | Connect an existing database | Connect an existing database | same as CLI, after asking |
-| 11 | List databases | `ovdb databases` | Databases | Databases | `ovdb databases --json` |
-| 12 | Remove database registration | `ovdb databases remove` | Databases | Databases | same as CLI, after asking |
-| 13 | Choose current database | `ovdb use`, `ovdb use --global` | Databases › Use in this project | Databases › Use as default (E3) | `--db` on each command (preferred) or `ovdb use` |
+| 4 | Server status | `ovdb server status` | OVDB server | OVDB server | `--json` |
+| 5 | Stop or restart server | `ovdb server stop`, `ovdb server restart` | OVDB server | — (E2) | same as CLI |
+| 6 | Open web console (login link) | `ovdb open` | Open in browser | — (E1) | `ovdb open --print-url` |
+| 7 | Change server port | `ovdb config set server.port` | Settings | Settings (next start) | same as CLI |
+| 8 | Storage choices | `ovdb engines` | Create/Connect picker | Create/Connect picker | `ovdb engines --json` |
+| 9 | Create database (inGitDB, SQLite) | `ovdb databases create` | Create a database | Create a database | same, after asking |
+| 10 | Connect existing inGitDB folder or SQLite file | `ovdb databases connect` | Connect an existing database | Connect an existing database | same, after asking |
+| 11 | List databases | `ovdb databases` | Databases | Databases | `--json` |
+| 12 | Remove database registration | `ovdb databases remove` | Databases | Databases | same, after asking |
+| 13 | Choose current database | `ovdb use`, `ovdb use --global` | Use in this project | Use as default (E3) | `--db` preferred |
 | 14 | Show current database | `ovdb use`, `ovdb pwd` | Home status line | Home status line | `ovdb pwd --json` |
-| 15 | Navigate paths | `ovdb cd`, `ovdb pwd` | — (E4) | — (E4) | same as CLI |
-| 16 | Read and write records | `ovdb list/get/set/add/delete` | — (E4) | — (E4; TODO app for demo data) | same as CLI with `--json` |
-| 17 | Install TODO demo | `ovdb demo install` | Try a demo | Try a demo | `ovdb demo install --yes` |
-| 18 | Open TODO app | `ovdb demo open` | Result › Open TODO app | Result › Open TODO app | `ovdb demo open --print-url` |
-| 19 | Demo status | `ovdb demo status` | Home status line | Home status line | `ovdb demo status --json` |
-| 20 | List AI skills | `ovdb skills list` | AI agent skills | AI agent skills | `ovdb skills list --json` |
-| 21 | Install AI skill | `ovdb skills install` | AI agent skills / demo Result | AI agent skills / demo Result | `--yes` only relaying the person's explicit yes (E5) |
-| 22 | Uninstall AI skill | `ovdb skills uninstall` | AI agent skills | AI agent skills | same as CLI, after asking |
-| 23 | Explore data: choose tool | `ovdb explore` | Explore data | Explore data | `ovdb explore --json` |
-| 24 | Prepare DataTug CLI connection | `ovdb explore datatug-cli` | DataTug CLI | DataTug CLI (show and copy) | same as CLI |
-| 25 | Run DataTug CLI now | `ovdb explore datatug-cli --run` | Run it now | — (E6) | same as CLI |
-| 26 | DataTug.app guidance | `ovdb explore datatug-app` | DataTug.app | DataTug.app | same as CLI |
-| 27 | Telemetry status | `ovdb telemetry status` | Settings | Settings | `ovdb telemetry status --json` |
-| 28 | Turn telemetry on or off | `ovdb telemetry enable/disable` | Settings, one-time prompt | Settings, one-time prompt | only relaying the person's answer (E5) |
+| 15 | Browse data (read-only) | `ovdb list`, `ovdb get` | Browse data | Browse data | same as CLI |
+| 16 | Navigate paths | `ovdb cd`, `ovdb pwd` | — (E4) | — (E4) | absolute paths instead |
+| 17 | Write records | `ovdb set/add/delete` | — (E5) | — (E5; TODO app for demo data) | same as CLI |
+| 18 | Install TODO demo | `ovdb demo install` | Try a demo | Try a demo | `--yes` |
+| 19 | Open TODO app | `ovdb demo open` | Open TODO app | Open TODO app | `--print-url` |
+| 20 | List AI skills | `ovdb skills list` | AI agent skills | AI agent skills | `--json` |
+| 21 | Install AI skill | `ovdb skills install` | AI agent skills | AI agent skills | `--yes` relaying the person's yes (E6) |
+| 22 | Explore data (DataTug guidance) | `ovdb explore` | Explore data | Explore data | `--json` |
+| 23 | Telemetry status | `ovdb telemetry status` | Settings | Settings | `--json` |
+| 24 | Turn telemetry on or off | `ovdb telemetry enable/disable` | Settings, one-time prompt | Settings, one-time prompt | `--confirmed-by-user` relaying the answer (E6) |
 
 #### REQ: matrix-is-normative
 
-Every capability in the matrix MUST be implemented in every interface cell that is not a
-documented exception, using the same shared service and message catalogue. Adding a
-user-visible onboarding or configuration capability MUST add a row to this matrix in the
-same change.
+Every capability MUST be implemented in every non-exception cell using the same server
+service and copy keys. A new user-visible onboarding or configuration capability MUST add a
+row in the same change.
 
 ### Documented exceptions
 
 | Id | Exception | Rationale |
 |---|---|---|
-| E1 | The web console cannot start the server | The page is served by the server; if it is reachable, the server is running. The page shows how to start it again after a stop. |
-| E2 | The web console has no "open web console" action | It is already open. |
-| E3 | Web console sets the *global default*, TUI sets the *project context* | The browser has no working directory, so it cannot know a project; the TUI runs in one. Both show which scope they changed. |
-| E4 | Path navigation and record commands are CLI and agent only | They exist for scripts and agents; a data browser is out of scope and DataTug is the exploration tool. The TODO app covers the demo data. |
-| E5 | Agents may run consent-type commands only as a relay | Skills and telemetry consent are human decisions; the command cannot tell a relayed answer from an assumed one, so the rule is enforced in skill instructions and `--yes` requirements. |
-| E6 | The web console cannot run DataTug | A browser page must not run programs on the person's computer through the local server; it shows the commands to copy. |
+| E1 | Web console cannot start the server or open itself | The page is served by the server; reaching it means it runs and is open. |
+| E2 | Web console cannot stop or restart the server | Stopping kills the page's own backend and strands people without a terminal; CLI, TUI and agents can stop it. |
+| E3 | Web console sets only the global default | The browser has no working directory; project contexts are set by CLI and TUI ([decision 0008](../../decisions/0008-database-context-scope.md)). |
+| E4 | No `cd` in TUI or web | They show a browsable tree; a working directory is a shell concept. |
+| E5 | Record editing is CLI, agents and apps only | OVDB is not a database admin tool; DataTug owns exploration, apps own editing. |
+| E6 | Agents run consent-type commands only as a relay | Skill installs and telemetry are human decisions; enforced by `--yes`/`--confirmed-by-user` and skill text, not cryptographically. |
 
 #### REQ: exceptions-need-rationale
 
-An interface MAY lack a capability only through an exception listed in this table with a
-rationale. Code MUST reference the exception id, and the parity test MUST fail for a
-missing capability without a matching exception.
+An interface MAY lack a capability only through an exception above. Code MUST reference the
+exception id, and the parity test MUST fail for a missing cell without one.
 
-### Parity test strategy
+### Machine contracts
+
+#### REQ: error-envelope
+
+Every failure MUST be `{"schema":1,"error":{"code","message","reason"?,"next":[{"label","command"?,"action"?}]}}`,
+built by the server or the shared Go package, never by a presentation. `code` MUST be one
+of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
+`location_not_empty`, `port_in_use`, `port_unavailable`, `server_not_running`,
+`server_start_failed`, `server_version_mismatch`, `unauthorized`, `storage_unavailable`,
+`schema_required`, `validation_failed`, `unsupported`, `dependency_missing`, `internal`.
+`action` names an in-UI remedy (for example `use_port`); `command` is always runnable.
+
+#### REQ: json-equals-api
+
+`--json` output MUST be byte-for-byte the local API response body for the same capability,
+with top-level `"schema": 1`, and nothing else on stdout. Human output goes to stdout
+without `--json`; notices (such as auto-start) go to stderr.
+
+#### REQ: exit-codes
+
+New commands MUST exit `0` on success and `1` on any failure, including usage errors
+(`invalid_argument`) and missing confirmation (`confirmation_required`).
+
+#### REQ: local-api-endpoints
+
+The local API MUST provide at least these endpoints, all authenticated (instance secret or
+session cookie) and versioned by the `v1` path segment:
+
+| Method and path | Capability |
+|---|---|
+| `GET /api/local/v1/whoami` | Instance id and version (server identity) |
+| `GET /api/local/v1/status` | 1, 2, 14 |
+| `POST /api/local/v1/server/shutdown` | 5 (instance secret only) |
+| `GET /api/local/v1/engines` | 8 (sorted and pinned server-side) |
+| `GET/POST /api/local/v1/databases`, `DELETE /api/local/v1/databases/{id}` | 9, 11, 12 |
+| `POST /api/local/v1/databases/connect` | 10 |
+| `GET/PUT /api/local/v1/context` | 13, 14 (project scope with instance secret only) |
+| `GET /api/local/v1/demo`, `POST /api/local/v1/demo/install` | 18, 19 |
+| `GET /api/local/v1/skills`, `POST /api/local/v1/skills/install` | 20, 21 |
+| `GET /api/local/v1/explore/datatug?db=` | 22 |
+| `GET/PUT /api/local/v1/telemetry`, `POST /api/local/v1/telemetry/events` | 23, 24 |
+| `GET/PUT /api/local/v1/config` | 7 |
+| existing `/v1/databases/{db}/…` | 15, 17 |
+
+GET handlers MUST have no side effects; POST/PUT bodies MUST be `application/json`.
+
+#### REQ: copy-catalogue
+
+All user-facing strings MUST come from one `copy/en.json` with `{name}` placeholders,
+embedded in Go and imported by the Vue build. Services return copy keys with parameters;
+CLI, TUI and web render them. A test MUST fail when a referenced key is missing.
+
+### External changes
+
+The work depends on these upstream changes, owned by the same organisation.
+
+| Repository | Change |
+|---|---|
+| `openvaultdb/ovdb` | Upgrade to `openvaultdb-go` v0.5.1 or later |
+| `openvaultdb/openvaultdb-go` | Exported runtime `Mount`/`Unmount` on the server, safe with in-flight requests |
+| `openvaultdb/openvaultdb-go` | Tolerant registry scan: one broken manifest does not stop others (`mount.Dir` returns on first error today); failures reported per database |
+| `openvaultdb/openvaultdb-go` | Configurable inferred-schema catalogue location (today `<folder>/.ovdb/…` or `<file>.inferred.json`) and no git identity change on mount (`ensureGitIdentity`), so connecting does not write into user storage |
+| `openvaultdb/openvaultdb-go` | Nested-collection queries (follow-up; needed for DataTug to show demo items) |
+| `strongo/cli-helpers` | Detached process start (lifted from `wb` `internal/process/detach_*`) |
+| `strongo/cli-helpers` | Per-skill (per-bundle) install in `skillsync` |
+| `dal-go/dalgo2postgres`, `dal-go/dalgo2mysql` | Stop formatting the connection string into errors |
+
+#### REQ: increment-zero-spikes
+
+Before feature increments, increment 0 MUST prove, with a pass/fail note each:
+S1 `openvaultdb-go` upgrade with Mount/Unmount, tolerant scan and side-effect-free mount;
+S2 detached start, authenticated readiness and shutdown on Linux, macOS and Windows;
+S3 embedded Vue build through the release pipeline with the `.gitkeep` fallback;
+S4 DataTug CLI end-to-end against a local-mode server;
+S5 `skillsync` per-skill install;
+S6 `copy/en.json` shared by Go and Vite;
+S7 login link, session cookie, `http.CrossOriginProtection`, Host allowlist and CSP;
+S8 manual `ovdb.localhost` check in Safari (macOS) and Edge (Windows).
+
+### Tests
 
 #### REQ: capability-registry
 
-`ovdb` MUST contain a capability registry: for each matrix row, its id, the CLI command,
-the TUI screen id, the web route and local API endpoint, and exception ids. A test MUST
-verify that each CLI command, TUI screen, web route and endpoint named in the registry
-exists, and MUST generate a matrix document that is compared with the committed copy.
-
-#### REQ: one-acceptance-table-two-transports
-
-Service acceptance tests MUST be written once as a table and run against both the
-in-process services and the `setup.Client` HTTP implementation talking to a real local
-server in a temporary OVDB home, with identical expected results and errors.
+`ovdb` MUST contain a registry listing, per matrix row, the CLI command, TUI screen id, web
+route, local API endpoint and exception ids. A test MUST verify that each named command,
+screen, route and endpoint exists.
 
 #### REQ: presentation-tests
 
-Each capability MUST have: CLI tests for text and `--json` output and exit codes; TUI
-model tests that reach it by key messages and assert on the rendered view; web unit tests
-for its components and a browser test for its route against a real `ovdb` server. Tests
-MUST assert catalogue keys, not duplicated literal strings.
+Each capability MUST have service tests in the server, CLI tests for text, `--json` and
+exit codes, and TUI model tests. Web components MUST have unit tests. Browser tests run per
+journey plus one smoke test per route, not per capability.
+
+#### REQ: ci-matrix
+
+CI MUST run Go unit tests for lifecycle, paths and context on Ubuntu, macOS and Windows
+runners, and Playwright (Chromium) journeys on Linux. Safari, Edge and `*.localhost`
+resolution are a manual checklist.
 
 #### REQ: increments-keep-parity
 
-A capability MUST NOT be visible outside the preview gate in any interface until all its
-non-exception cells are implemented and tested. Increments MAY land partially behind
-`OVDB_PREVIEW=1`.
+A capability MUST NOT be visible outside `OVDB_PREVIEW=1` until all its non-exception cells
+are implemented and tested.
 
 ### Canonical journeys
 
-Every increment that touches onboarding MUST keep these four journeys passing: automated
-where stated, and run manually by a person on at least one OS per increment and on Linux,
-macOS and Windows before the preview gate is removed.
+Each journey has an automated form (CI) and a manual checklist run on at least one OS per
+increment and on all three before the gate is removed.
 
 #### REQ: journey-a-terminal
 
-**Journey A — terminal.** In a terminal with a fresh OVDB home, a person runs `ovdb`,
-chooses Create a database, keeps inGitDB and the suggested location, names it `notes`,
-chooses Use in this project on the Result, answers the telemetry prompt, and quits. Then
-`ovdb add /items '{"title":"Hello"}'` and `ovdb list /items` work without `--db`.
-Automated: TUI model-driven script plus CLI assertions.
+**A — terminal.** A person runs `ovdb`, chooses Create a database, keeps inGitDB and the
+suggested location, names it `notes`, chooses Use in this project, answers the telemetry
+prompt, and quits. Then `ovdb add /items '{"title":"Hello"}'` and `ovdb list /items` work
+without `--db`.
 
 #### REQ: journey-b-web
 
-**Journey B — web.** With the server started by `ovdb open` (by the person or an agent),
-a person on `http://ovdb.localhost:6832` who never used the TUI creates a database, sets
-it as default, turns telemetry off in Settings, and opens Explore data; each step shows
-the same wording as the TUI. Automated: browser test against a real server.
+**B — web.** A person opens a login link given by their AI assistant, by `ovdb open` or by
+the TUI's Open in browser (the server is started by whichever gave the link). They create a
+database, browse it, set it as default, turn telemetry off in Settings and open Explore
+data, seeing the same wording as the TUI. Opening the bare address without a session shows
+the landing page with `ovdb open` and "ask your AI assistant". A no-terminal, no-agent cold
+start (login item or OS service) is deferred.
 
 #### REQ: journey-c-agent
 
-**Journey C — AI agent.** With `ovdb` installed and the storage skill installed, an agent
-in a project with no OVDB setup runs `ovdb status --json`, offers the three setup paths
-and the demo, and on "set it up for you" creates a database, selects it for the project,
-stores and reads a record — without any command waiting for input and without changing
-the telemetry state. Automated: a non-interactive command script with stdin closed;
-manual: a live agent session.
+**C — AI agent.** An agent without any OVDB skill runs `ovdb status --json`, relays the
+`next` options (terminal setup, web setup, set up with commands, try the demo, install the
+skill), and on "set it up for you" creates a database, selects it for the project, stores
+and reads a record with absolute paths — no command waits for input and telemetry stays
+`not asked`.
 
 #### REQ: journey-d-todo-demo
 
-**Journey D — TODO demo.** A person chooses Try a demo (TUI or web), opens the TODO app,
-installs the TODO AI skill after the consent step, asks an agent to "add bananas and
-coffee to my shopping list", sees both items appear in the open app, then chooses Explore
-data › DataTug CLI and sees the prepared command. Automated: CLI install, browser test of
-the app with CLI-made changes; manual: the live agent step.
+**D — TODO demo.** A person chooses Try a demo, opens the TODO app, installs the TODO AI
+skill after the consent step, asks an agent to "add bananas and coffee to my shopping list",
+sees both items appear in the open app, then opens Explore data and reads that DataTug shows
+the lists but not their items yet.
 
 ## Dependencies
 
@@ -169,63 +238,92 @@ the app with CLI-made changes; manual: the live agent step.
 ### AC: missing-cell-fails (verifies REQ:matrix-is-normative, REQ:exceptions-need-rationale, REQ:capability-registry)
 
 **Given** the capability registry
-**When** a developer removes the web route for "Remove database registration" without adding an exception
+**When** the web route for "Remove database registration" is removed without adding an exception
 **Then** the parity test fails naming capability 12 and the web console
 
-### AC: registry-doc-in-sync (verifies REQ:capability-registry)
+### AC: error-envelope-shape (verifies REQ:error-envelope, REQ:json-equals-api, REQ:exit-codes)
 
-**Given** a registry change that adds a capability
-**When** the tests run without regenerating the committed matrix document
-**Then** the test fails and shows the difference
+**Given** port 6832 held by a non-OVDB program
+**When** `ovdb server start --json` runs
+**Then** stdout is exactly one JSON object with `schema` 1 and `error.code` `port_in_use`, `next` contains a runnable `ovdb server start --port 6833` entry, and the exit code is `1`
 
-### AC: transports-agree (verifies REQ:one-acceptance-table-two-transports)
+### AC: cli-json-matches-api (verifies REQ:json-equals-api)
 
-**Given** the service acceptance table including creation conflicts, port conflicts, demo reinstall and telemetry changes
-**When** it runs in-process and over HTTP
-**Then** both produce identical results and error codes, reasons and hints
+**Given** a running server with two databases
+**When** `ovdb databases --json` runs and `GET /api/local/v1/databases` is called with the instance secret
+**Then** both bodies are identical
 
-### AC: presentation-coverage (verifies REQ:presentation-tests)
+### AC: usage-error-exits-one (verifies REQ:exit-codes)
 
-**Given** the capability registry
-**When** the coverage check lists tests per capability and interface
-**Then** every non-exception cell has at least one CLI, TUI or web test as appropriate, and no test asserts a catalogue string by literal
+**Given** any new command
+**When** it is called with an unknown flag, or without `--yes` where confirmation is required in a non-interactive environment
+**Then** it exits `1` with code `invalid_argument` or `confirmation_required`
+
+### AC: endpoints-authenticated (verifies REQ:local-api-endpoints)
+
+**Given** a running local-mode server
+**When** each endpoint in the table is called without credentials
+**Then** each returns `401` with `unauthorized`, and `PUT /api/local/v1/context` with project scope using only a session cookie is refused
+
+### AC: copy-key-missing-fails (verifies REQ:copy-catalogue)
+
+**Given** a TUI screen and a Vue component each referencing a key absent from `copy/en.json`
+**When** the Go and web test suites run
+**Then** both fail naming the key
+
+### AC: spikes-recorded (verifies REQ:increment-zero-spikes)
+
+**Given** increment 0 is complete
+**When** the plan is reviewed
+**Then** S1–S8 each have a recorded pass or fail with evidence, and any failed spike has a changed specification before feature increments start
+
+### AC: tests-per-capability (verifies REQ:presentation-tests)
+
+**Given** the registry
+**When** the coverage check lists tests per capability
+**Then** every non-exception cell has service, CLI and TUI tests or a web unit test, and each journey has one browser test
+
+### AC: ci-runs-matrix (verifies REQ:ci-matrix)
+
+**Given** a pull request to `ovdb`
+**When** CI runs
+**Then** lifecycle, path and context tests pass on Ubuntu, macOS and Windows, and the Playwright journeys pass on Linux
 
 ### AC: gate-hides-incomplete (verifies REQ:increments-keep-parity)
 
-**Given** an increment where Connect an existing database exists in CLI and TUI but not yet in the web console
+**Given** Connect exists in CLI and TUI but not yet in the web console
 **When** OVDB runs without `OVDB_PREVIEW`
-**Then** `ovdb --help` does not list `databases connect`, and the TUI Home is not shown
+**Then** `ovdb --help` does not list `databases connect` and bare `ovdb` behaves as today
 
 ### AC: journey-a-passes (verifies REQ:journey-a-terminal)
 
-**Given** a fresh OVDB home and a terminal
-**When** Journey A is executed by its automated script and manually
-**Then** every step completes, and the final `ovdb list /items` shows "Hello" with the database taken from the project context
+**Given** temporary `OVDB_HOME` and `OVDB_DATA_HOME`
+**When** the Journey A TUI model script and CLI assertions run
+**Then** `ovdb list /items` shows "Hello" with the database from the project context
 
 ### AC: journey-b-passes (verifies REQ:journey-b-web)
 
-**Given** a fresh OVDB home and `ovdb open`
-**When** Journey B runs in the browser test and manually
-**Then** the database exists, `ovdb pwd` in a directory without project context reports it from the global default, telemetry is `disabled`, and screen texts match the catalogue
+**Given** `ovdb open --print-url` in a fresh setup
+**When** Playwright opens the link and runs Journey B, and separately opens the bare address
+**Then** the database exists and is browsable, `ovdb pwd` outside a project reports it from the global default, telemetry is `disabled`, and the bare address shows the landing page
 
 ### AC: journey-c-passes (verifies REQ:journey-c-agent)
 
-**Given** stdin closed and `CLAUDECODE=1`
+**Given** stdin closed, `CLAUDECODE=1` and no skills installed
 **When** the Journey C command script runs
-**Then** every command exits within its timeout, the record round-trips, and `ovdb telemetry status --json` still reports `not_asked`
+**Then** `ovdb status --json` lists the five `next` entries, every command finishes, the record round-trips, and telemetry is still `not_asked`
 
 ### AC: journey-d-passes (verifies REQ:journey-d-todo-demo)
 
-**Given** a fresh OVDB home
-**When** Journey D runs with the agent step simulated by two `ovdb add` commands in the automated test, and with a live agent manually
-**Then** Bananas and Coffee appear in the open TODO app within 3 seconds, and Explore data shows the DataTug CLI command for `todo`
+**Given** a fresh setup
+**When** Journey D runs with the agent step simulated by two `ovdb add` commands
+**Then** Bananas and Coffee appear in the open TODO app within 3 seconds, and Explore data for `todo` states that items are not shown in DataTug yet
 
 ## Open Questions
 
-- Should the web console gain a read-only data browser later, removing part of E4, or
-  should that remain DataTug's role?
-- Is a pseudo-terminal end-to-end test for Journey A worth its flakiness on Windows, or are
-  model-level tests plus the manual run enough?
+- Should the capability matrix live as data (YAML) that generates both the Go registry and
+  this table?
+- Is a pseudo-terminal end-to-end test for Journey A worth its flakiness on Windows?
 
 ---
 *This document follows the https://specscore.md/feature-specification*

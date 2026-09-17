@@ -13,174 +13,208 @@ status: Draft
 
 ## Summary
 
-One local OVDB server per user serves every registered database, the embedded web console
-at `http://ovdb.localhost:6832` and the local API that the web console, TUI and CLI share.
-It starts in the background with one command, reports conflicts in plain language, and
-accepts browser traffic only from its own pages.
+One authenticated local OVDB server per user runs every onboarding service and serves the
+registered databases, the web console at `http://ovdb.localhost:6832`, the TODO app and the
+local API. It starts in the background on demand, proves its identity to clients, lets
+browsers in through one-time login links, and reports conflicts in plain language. Legacy
+`ovdb serve` is unchanged.
 
 Decision: [0007 local OVDB server model and web address](../../decisions/0007-local-ovdb-server-and-web-address.md).
 
 ## Problem
 
-`ovdb serve` runs only in the foreground, needs manifest flags, fails when there is no
-database, and surfaces raw bind errors. A person who closes the terminal loses the
-server; an agent cannot start one and continue. Nothing protects a loopback server from
-malicious websites once a browser UI talks to it.
+`ovdb serve` runs only in the foreground, needs manifest flags and surfaces raw bind errors.
+An agent cannot start a server and continue; a person loses it when the terminal closes. A
+server that writes files and agent skills must not be usable by other accounts, other local
+programs or hostile websites.
 
 ## Behavior
 
-### Local state
+### Locations
 
-OVDB home is `os.UserConfigDir()/ovdb` (for example `~/.config/ovdb` on Linux,
-`~/Library/Application Support/ovdb` on macOS, `%AppData%\ovdb` on Windows), overridable
-with `OVDB_HOME`. The existing `cloud/` credential folder already lives there.
-
-| Path | Content | Written by |
-|---|---|---|
-| `config.yaml` | `server.port`, telemetry consent and install id, global default context | services |
-| `databases/<id>.yaml` | database registry; ordinary OVDB manifests | services |
-| `contexts/<hash>.yaml` | per-project context ([decision 0008](../../decisions/0008-database-context-scope.md)) | services |
-| `server.json` | runtime: pid, port, version, local API version, start time | server |
-| `logs/server.log` | background server log, size-bounded | server |
-| `explore/datatug/<id>.json` | DataTug connection descriptors | services |
+| Kind | Default | Override | Content |
+|---|---|---|---|
+| Configuration | `os.UserConfigDir()/ovdb` | `OVDB_HOME` | `config.yaml`, `databases/<id>.yaml` (registry manifests), `contexts/`, existing `cloud/` |
+| Runtime | `os.UserCacheDir()/ovdb/run` | — | `server.json` (instance id, pid, process start time, port, version), `home.lock`, `secret`, `server.log` |
+| Data | `~/ovdb` | `OVDB_DATA_HOME` | New databases and demos |
 
 #### REQ: owner-only-state
 
-OVDB home, `config.yaml`, `server.json` and `contexts/` MUST be created owner-only using
-`strongo/cli-helpers/daemonlifecycle` protection on every platform, and writes MUST be
-atomic (temporary file and rename).
+Configuration and runtime directories and their files MUST be created owner-only with
+`strongo/cli-helpers/daemonlifecycle` (`ProtectOwnerOnly`, validated with
+`ValidateOwnerOnly`) on every platform, and written atomically.
 
-### Server lifecycle
+### Server modes
+
+#### REQ: local-mode-only-for-new-surfaces
+
+The web console, TODO app, local API, Host allowlist and authentication MUST exist only in
+local mode (`ovdb server start`, `ovdb open`, TUI, auto-start). `ovdb serve` with its
+existing flags MUST behave exactly as today; without `OVDB_PREVIEW=1`, bare `ovdb serve`
+MUST still fail as today, and with it the error MUST suggest `ovdb server start`.
+
+#### REQ: single-server-home-lock
+
+A local-mode server MUST hold `home.lock` exclusively for its lifetime. A second start for
+the same home MUST report the running server instead of starting another, even with a
+different `--port` (with a one-line warning about the port).
+
+### Lifecycle
 
 | Command | Behaviour |
 |---|---|
-| `ovdb server start [--port N]` | Start in the background; wait until ready; print address |
-| `ovdb server stop` | Graceful stop; wait until the port is free |
-| `ovdb server status [--json]` | Running or not, address, pid, version, uptime, log path |
-| `ovdb server open [--print-url]` / `ovdb open` | Start if needed, then open the web console in the default browser |
-| `ovdb serve [flags]` | Foreground server (existing); bare `ovdb serve` serves the registry |
+| `ovdb server start [--port N] [--json]` | Start detached; wait for authenticated readiness; print addresses and a login link |
+| `ovdb server stop` | Authenticated shutdown; wait until the port is free |
+| `ovdb server restart` | Stop then start with the same settings |
+| `ovdb server status [--json]` | Running, address, version, uptime, log path |
+| `ovdb open [--print-url]` | Start if needed, create a login link, open the browser (or print it) |
 | `ovdb config get server.port`, `ovdb config set server.port <N>` | Read or persist the port |
 
 #### REQ: background-start
 
-`ovdb server start` MUST start a detached server process that survives the terminal
-closing on Windows, macOS and Linux, MUST wait until `GET /.well-known/openvaultdb`
-answers (timeout 10 s) and MUST print both `http://ovdb.localhost:<port>` and
-`http://127.0.0.1:<port>`. On timeout it MUST stop the child and report the last log
-lines and the log path.
+`ovdb server start` MUST start a detached process (new session on Unix; detached process
+group with no console window and no inherited handles on Windows) with stdio redirected to
+`server.log` and working directory OVDB home, MUST wait up to 10 s for authenticated
+`whoami`, and MUST print `http://ovdb.localhost:<port>`, `http://127.0.0.1:<port>` and a
+login link. On timeout it MUST stop the child and show the last log lines. A calling process
+whose stdout is a pipe MUST get control back within 2 s of readiness.
 
-#### REQ: single-server-per-home
+#### REQ: authenticated-stop
 
-At most one OVDB server MUST run per OVDB home, enforced by an advisory lock held by the
-server. A second start for the same home MUST report the running server instead of
-starting another, even when a different port is requested.
+`ovdb server stop` MUST call `POST /api/local/v1/server/shutdown` with the instance secret.
+If the server does not answer, it MAY terminate the recorded pid only when the pid's process
+start time matches `server.json`; otherwise it MUST report that it could not confirm the
+process and change nothing.
 
 #### REQ: stale-runtime-state
 
-If `server.json` names a process that is not running or not answering as OVDB, `server
-status` MUST report "not running" and the next `server start` MUST replace the stale
-state without asking.
+If `server.json` names a process that is gone or fails `whoami`, `server status` MUST report
+"not running" and the next start MUST replace the runtime files without asking.
+
+#### REQ: version-mismatch-notice
+
+When a client's version differs from the running server's, the client MUST print one line
+`OVDB server is running version X; restart it to use version Y: ovdb server restart` and
+continue; if the local API cannot serve the request it MUST fail with
+`server_version_mismatch` and the same `next`.
+
+#### REQ: auto-start
+
+Commands that need the server MUST start it as in `background-start` when it is not running,
+printing `Started the OVDB server at http://ovdb.localhost:6832` on stderr; with
+`--no-start` they MUST fail with `server_not_running` and `next` `ovdb server start`.
+
+#### REQ: stopped-server-copy
+
+Stop output in CLI and TUI, and the landing page, MUST say how to get back without assuming
+a terminal: "Ask your AI assistant to start OVDB again, or run `ovdb open`."
+
+### Registry
 
 #### REQ: registry-serving
 
-Bare `ovdb serve` and the background server MUST mount every manifest in
-`databases/` (reusing the existing `mount.Dir`). Existing `--dir`, `--manifest`,
-`--data-dir`, `--auth`, `--cors` flags MUST keep working unchanged. A database created or
-connected through the local API MUST become available without restarting the server. A
-manifest that fails to mount MUST NOT stop other databases from being served; the failure
-MUST appear in `ovdb status` with its reason.
-
-#### REQ: version-skew
-
-When the running server's version or local API version differs from the CLI's,
-`ovdb status` and `ovdb server status` MUST say so with the hint
-`ovdb server stop && ovdb server start`. A CLI that cannot speak the server's local API
-version MUST refuse configuration changes with that hint rather than writing files
-in-process.
-
-#### REQ: stop-from-web
-
-The web console MAY stop the server only after a confirmation that explains the web
-console will close, and MUST then show "OVDB server stopped. Start it again from a
-terminal: `ovdb server start`".
+The local-mode server MUST mount every manifest in `databases/`. A manifest that fails to
+mount MUST NOT stop others and MUST be reported as "needs attention" with a redacted reason in
+status. Databases created or connected through the local API MUST become available without
+a restart.
 
 ### Port
 
 #### REQ: port-precedence
 
-The port MUST resolve as `--port` > `OVDB_PORT` > `config.yaml server.port` > `6832`.
-`ovdb status` MUST show the port and where it came from.
+The port MUST resolve as `--port` > `OVDB_PORT` > `server.port` > `6832` when starting.
+Clients MUST use the port recorded in `server.json` for a running server.
 
 #### REQ: deterministic-port-conflict
 
-When the chosen port is busy, `server start` MUST probe it. If it is this home's running
-OVDB server, the command MUST succeed with "OVDB server is already running at …". Otherwise
-it MUST fail with the problem pattern naming the port and offering `--port` and
-`ovdb config set server.port`. OVDB MUST NOT pick another port on its own. The TUI and
-web console MUST offer "Use port <N+1> instead", which persists `server.port` after
-confirmation and starts on that port.
-
-### Browser trust boundary
+When the port is busy, start MUST probe it with `whoami`: this home's instance → success with
+"OVDB server is already running at …"; otherwise fail with `port_in_use` naming the port with
+`next` entries `ovdb server start --port <N+1>` and `ovdb config set server.port <N+1>`. A
+bind refused by the OS without a listener (for example a Windows reserved port range) MUST
+fail with `port_unavailable` ("Port 6832 isn't available on this computer"). OVDB MUST NOT
+choose another port on its own; the TUI MUST offer "Use port <N+1> instead", which persists
+the port after confirmation.
 
 #### REQ: loopback-bind
 
-Without `--auth`, the server MUST bind only loopback addresses (`127.0.0.1` and, where
-available, `::1`) and MUST refuse a non-loopback `--addr` with a problem explaining
-`--auth`.
+Local mode MUST bind `127.0.0.1` and `::1`. If `::1` fails because IPv6 is unavailable the
+server MUST continue on IPv4; if it fails because the address is in use it MUST fail as a
+conflict. Loopback detection MUST use `net.SplitHostPort` and `netip.Addr.IsLoopback`, with an
+empty host treated as all interfaces (not loopback).
+
+### Authentication
+
+#### REQ: instance-secret
+
+At start the server MUST create a random instance id and secret in the runtime directory.
+CLI and TUI MUST send the secret as `Authorization: Bearer` on every local API and data API
+call, and MUST verify the instance id via `GET /api/local/v1/whoami` before sending data,
+reporting "already running" or signalling a process.
+
+#### REQ: login-link
+
+`ovdb server start`, `ovdb open` and the TUI MUST create one-time login links
+`http://ovdb.localhost:<port>/login?code=<random>` valid for 10 minutes and a single use.
+`GET /login` with a valid code MUST set an `HttpOnly`, `SameSite=Strict`, host-only session
+cookie and redirect to the console (or the `next` path within the origin); invalid or used
+codes MUST show the landing page. Codes MUST NOT be logged.
+
+#### REQ: landing-page
+
+A request to a console or app page without a valid session MUST return a page titled "Open
+the console from OVDB" explaining `ovdb open` and asking an AI assistant for a link, and
+MUST expose no data.
+
+#### REQ: all-local-mode-apis-authenticated
+
+In local mode, `/api/local/v1/…` and `/v1/…` MUST reject requests without a valid instance
+secret or session cookie with `401 unauthorized`. `POST /api/local/v1/server/shutdown` and
+project-scope context writes MUST require the instance secret.
+
+### Browser hardening
 
 #### REQ: host-allowlist
 
-Every request whose `Host` is not `ovdb.localhost`, `localhost`, `127.0.0.1` or `[::1]`
-with the server's port MUST be rejected with `403` before routing, including static
-assets, the local API and the data API. When `--auth` is used with a non-loopback bind,
-the allowlist MUST include the configured external host.
+In local mode every request whose `Host` (case-insensitive, no trailing dot) is not
+`ovdb.localhost`, `localhost`, `127.0.0.1` or `[::1]` with the server's port MUST get `403`.
 
-#### REQ: origin-check
+#### REQ: cross-origin-protection
 
-Any `POST`, `PUT`, `PATCH` or `DELETE` request carrying an `Origin` header whose scheme,
-host (from the allowlist) and port do not match the server MUST be rejected with `403`,
-except data API (`/v1/…`) requests from an origin the operator listed with `--cors`.
-Requests without `Origin` MUST be accepted. The local API MUST NOT emit
-`Access-Control-Allow-Origin: *`.
+In local mode non-safe methods MUST pass Go `http.CrossOriginProtection`; GET handlers MUST
+have no side effects; request bodies MUST be `application/json`.
 
-#### REQ: no-secrets-in-browser-responses
+#### REQ: security-headers
 
-The local API MUST NOT return tokens, DSN values or environment variable values to the
-browser; it MAY return environment variable *names*.
+Every local-mode response MUST send `X-Content-Type-Options: nosniff` and
+`Referrer-Policy: no-referrer`. HTML responses MUST also send
+`Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`
+and `X-Frame-Options: DENY`. The web console and apps MUST render record values as text
+only (no `v-html`, enforced by lint). Only first-party embedded apps MAY be served under
+`/apps/`.
+
+#### REQ: redacted-errors
+
+Every error surfaced by the server to the CLI, TUI, web console, status or `server.log` MUST
+pass a redaction layer that removes URL user-info, `key=value` pairs whose key contains
+`password`, `secret`, `token` or `key`, and connection-string shapes. Raw driver errors MUST
+NOT leave the server unredacted.
 
 ### Embedded web console
 
 #### REQ: embedded-assets
 
-The web console and the TODO app MUST be built from `web/` (Vue 3, TypeScript, Vite,
-Tailwind, pnpm) into a directory embedded with `//go:embed all:dist`. A binary built
-without assets (`go install`) MUST serve a plain page "The web console is not built into
-this ovdb binary" with build instructions, while the data API, local API and CLI keep
-working. Release builds MUST fail if the assets are missing.
+The console and TODO app MUST be built from `web/` with pnpm into a directory embedded with
+`//go:embed all:dist` (tracked `.gitkeep`). A binary without assets MUST serve "The web
+console isn't built into this ovdb binary" naming the Homebrew and release downloads, and
+`ovdb demo open` MUST say so instead of opening a blank page. Release builds MUST fail
+without assets.
 
 #### REQ: route-layout
 
-The server MUST route: `/.well-known/openvaultdb` and `/v1/…` (existing APIs, unchanged),
-`/api/local/v1/…` (local API), `/apps/todo/…` (TODO app), and `/…` (web console), with
-client-side routes falling back to the matching `index.html`. Static assets MUST be
-served with explicit content types and `Cache-Control` that lets hashed assets be cached
-and `index.html` revalidated.
-
-#### REQ: local-api-contract
-
-The local API MUST expose the shared services as JSON endpoints under `/api/local/v1/`
-(status, server, providers, databases, context, demo, skills, explore, telemetry,
-config) returning typed results and the shared error shape. It MUST be documented in the
-`ovdb` repository and versioned; breaking changes MUST increment the version reported in
-`server.json` and `/api/local/v1/status`.
-
-### Cross-platform
-
-#### REQ: cross-platform-lifecycle
-
-Start, stop, status, open and conflict handling MUST be covered by automated tests on
-Linux, macOS and Windows in CI, and browser opening MUST degrade to printing the address
-when no browser can be launched (headless, SSH, agent).
+Local mode MUST route `/.well-known/openvaultdb` and `/v1/…` (existing APIs, now
+authenticated), `/login`, `/api/local/v1/…`, `/apps/todo/…` and `/…` (console) with
+client-side route fallback. Middleware order MUST be Host → authentication →
+cross-origin protection → headers → routes.
 
 ## Dependencies
 
@@ -189,107 +223,124 @@ when no browser can be launched (headless, SSH, agent).
 
 ## Acceptance Criteria
 
-### AC: start-survives-terminal (verifies REQ:background-start, REQ:cross-platform-lifecycle)
+### AC: legacy-serve-unchanged (verifies REQ:local-mode-only-for-new-surfaces)
 
-**Given** no server running on Linux, macOS and Windows CI runners
-**When** `ovdb server start` runs in a shell that then exits
-**Then** the command prints both addresses after readiness, and a later `ovdb server status --json` in a new shell reports running with the same pid
+**Given** `ovdb serve --manifest todo.yaml --addr 127.0.0.1:7000` without `OVDB_PREVIEW`
+**When** a client calls `GET /v1/databases` with `Host: tunnel.example` and no credentials, and requests `/`
+**Then** the data API answers as today, `/` is not the console, and bare `ovdb serve` fails with today's message
 
-### AC: second-start-reuses (verifies REQ:single-server-per-home, REQ:deterministic-port-conflict)
+### AC: start-returns-to-piped-caller (verifies REQ:background-start, REQ:instance-secret)
 
-**Given** a server for this OVDB home running on 6832
-**When** `ovdb server start` and `ovdb server start --port 7000` run
-**Then** both exit `0` with "OVDB server is already running at http://ovdb.localhost:6832" and no second process exists
+**Given** no server and a caller whose stdout is a pipe, on Linux, macOS and Windows runners
+**When** `ovdb server start` runs and the caller exits
+**Then** control returns within 2 s of readiness, output has both addresses and a login link, and a later `ovdb server status --json` in a new shell reports running after `whoami` succeeds
 
-### AC: foreign-port-conflict (verifies REQ:deterministic-port-conflict)
+### AC: second-start-reuses (verifies REQ:single-server-home-lock, REQ:deterministic-port-conflict)
 
-**Given** a non-OVDB program listening on 127.0.0.1:6832
-**When** `ovdb server start` runs, and the person chooses "Use port 6833 instead" in the TUI
-**Then** the CLI exits `1` naming port 6832 and both fixes, and the TUI persists `server.port: 6833` and starts the server at `http://ovdb.localhost:6833`
+**Given** a server for this home on 6832
+**When** `ovdb server start --port 7000` runs
+**Then** it exits `0` with "already running at http://ovdb.localhost:6832" and a port warning, and no second process exists
 
-### AC: stale-state-recovers (verifies REQ:stale-runtime-state)
+### AC: impostor-port (verifies REQ:deterministic-port-conflict, REQ:instance-secret, REQ:loopback-bind)
 
-**Given** `server.json` names a pid that no longer exists
-**When** `ovdb server status` and then `ovdb server start` run
-**Then** status reports not running and start succeeds without prompting
+**Given** another program listening only on `[::1]:6832`
+**When** `ovdb server start` runs
+**Then** it exits `1` with `port_in_use` and does not serve IPv4 only
 
-### AC: bare-serve-mounts-registry (verifies REQ:registry-serving)
+### AC: reserved-port (verifies REQ:deterministic-port-conflict)
 
-**Given** `databases/` holds a valid `todo.yaml` and a `broken.yaml` pointing at a missing SQLite directory it cannot create
-**When** `ovdb serve` runs with no flags
-**Then** `todo` is served, `ovdb status` lists `broken` with its mount error, and `ovdb serve --manifest x.yaml` still works as before
+**Given** a bind on 6832 that the OS refuses with no listener
+**When** `ovdb server start` runs
+**Then** it fails with `port_unavailable` and the "isn't available" copy, not "used by another program"
 
-### AC: live-registry-update (verifies REQ:registry-serving, REQ:local-api-contract)
+### AC: stop-never-kills-reused-pid (verifies REQ:authenticated-stop, REQ:stale-runtime-state)
+
+**Given** `server.json` whose pid now belongs to an unrelated process with a different start time
+**When** `ovdb server stop` and `ovdb server status` run
+**Then** the unrelated process keeps running, stop reports it could not confirm the process, and status reports not running
+
+### AC: version-mismatch-line (verifies REQ:version-mismatch-notice)
+
+**Given** a running server of an older version
+**When** `ovdb databases` runs from a newer binary
+**Then** it prints the one-line restart notice with `ovdb server restart` and still lists databases
+
+### AC: auto-start-and-no-start (verifies REQ:auto-start)
+
+**Given** no server running
+**When** `ovdb databases create notes` runs, then the server is stopped and `ovdb databases create other --no-start` runs
+**Then** the first prints the start line on stderr and succeeds; the second exits `1` with `server_not_running`
+
+### AC: stop-copy (verifies REQ:stopped-server-copy)
 
 **Given** a running server
-**When** a database is created through `POST /api/local/v1/databases`
-**Then** `GET /v1/databases/<id>` succeeds immediately without restart
+**When** `ovdb server stop` runs, and the TUI stops the server
+**Then** both show "Ask your AI assistant to start OVDB again, or run `ovdb open`"
 
-### AC: version-skew-hint (verifies REQ:version-skew)
+### AC: tolerant-registry (verifies REQ:registry-serving, REQ:redacted-errors)
 
-**Given** a running server whose local API version is lower than the CLI's
-**When** `ovdb databases create x` runs
-**Then** it exits `1` with a message that the server is older and the hint `ovdb server stop && ovdb server start`, and no file under OVDB home changes
+**Given** `databases/` with a valid `todo.yaml` and a broken manifest whose storage cannot open
+**When** the server starts and `ovdb status --json` runs
+**Then** `todo` is served, the broken database is "needs attention" with a redacted reason, and a database created via the local API is readable immediately
+
+### AC: login-link-once (verifies REQ:login-link, REQ:landing-page)
+
+**Given** `ovdb open --print-url` printed a link
+**When** a browser opens it, then a second browser opens the same link, then a third opens the bare address
+**Then** the first reaches the console with a session cookie; the second and third see the landing page with no data
+
+### AC: unauthenticated-rejected (verifies REQ:all-local-mode-apis-authenticated)
+
+**Given** a local-mode server
+**When** `GET /v1/databases`, `GET /api/local/v1/status` and `POST /api/local/v1/server/shutdown` are called without credentials, and shutdown is called with only a session cookie
+**Then** all return `401`, and the server keeps running
 
 ### AC: dns-rebinding-blocked (verifies REQ:host-allowlist)
 
-**Given** a running server
-**When** a request arrives with `Host: attacker.example:6832`
-**Then** it receives `403` for `/`, `/api/local/v1/status` and `/v1/databases`
+**Given** a local-mode server
+**When** requests arrive with `Host: attacker.example:6832`, `Host: localhost.:6832` and no Host
+**Then** each gets `403`
 
-### AC: cross-site-post-blocked (verifies REQ:origin-check)
+### AC: cross-site-post-blocked (verifies REQ:cross-origin-protection)
 
-**Given** a running server
-**When** a `POST /api/local/v1/demo/install` arrives with `Origin: https://evil.example`, and another with `Origin: http://ovdb.localhost:6832`, and another with no Origin
-**Then** the first gets `403` and changes nothing; the second and third succeed
+**Given** a valid session cookie in the browser
+**When** a page on `https://evil.example` submits `POST /api/local/v1/demo/install`
+**Then** it is rejected and nothing changes
 
-### AC: non-loopback-needs-auth (verifies REQ:loopback-bind)
+### AC: framing-refused (verifies REQ:security-headers)
 
-**Given** no `--auth`
-**When** `ovdb serve --addr 0.0.0.0:6832` runs
-**Then** it exits `1` explaining that non-loopback addresses require `--auth`
+**Given** a page on another origin that embeds `http://ovdb.localhost:6832/` in an iframe
+**When** Chromium loads it
+**Then** the frame does not render, and responses carry the CSP, `X-Frame-Options`, `nosniff` and `Referrer-Policy` headers
 
-### AC: browser-sees-no-secrets (verifies REQ:no-secrets-in-browser-responses)
+### AC: dsn-never-leaks (verifies REQ:redacted-errors)
 
-**Given** a connected PostgreSQL database configured with `dsn_env: OVDB_POSTGRES_DSN` set in the server environment
-**When** the web console loads database details
-**Then** the response contains the variable name and no DSN value
+**Given** a manifest for PostgreSQL whose connection string `postgres://u:s3cret@nohost/db` is in the server environment
+**When** the mount fails and status, `--json`, the local API and `server.log` are inspected
+**Then** neither `s3cret` nor the full connection string appears anywhere
+
+### AC: runtime-files-private-and-local (verifies REQ:owner-only-state)
+
+**Given** a fresh setup on each platform
+**When** `ovdb server start` runs
+**Then** runtime files are under the user cache directory (LocalAppData on Windows), and `ValidateOwnerOnly` passes for config and runtime directories
 
 ### AC: not-built-fallback (verifies REQ:embedded-assets)
 
-**Given** a binary built with `go install` without web assets
-**When** a browser opens `http://ovdb.localhost:6832/`
-**Then** it shows the not-built page, while `ovdb demo install --yes` and `GET /v1/status` work
+**Given** a binary built with `go install` without assets
+**When** a browser opens a login link and `ovdb demo open` runs
+**Then** the page names Homebrew and release downloads, `demo open` reports the missing console, and CLI data commands work
 
-### AC: spa-fallback-and-routes (verifies REQ:route-layout)
+### AC: routes (verifies REQ:route-layout)
 
-**Given** a release binary
-**When** the browser requests `/settings`, `/apps/todo/`, `/apps/todo/lists/to-buy`, `/v1/status` and a hashed asset
-**Then** the first returns the console `index.html`, the next two the TODO app `index.html`, `/v1/status` the existing JSON, and the asset has a long-lived cache header
-
-### AC: state-is-owner-only (verifies REQ:owner-only-state)
-
-**Given** a fresh OVDB home on each platform
-**When** `ovdb server start` and `ovdb use --global todo` run
-**Then** `daemonlifecycle` validation of OVDB home, `config.yaml` and `server.json` passes
-
-### AC: stop-from-web-confirms (verifies REQ:stop-from-web)
-
-**Given** the web console open
-**When** the person chooses Stop and confirms
-**Then** the server exits and the page shows the restart command; choosing Cancel leaves it running
+**Given** a release binary with a session
+**When** the browser requests `/settings`, `/apps/todo/`, `/v1/status` and a hashed asset
+**Then** it gets the console `index.html`, the TODO app `index.html`, JSON, and a cacheable asset
 
 ## Open Questions
 
-- Shared multi-user machines: another OS account can reach a loopback port while local
-  authentication is off. Options: (a) accept and document for MVP (current decision);
-  (b) owner token file for CLI plus a one-time link from `ovdb open` that sets an
-  `HttpOnly`, `SameSite=Strict` cookie, with the bare address showing "Open this page
-  with `ovdb open`"; (c) detect multi-user hosts and switch to (b). Recommendation: (a)
-  now, (b) before a stable release. Needs security review.
-- Should the background server start at login (launchd, systemd user unit, Windows
-  startup) as an opt-in setting?
-- Log retention size and whether `ovdb server logs` is worth a command.
+- Should the background server start at login as an opt-in setting (deferred from MVP)?
+- Log size limit and rotation.
 
 ---
 *This document follows the https://specscore.md/feature-specification*

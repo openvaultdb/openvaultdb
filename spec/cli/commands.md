@@ -31,19 +31,19 @@ Propose the MVP command surface without committing to exact flags.
 | `audit` | `tail`, `show`, `export`, `verify` |
 | `cloud` | `login`, `status`, `logout` |
 
-Local onboarding and configuration commands of the `ovdb` binary (Draft, 2026-09-17; hidden
-behind `OVDB_PREVIEW=1` until approved). These operate on a person's own local OVDB server
-and database registry; the capability rules above apply to data they reach through a
-server with authentication enabled.
+Local onboarding and configuration commands of the `ovdb` binary (Draft, 2026-09-17; hidden,
+and changed defaults of existing commands gated, behind `OVDB_PREVIEW=1` until approved).
+They call a person's own authenticated local OVDB server; output, errors and exit codes follow
+the machine contracts in [configuration parity](../features/configuration-parity/README.md).
 
 | Group | Examples | Specification |
 |---|---|---|
 | (root) | `ovdb`, `status`, `open` | [first-run onboarding](../features/first-run-onboarding/README.md) |
-| `server`, `config` | `start`, `stop`, `status`, `open`; `get`, `set server.port` | [local server and web console](../features/local-server-and-web-console/README.md) |
+| `server`, `config` | `start`, `stop`, `restart`, `status`; `open` (root); `get`, `set server.port` | [local server and web console](../features/local-server-and-web-console/README.md) |
 | `engines`, `databases` | `engines --filter`; `create`, `connect`, `remove` | [database setup](../features/database-setup-and-providers/README.md) |
 | context and data | `use`, `cd`, `pwd`, `list`, `get`, `set`, `add`, `delete` | [database context and navigation](../features/database-context-navigation/README.md) |
 | `demo` | `install`, `open`, `status` | [TODO demo](../features/todo-demo/README.md) |
-| `skills` | `list`, `install`, `uninstall` | [AI agent skills](../features/ai-agent-skills/README.md) |
+| `skills` | `list`, `install` | [AI agent skills](../features/ai-agent-skills/README.md) |
 | `explore` | `datatug-cli`, `datatug-app` | [explore data hand-off](../features/explore-data-handoff/README.md) |
 | `telemetry` | `status`, `enable`, `disable` | [telemetry consent](../features/telemetry-consent/README.md) |
 

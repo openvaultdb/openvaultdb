@@ -59,16 +59,18 @@ Demo commands MUST be `ovdb demo install [--yes] [--id <id>]`, `ovdb demo open
 
 #### REQ: todo-app-same-origin
 
-`ovdb demo open` MUST start the server if needed and open
-`http://ovdb.localhost:<port>/apps/todo/`. The app MUST call the data API on the same
-origin with no token, CORS or connect flow, and MUST show a clear message with the fix if
-the `todo` database is not installed.
+`ovdb demo open` MUST start the server if needed and open a one-time login link that lands
+on `http://ovdb.localhost:<port>/apps/todo/`. The app MUST call the data API on the same
+origin using the console session (no separate token, CORS or connect flow), MUST find the
+demo database id from `GET /api/local/v1/demo`, and MUST show a clear message with the fix if
+the demo is not installed.
 
 #### REQ: todo-app-behaviour
 
 The app MUST show both lists with their items, let the person add an item, mark it done
 or not done, and delete it, and MUST reflect changes made by other clients (CLI, agents)
-within 3 seconds while visible and immediately when the tab regains focus. It MUST show
+within 3 seconds while visible and immediately when the tab regains focus. It MUST render
+item text as text only (never as HTML). It MUST show
 a short line "Stored in ~/ovdb/demos/todo on this computer" and a link back to the web
 console. It MUST meet the web accessibility basics from
 [first-run onboarding](../first-run-onboarding/README.md).
@@ -80,7 +82,8 @@ console. It MUST meet the web accessibility basics from
 The Result after installing MUST offer, in order: **Open TODO app**, **Install TODO AI
 skill**, **Explore data**, **Done**, each with its command. Installing the skill MUST go
 through the explicit consent step in [AI agent skills](../ai-agent-skills/README.md);
-**Explore data** MUST open the explore menu with `todo` selected.
+**Explore data** MUST open the explore menu with the demo database selected and say that
+DataTug shows the two lists but not their items yet.
 
 Example copy:
 
@@ -136,13 +139,13 @@ server.
 
 **Given** a non-interactive environment
 **When** `ovdb demo install` runs without `--yes`
-**Then** it exits `2` naming `--yes` and writes nothing
+**Then** it exits `1` with `confirmation_required` naming `--yes` and writes nothing
 
 ### AC: open-starts-server-and-app (verifies REQ:todo-app-same-origin)
 
 **Given** the demo installed and no server running
-**When** `ovdb demo open --print-url` runs and a browser loads the printed address
-**Then** the server starts, the address is `http://ovdb.localhost:6832/apps/todo/`, and the app shows both lists without any login or token
+**When** `ovdb demo open --print-url` runs and a browser loads the printed link
+**Then** the server starts, the browser lands on `http://ovdb.localhost:6832/apps/todo/` with a session, and the app shows both lists without asking for anything
 
 ### AC: app-edits-items (verifies REQ:todo-app-behaviour)
 
@@ -155,6 +158,12 @@ server.
 **Given** the TODO app visible in a browser
 **When** `ovdb add /lists/to-watch/items '{"title":"Arrival","done":false}' --db todo` runs in a terminal
 **Then** Arrival appears in To watch within 3 seconds without reloading the page
+
+### AC: item-text-is-not-html (verifies REQ:todo-app-behaviour)
+
+**Given** the TODO app open
+**When** `ovdb add /lists/to-buy/items '{"title":"<img src=x onerror=alert(1)>","done":false}' --db todo` runs
+**Then** the item shows that literal text and no script runs
 
 ### AC: next-actions-after-install (verifies REQ:demo-next-actions)
 
