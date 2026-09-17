@@ -13,8 +13,10 @@ status: Approved
 
 ## Summary
 
-Anonymous onboarding usage statistics, sent to PostHog (EU) only after a person turns them
-on. The same state, explanation and control exist in the CLI, TUI and web console. AI agents
+Onboarding usage statistics carrying a random install id — never a name, database, path or
+anything typed — sent to PostHog (EU) only after a person turns them on; the connection's own
+IP address still reaches PostHog with every send (`REQ:ip-handling-and-release-precondition`).
+The same state, explanation and control exist in the CLI, TUI and web console. AI agents
 never turn it on by themselves.
 
 Decision: [0009 opt-in product telemetry](../../decisions/0009-opt-in-product-telemetry.md).
@@ -61,7 +63,13 @@ collected and never-collected lists from `copy/en.json`, and change the same sto
 `ovdb telemetry enable` in a terminal MUST show what is collected and ask for confirmation.
 Without a terminal it MUST require `--confirmed-by-user`; otherwise it MUST print what is
 collected and exit `1` with `confirmation_required`. No other command, flag, environment
-variable or default MUST enable telemetry. `disable` MUST always work without confirmation.
+variable or default MUST enable telemetry. `disable` MUST always work without confirmation, even
+when `config.yaml` cannot be parsed (it MUST rewrite only the `telemetry` section, or refuse
+naming the file to fix, never leave the person unable to opt out). A terminal alone is not
+evidence of a person: an agent harness can attach a pseudo-terminal to relay a command, so
+whenever the sending process's own [channel detection](#REQ:channel-detection) resolves to
+`agent`, `enable` MUST take the non-terminal path and require `--confirmed-by-user` even though
+a terminal is attached.
 
 #### REQ: consent-prompt-placement
 
@@ -72,16 +80,20 @@ MUST never prompt.
 #### REQ: pre-consent-buffer
 
 While `not_asked`, the TUI process and the web page MAY keep up to 100 onboarding events in
-memory. On **Turn on** they MUST be sent (install id assigned at that moment); on **No
-thanks**, dismissal, TUI exit or page close they MUST be discarded. The buffer MUST never be
-written to disk; the CLI and the server MUST NOT buffer.
+memory. They MUST be released only by **that same session's own** Turn on (install id assigned
+at that moment) — never merely because telemetry became `enabled` on disk through another
+process while the session was open, for example an agent relaying the person's answer to
+`ovdb telemetry enable --confirmed-by-user` in another terminal. On **No thanks**, dismissal, or
+exit or page close without that session's own Turn on, they MUST be discarded. The buffer MUST
+never be written to disk; the CLI and the server MUST NOT buffer.
 
 ### Data and sending
 
 #### REQ: closed-event-set
 
 Only these events MAY be sent, with only the listed properties plus `channel` (`cli`, `tui`,
-`web`, `agent`), `ovdb_version` (semver or `dev`), `os`, `arch`, `install_id`:
+`web`, `agent`), `ovdb_version` (semver or `dev`), `os`, `arch`, `install_id`, and the fixed
+`$ip` placeholder (`REQ:ip-handling-and-release-precondition`):
 
 | Event | Additional properties |
 |---|---|
@@ -109,6 +121,21 @@ Events MUST NOT contain database ids or names, paths, project roots, repository 
 host names, connection details, record data, queries, schemas, tokens, error messages, free
 text, user names or e-mail addresses.
 
+#### REQ: ip-handling-and-release-precondition
+
+Disabling GeoIP enrichment does not stop the sending process's IP address from reaching
+PostHog: PostHog records the connection address regardless. Every event MUST carry a fixed
+`"$ip": "0.0.0.0"` property (PostHog's own documented mechanism for this — its "Hiding customer
+IP address" tutorial), but PostHog still stores the real address unless the EU project's own
+**"Discard client IP data"** setting is on. Copy MUST NOT call the statistics "anonymous" or
+claim addresses are never collected without naming this: the person is told their IP address
+reaches PostHog with each send, and that OVDB puts a placeholder in the event in its place. This
+project setting, and forwarding a `POSTHOG_KEY` release secret into the `ovdb` release build
+(currently absent from `.github/workflows/release.yml`; needs a `strongo/cicd` change shared
+with other products, for example `specscore-cli`'s `POSTHOG_WRITE_KEY`), are both release
+preconditions: no build MUST ship an active key before the PostHog project setting is confirmed
+on ([decision 0009](../../decisions/0009-opt-in-product-telemetry.md) Observed Consequences).
+
 #### REQ: channel-detection
 
 `channel` MUST be derived by the sending process: `web` for web console actions, `tui` for TUI
@@ -128,15 +155,18 @@ Usage statistics
 
 Status: Off (you haven't decided yet)
 
-Help improve OpenVaultDB by sending anonymous usage statistics to PostHog (EU).
+Help improve OpenVaultDB by sending usage statistics to PostHog (EU). They carry a random
+install id, never your name, data or paths.
 
 What's collected
   • Which setup steps you use and whether they succeed
   • Storage type chosen (for example inGitDB), error types, timings
   • OVDB version, operating system, a random install id
+  • Your IP address reaches PostHog with each send; OVDB puts a placeholder in its place in
+    the event, and PostHog stores it only if the project keeps client IP data
 
 Never collected
-  • Your data, database names, paths or addresses
+  • Your data, database names, file paths, or database and server addresses
   • Queries, schemas, tokens or connection details
   • Anything you type
 
@@ -182,6 +212,12 @@ Change it any time: ovdb telemetry enable / ovdb telemetry disable
 **When** `ovdb telemetry enable` runs, then `ovdb telemetry enable --confirmed-by-user` runs
 **Then** the first prints what is collected and exits `1` with `confirmation_required` leaving `not_asked`; the second sets `enabled` with deciding channel recorded
 
+### AC: agent-with-terminal-still-needs-confirmed-by-user (verifies REQ:enable-requires-a-person)
+
+**Given** a detected agent channel (for example `CLAUDECODE=1`) with a real pseudo-terminal attached, answering "y"
+**When** `ovdb telemetry enable` runs, then `ovdb telemetry enable --confirmed-by-user` runs
+**Then** the first leaves `not_asked` with `confirmation_required` despite the terminal; the second sets `enabled` with channel `agent`
+
 ### AC: prompt-once-equal-choices (verifies REQ:consent-prompt-placement)
 
 **Given** the TUI and web console with `not_asked`
@@ -194,11 +230,23 @@ Change it any time: ovdb telemetry enable / ovdb telemetry disable
 **When** one TUI session installs the demo and chooses Turn on, and another installs the demo and chooses No thanks
 **Then** the first sends `onboarding_started`, `onboarding_option_selected`, `demo_installed`, `telemetry_consent_changed`; the second sends nothing and writes no telemetry file
 
+### AC: buffer-not-released-by-another-process (verifies REQ:pre-consent-buffer)
+
+**Given** a TUI session that buffered `demo_installed` while `not_asked`, and a recording endpoint
+**When** a separate agent process runs `ovdb telemetry enable --confirmed-by-user` while the TUI session stays open, and the TUI session then exits without its own Turn on
+**Then** the recorder receives the agent's own `telemetry_consent_changed` but nothing the TUI session buffered
+
 ### AC: allowlist-enforced (verifies REQ:closed-event-set, REQ:never-collected)
 
 **Given** event construction fed database id `secret-db`, path `/home/ann/private`, a connection string and an error message
 **When** the marshal test runs for every event
 **Then** none of those strings appear and no key outside the allowlist exists
+
+### AC: ip-placeholder-and-copy (verifies REQ:ip-handling-and-release-precondition)
+
+**Given** a recording endpoint and telemetry enabled
+**When** any event is sent, and telemetry status/settings copy is read
+**Then** the event's `$ip` property is the fixed placeholder, never the sender's real address, and no shown copy calls the statistics "anonymous" or claims addresses are never collected without naming the IP address behaviour
 
 ### AC: channel-derived (verifies REQ:channel-detection)
 

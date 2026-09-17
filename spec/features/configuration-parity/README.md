@@ -156,7 +156,7 @@ authenticated as in the credential table of
 | `GET/PUT /api/local/v1/context` | 13, 14 (project scope with instance secret only) |
 | `GET /api/local/v1/demo`, `POST /api/local/v1/demo/install` | 18, 19 |
 | `GET /api/local/v1/skills`, `POST /api/local/v1/skills/install` | 20, 21 |
-| `GET /api/local/v1/explore/datatug?db=` | 22 |
+| `POST /api/local/v1/explore/datatug?db=&collection=` | 22 (POST, not GET: it writes the descriptor, and only when the person actually chooses DataTug CLI — [explore-data-handoff](../explore-data-handoff/README.md#REQ:prepare-datatug-cli-connection)) |
 | `GET/PUT /api/local/v1/telemetry`, `POST /api/local/v1/telemetry/events` | 23, 24 |
 | `GET/PUT /api/local/v1/config` | 7 (`PUT` response includes `changed`) |
 | existing `/v1/databases/{db}/…`, `/v1/tokens` | 15, 17, 25 |

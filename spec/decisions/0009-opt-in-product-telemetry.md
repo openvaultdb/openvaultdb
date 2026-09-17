@@ -94,7 +94,29 @@ Stores behavioural data about someone who has not agreed. Declined.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-09-17 (increment 9 phase A adversarial review, `ovdb` PR #22, open, not yet landed):
+  (a) disabling GeoIP enrichment does not stop the sending process's IP address from reaching
+  PostHog — PostHog records it from the TCP connection regardless. `ovdb` sends a fixed
+  `"$ip": "0.0.0.0"` placeholder property on every event (PostHog's own documented mechanism,
+  its "Hiding customer IP address" tutorial), but PostHog still stores the real connection
+  address unless the EU project's own **"Discard client IP data"** setting is turned on. That
+  project setting MUST be confirmed on, a founder/ops action against the PostHog project itself,
+  before any `POSTHOG_KEY` ships in a release build — not merely before telemetry is turned on.
+  Until it is confirmed, copy MUST NOT call the statistics "anonymous" or say no "addresses" are
+  collected without that qualification; see [telemetry consent](../features/telemetry-consent/README.md).
+  (b) `.github/workflows/release.yml` does not forward a `POSTHOG_KEY` secret into the
+  goreleaser build environment (the same gap `specscore-cli` has for `POSTHOG_WRITE_KEY`), so a
+  release build ships key-less (`unavailable in this build`) until a shared `strongo/cicd`
+  change forwards release-time secrets to product release workflows; this is a release
+  precondition alongside the PostHog project setting, not a code change in `ovdb` itself.
+  (c) an agent harness can attach a pseudo-terminal to `ovdb telemetry enable`, so `isTerminal`
+  alone cannot tell a person from an agent relaying on their behalf; the CLI now takes the
+  non-terminal `--confirmed-by-user` path whenever the sending process detects an agent channel
+  (`DetectChannel(...) == agent`), even with a terminal attached. (d) a TUI session that
+  buffered pre-consent events must not send them merely because another process (for example an
+  agent) enabled telemetry while it was open; only that session's own Turn on releases what it
+  buffered, and exit always discards the rest — sharper than decision point 5's original
+  wording, which read as "enabled in that session" without saying whose action enables it.
 
 ## Affected Features
 
