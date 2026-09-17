@@ -63,9 +63,7 @@ name and description, keeping returned order.
 Choosing Firestore, MySQL or PostgreSQL in any interface MUST show "Set this up with a manifest
 file" with the steps `ovdb init --engine <id>` (then edit the file), plus a documentation link,
 and MUST NOT collect connection details. The next step is **Connect with a manifest file**
-(`ovdb databases connect --manifest`) once guided connect ships (increment 5); until then it
-reads "Put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`",
-matching the placeholder-and-reload path SQLite already uses.
+(`ovdb databases connect --manifest`).
 
 ### Create a database
 
@@ -110,7 +108,25 @@ Connecting MUST register an existing readable inGitDB folder or a valid SQLite f
 an absolute path, validate it by mounting once, and MUST NOT write into the user's storage
 (no inferred-schema catalogue and no git configuration there; depends on the
 `openvaultdb-go` changes listed in [configuration parity](../configuration-parity/README.md)).
-Failures MUST use `storage_unavailable` with a redacted reason.
+Failures MUST use `storage_unavailable` with a redacted reason, except that a folder with
+engine inGitDB that has no `.ingitdb/` directory (for example a code project's own Git
+repository, or an empty folder) MUST be refused with `invalid_argument`, pointing at Create or
+at choosing the folder that contains `.ingitdb/`, so a first write can never land inside someone's
+own project or an unrelated empty folder. Connecting a SQLite file MUST describe, in the
+generated manifest, only the tables that have an `id` column; when none qualify the result is
+`schema_required` with next steps to edit the manifest or read the docs (matching Create's
+SQLite next step). The `id` column is matched ignoring case (`ID` qualifies), as SQLite
+column names are. Known limitation, not fixed by this feature
+([openvaultdb-go#27](https://github.com/openvaultdb/openvaultdb-go/issues/27)): because
+`openvaultdb-go` strict mode does not filter storage at the file level, a connected SQLite file's undeclared tables and columns remain readable to owner
+credentials even though the manifest does not describe them — the Result MUST say so. Known
+limitation, also not fixed by this feature: connecting an inGitDB folder adds
+`.git/dalgo2ingitdb/transaction.lock` (a `dalgo2ingitdb` library artifact created by the mount
+itself, before any read or write through OVDB); the working tree, the Git index, `HEAD` and
+`.git/config` stay unchanged. Overlap with a location `REQ:create-refuses-unsafe-locations`
+would refuse MUST be re-checked once more, still under the registry lock, immediately before a
+connect registers; two connects racing the same storage under different ids MUST NOT both
+succeed.
 
 #### REQ: connect-with-manifest
 
@@ -120,7 +136,15 @@ and web with a path field) MUST validate the manifest with the manifest parser, 
 manifest's folder), mount it once and keep it only if the mount succeeds. When a variable named
 by the manifest (for example `dsn_env`) is missing in the server's environment, it MUST fail
 with `storage_unavailable`, a `reason` naming the variable (never a value) and `next`
-"Set <NAME> and run `ovdb server restart` from that shell". Under `openvaultdb-go` v0.5.1+, a
+"Set <NAME> and run `ovdb server restart` from that shell". A manifest with `acl.enabled: true`
+and no `acl_store` MUST be refused with `unsupported`, because its policy files are read
+relative to the manifest's own folder, which the copy under `databases/` does not have; `next`
+MUST suggest keeping policies in an `acl_store` folder instead. Location checks (for example
+`create-refuses-unsafe-locations`) MUST read `storage.path`/`acl_store.path` from the decoded,
+typed manifest (YAML anchors and merge keys already resolved), not from the raw YAML text, and
+the canonical copy written to `databases/<id>.yaml` MUST re-derive its absolute paths the same
+way; if the location the checks saw and the location the copy mounts from ever disagree, connect
+MUST refuse with `invalid_argument` rather than mount. Under `openvaultdb-go` v0.5.1+, a
 manifest's access-control policies (`acl.enabled`) bind the owner too: the instance secret and
 a forwarded console-session cookie are subject to those policies exactly like any other
 principal, not only scoped tokens (see [local server and web console](../local-server-and-web-console/README.md#REQ:credentials)).
@@ -215,9 +239,9 @@ What next?
 
 ### AC: postgres-is-manifest-only (verifies REQ:manifest-only-engines-are-honest)
 
-**Given** the Create flow in TUI and web, before increment 5 ships guided connect
+**Given** the Create flow in TUI and web
 **When** the person picks PostgreSQL
-**Then** both show "Set this up with a manifest file" with `ovdb init --engine postgres`, a docs link, no field for connection details, and the next step "Put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`"
+**Then** both show "Set this up with a manifest file" with `ovdb init --engine postgres`, a docs link, no field for connection details, and the next step **Connect with a manifest file** (`ovdb databases connect --manifest`)
 
 ### AC: create-ingitdb-default (verifies REQ:create-new-database)
 
@@ -253,7 +277,19 @@ What next?
 
 **Given** an existing inGitDB Git repository with records and only a global git identity, and a text file named `x.sqlite`
 **When** each is connected
-**Then** the folder registers with no file added or changed (including `.git/config`), and the text file is rejected with `storage_unavailable`
+**Then** the folder registers with the working tree, index, `HEAD` and `.git/config` unchanged (only `.git/dalgo2ingitdb/transaction.lock` may appear), and the text file is rejected with `storage_unavailable`
+
+### AC: connect-refuses-non-ingitdb-folder (verifies REQ:connect-existing-storage)
+
+**Given** a Git repository with source files and no `.ingitdb/` folder, and separately an empty folder
+**When** each is connected with `--engine ingitdb`
+**Then** both fail with `invalid_argument` pointing at Create or the `.ingitdb` folder, and neither folder gains any file
+
+### AC: connect-sqlite-describes-id-tables-only (verifies REQ:connect-existing-storage)
+
+**Given** a SQLite file with a table `users(id, email)` and a table `noid(k, v)` with no `id` column, and separately a file with only tables lacking an `id` column
+**When** each is connected
+**Then** the first's manifest declares `users` and the Result states the whole file remains readable to owner credentials; the second fails with `schema_required` and next steps to edit the manifest or read the docs
 
 ### AC: connect-postgres-manifest (verifies REQ:connect-with-manifest, REQ:manifest-only-engines-are-honest)
 

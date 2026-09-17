@@ -47,7 +47,12 @@ permissions of a directory it did not create (for example an existing `OVDB_HOME
 configuration directory created earlier by `ovdb cloud`). If an existing OVDB home or runtime
 directory is accessible to other users, OVDB MUST print a warning with the fix (for example
 `chmod 700 <dir>`); if it is the runtime directory, OVDB MUST also refuse to write the instance
-secret there, failing server start with `forbidden`.
+secret there, failing server start with `forbidden`. `<OVDB_HOME>/auth.json` specifically MUST
+be reprotected with `ProtectOwnerOnly` at server start and again immediately after every write
+`openvaultdb-go` makes to it (token create, revoke, and code exchange at `/token`), rather than
+relying solely on the home directory's ACL inheritance on Windows; a brief window where the
+replacement file carries the inherited ACL, between the write and the reprotect call, is
+accepted (resolves the Open Question below).
 
 ### Server modes
 
@@ -210,16 +215,33 @@ exception E7. The instance secret keeps full access to both.
 
 With `OVDB_PREVIEW=1` and no explicit `--addr` or `--owner-token`, `ovdb token create|list|revoke`
 MUST call the running local server (auto-starting it) with the instance secret. With those
-flags they MUST behave as today.
+flags they MUST behave as today; an `OVDB_OWNER_TOKEN` environment variable alone does not
+select the legacy path, matching [database setup and providers](../database-setup-and-providers/README.md#REQ:legacy-create-compatible).
 
 #### REQ: connect-flow-in-local-mode
 
 The existing connect flow (`/authorize`, `/token`) MUST be served in local mode. Approving on
 `/authorize` MUST require a console session; without one the page MUST show the landing copy
 with a sign-in hint and approve nothing. Its form posts are exempt from the JSON-body rule
-but not from cross-origin protection. Until increment 6 wires that session check, both routes
-MUST instead return `404` in the existing `/v1` error shape with code `not_supported` — not the
-local API error envelope from [configuration parity](../configuration-parity/README.md#REQ:error-envelope).
+but not from cross-origin protection.
+
+`/authorize` MUST render OVDB's own consent page, not `openvaultdb-go`'s library page, because
+the library page's inline stylesheet is blocked by the CSP (`REQ:security-headers`). Before the
+consent page renders, and again before an approve or a deny redirects the browser, `redirect_uri`
+MUST be validated: scheme `https`, or `http` to a loopback host (`127.0.0.1`, `[::1]`,
+`localhost` or a `*.localhost` name), with no userinfo and no fragment; anything else MUST fail
+with a `400` problem page before any redirect happens. The consent page MUST show, for each
+requested capability, a plain-language label of what it allows, calling out `policies:admin`
+and `access:*` as powerful; a database-scoped request (a `db` value present) carrying the
+server-level `databases:create` capability MUST be refused before consent is shown, the same
+way `ovdb token create --db … --scope create-db` already is. An access token issued by `/token` in
+exchange for a code MUST expire one hour after issue (`openvaultdb-go`'s `auth.TokenTTL`); the client that receives it is
+expected to store it and treat that lifetime as fixed, not to assume it never expires.
+
+Before increment 6 wired the session check, both routes instead returned `404` in the existing
+`/v1` error shape with code `not_supported` — not the local API error envelope from
+[configuration parity](../configuration-parity/README.md#REQ:error-envelope); that interim
+contract no longer applies once the session check ships.
 
 #### REQ: login-links
 
@@ -276,16 +298,21 @@ In local mode every request whose `Host` (case-insensitive, no trailing dot) is 
 In local mode, non-safe requests authenticated by the session cookie (and `POST /login`) MUST
 pass Go `http.CrossOriginProtection`. Bearer-authenticated requests are not CSRF-able and MUST
 be exempt. Browser apps on other origins MUST use bearer tokens and origins listed in
-`server.cors`, which get CORS headers on `/v1/…` and `/token` only. GET handlers MUST have no
-side effects; local API request bodies MUST be `application/json`.
+`server.cors`, which get CORS headers on `/v1/…` (bearer requests) and on credential-less code
+exchanges at `/token` only. A `/token` request that instead carries the session cookie is not a
+CORS request; it is subject to cross-origin protection like any other cookie-authenticated
+write, and the credentials table's "allowed" for a console session at that row assumes a
+same-origin or same-site caller. GET handlers MUST have no side effects; local API request
+bodies MUST be `application/json`.
 
 #### REQ: security-headers
 
 Every local-mode response, including `401`, `403` and the landing page, MUST send
 `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. HTML responses MUST also
 send `Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`
-and `X-Frame-Options: DENY`. Every `/api/local/v1/…` response and every authenticated HTML
-response MUST also send `Cache-Control: no-store`. Console and apps MUST render record values
+and `X-Frame-Options: DENY`. Every `/api/local/v1/…` response, every authenticated HTML
+response and every `/token` response (it carries a bearer secret) MUST also send
+`Cache-Control: no-store`. Console and apps MUST render record values
 as text only (no `v-html`, enforced by lint). Only first-party embedded apps MAY be served
 under `/apps/`.
 
@@ -312,7 +339,8 @@ Local mode MUST route `/.well-known/openvaultdb`, `/v1/…`, `/authorize`, `/tok
 `/logout`, `/api/local/v1/…`, `/apps/todo/…` and `/…` (console) with client-side route
 fallback.
 Middleware order MUST be security headers → Host allowlist → authentication →
-cross-origin protection (cookie requests) → CORS (`server.cors`, bearer requests) → routes.
+cross-origin protection (cookie requests) → CORS (`server.cors`, bearer requests and
+credential-less code exchanges at `/token`) → routes.
 
 ## Dependencies
 
@@ -409,7 +437,25 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 
 **Given** a local-mode server and a valid connect request to `/authorize`
 **When** a browser without a session opens it, then a signed-in browser approves it and the app exchanges the code at `/token`
-**Then** the first shows the landing copy and approves nothing; the second yields a scoped token that works on `/v1/…`
+**Then** the first shows the landing copy and approves nothing; the second yields a scoped token that works on `/v1/…` and expires one hour after issue
+
+### AC: connect-redirect-uri-checked (verifies REQ:connect-flow-in-local-mode)
+
+**Given** a signed-in console session
+**When** `/authorize` is requested with `redirect_uri` set to `http://evil.example/cb`, to `https://user:pw@localhost:5173/`, and to `https://localhost:5173/cb#frag`
+**Then** all three fail with a `400` problem page before the consent page renders, and none is offered as a redirect target on approve or deny
+
+### AC: consent-explains-capabilities (verifies REQ:connect-flow-in-local-mode)
+
+**Given** a signed-in console session
+**When** `/authorize` is requested with `capabilities=records:read,policies:admin` and, separately, with a `db` value and `capabilities=databases:create`
+**Then** the first's consent page labels `policies:admin` as powerful in plain language; the second is refused before consent is shown, the same as `ovdb token create --db … --scope create-db`
+
+### AC: token-response-not-cached (verifies REQ:security-headers)
+
+**Given** a valid code exchange at `/token`
+**When** the response headers are inspected
+**Then** they include `Cache-Control: no-store`
 
 ### AC: login-link-both-hosts (verifies REQ:login-links, REQ:login-exchange-on-post)
 
@@ -465,6 +511,12 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 **When** `ovdb server start` runs
 **Then** runtime files are under the user cache directory (LocalAppData on Windows), and `ValidateOwnerOnly` passes for config and runtime directories
 
+### AC: auth-store-reprotected-on-every-write (verifies REQ:owner-only-state)
+
+**Given** a running server
+**When** `ovdb server start` runs, then a token is created, then one is revoked
+**Then** `ValidateOwnerOnly` passes for `auth.json` after start and after each write
+
 ### AC: existing-dirs-not-chmodded (verifies REQ:owner-only-state)
 
 **Given** on Unix an existing `OVDB_HOME` and an existing runtime directory, both with mode `0755`
@@ -487,9 +539,12 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 
 - Should the background server start at login as an opt-in setting (deferred from MVP)?
 - Log size limit and rotation.
-- Windows: `<OVDB_HOME>/auth.json`'s owner-only protection relies on the home directory's ACL
-  inheritance rather than an explicit ACL on the file itself — is that sufficient? Check in the
-  tokens increment (6).
+
+Resolved: "Windows: `<OVDB_HOME>/auth.json`'s owner-only protection relies on the home
+directory's ACL inheritance rather than an explicit ACL on the file itself — is that
+sufficient? Check in the tokens increment (6)." — increment 6 added an explicit reprotect call
+on the file itself at start and after every write (`REQ:owner-only-state` above), so it no
+longer depends only on inheritance.
 
 ---
 *This document follows the https://specscore.md/feature-specification*

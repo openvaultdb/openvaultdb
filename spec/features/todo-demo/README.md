@@ -80,12 +80,20 @@ Not fixed by this feature, tracked separately:
 
 #### REQ: demo-install-idempotent
 
-`ovdb demo install` MUST register database `todo` at `<data home>/demos/todo/` and write the
-seed data. Running it again MUST NOT change existing data and MUST report
-`The TODO demo is already installed`. If `todo` is registered with a different location
-or engine, or the folder exists with other content, install MUST fail without changes and
-offer `--id <other>`. In non-interactive use it MUST require `--yes`; interactively it MUST
-show where data will be stored before writing.
+`ovdb demo install` MUST register database `todo` at `<data home>/demos/todo/`, record the
+install (id and location) in `<OVDB_HOME>/demos.json`, and write the seed data. A database
+counts as the TODO demo only because a `demo install` recorded it there, never because it
+happens to sit in a folder named `demos/<id>`: a user's own database at such a path (for
+example `work/demos/notes`) is left alone and installing the demo still installs it. Install
+requests MUST be serialized (the server holds one install at a time), so a request that
+arrives while another is seeding waits for it and reports its real outcome, never
+`already installed` before the seed data exists. Running it again MUST NOT change existing
+data and MUST report `The TODO demo is already installed`. If `todo` is registered with a
+different location or engine, install MUST fail without changes and offer `--id <other>`; if
+the target location is a folder a person removed with `ovdb databases remove` (data kept),
+install MUST reconnect and serve it instead of refusing it as non-empty; any other non-empty
+folder still fails without changes. In non-interactive use it MUST require `--yes`;
+interactively it MUST show where data will be stored before writing.
 
 #### REQ: demo-command-shape
 
@@ -174,6 +182,24 @@ server.
 **Given** a user database named `todo` at `~/ovdb/todo/`
 **When** `ovdb demo install --yes` runs
 **Then** it exits `1` with no changes and suggests `ovdb demo install --id todo-demo`
+
+### AC: user-database-in-demos-folder-not-adopted (verifies REQ:demo-install-idempotent)
+
+**Given** a user database registered at `<data home>/demos/notes/` (not installed by `demo install`)
+**When** `ovdb demo status` and `ovdb demo install --yes` run
+**Then** status reports the TODO demo as not installed, and install proceeds to install `todo` at `<data home>/demos/todo/` without touching `notes`
+
+### AC: concurrent-install-is-safe (verifies REQ:demo-install-idempotent)
+
+**Given** an empty OVDB home
+**When** several `POST /api/local/v1/demo/install` requests race
+**Then** exactly one seeds the data and every response, winner or loser, is only sent after the seed completes, so none reports success against empty lists
+
+### AC: reinstall-reconnects-removed-folder (verifies REQ:demo-install-idempotent)
+
+**Given** the demo installed, then removed with `ovdb databases remove todo --yes` (data kept)
+**When** `ovdb demo install --yes` runs again
+**Then** it reconnects the same folder and serves its existing data, rather than failing with `location_not_empty`
 
 ### AC: non-interactive-needs-yes (verifies REQ:demo-install-idempotent, REQ:demo-command-shape)
 

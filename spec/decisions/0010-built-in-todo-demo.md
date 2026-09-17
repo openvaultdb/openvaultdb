@@ -105,6 +105,18 @@ schema before the first item, and the data would not be human-readable files.
   [ingitdb-cli `cli/demo`](https://github.com/ingitdb/ingitdb-cli/blob/main/spec/features/cli/demo/README.md)).
   Points 1 to 6 are unchanged: OVDB's demo is still its own recorded `todo` database, and a
   folder made by the inGitDB CLI is an ordinary database to OVDB, not its demo.
+- 2026-09-17 (increment 4 review, PR #16): (a) "the demo" is the database that `demo install`
+  recorded in `<OVDB_HOME>/demos.json` (id and location), never inferred from a folder named
+  `demos/<id>`; install requests are serialized so a concurrent request only reports success
+  once the seed is real; reinstalling into a folder a `databases remove` left behind (data
+  kept) reconnects it instead of refusing it as non-empty. See [TODO demo](../features/todo-demo/README.md#REQ:demo-install-idempotent).
+  (b) Rationale point 3's example ("ask the agent to add bananas, see them appear") already
+  matches the shared seed, so following it verbatim adds nothing new; Journey D and its AC
+  ([configuration parity](../features/configuration-parity/README.md#REQ:journey-d-todo-demo))
+  now use items not in the seed (Tea, Arrival), matching the shipped test. (c) point 5's
+  `openvaultdb-todo-demo` README note has not landed yet; it must name the `ovdb` release that
+  ships `demo install`/`demo open` and hold back the connect-flow sentence until increment 6's
+  session-gated `/authorize`/`/token` are live, not merely "built into ovdb".
 
 ## Affected Features
 
