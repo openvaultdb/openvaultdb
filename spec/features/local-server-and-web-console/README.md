@@ -141,11 +141,15 @@ OVDB again, or run `ovdb open`."
 
 #### REQ: registry-serving
 
-The server MUST mount every manifest in `databases/`. A manifest that fails to mount MUST NOT
-stop others; its state MUST be "needs attention" with a redacted reason in `mounts.json` and
-status. Pure reads without a running server MUST report mount state as
-"unknown (server not running)". Databases created or connected through the local API MUST
-become available without a restart.
+The listener MUST start before any manifest in `databases/` is mounted; mounting MUST then run
+in the background, one goroutine per database, each bounded by a per-database deadline, so the
+server never blocks startup or request handling on one slow or hanging database. A manifest
+that fails to mount, or misses its deadline, MUST NOT stop others; its state MUST be "needs
+attention" with a redacted reason in `mounts.json` and status. A registered database whose
+storage is missing (the inGitDB folder or the SQLite file no longer exists) MUST also become
+"needs attention" with a reason saying so; the server MUST NOT recreate it. Pure reads without
+a running server MUST report mount state as "unknown (server not running)". Databases created
+or connected through the local API MUST become available without a restart.
 
 ### Port
 
@@ -385,9 +389,15 @@ cross-origin protection (cookie requests) → CORS (`server.cors`, bearer reques
 
 ### AC: tolerant-registry (verifies REQ:registry-serving, REQ:redacted-errors)
 
-**Given** `databases/` with a valid `todo.yaml` and a broken manifest
+**Given** `databases/` with a valid `todo.yaml`, a broken manifest, and a registered database whose SQLite file was deleted
 **When** the server starts, `ovdb status --json` runs, then the server stops and `ovdb databases --json` runs
-**Then** `todo` is served and the broken database is "needs attention" with a redacted reason; after stopping, both report "unknown (server not running)"
+**Then** `todo` is served, the broken database and the one with missing storage are both "needs attention" with a redacted reason and neither storage is recreated; after stopping, both report "unknown (server not running)"
+
+### AC: registry-mounts-dont-block-startup (verifies REQ:registry-serving)
+
+**Given** `databases/` with a valid `todo.yaml` and a manifest whose mount hangs past its per-database deadline
+**When** the server starts
+**Then** the listener answers `GET /api/local/v1/whoami` and serves `todo` before the hanging mount's deadline elapses, and afterwards the hanging database reports "needs attention" with a timeout reason
 
 ### AC: token-against-local-server (verifies REQ:tokens-against-local-server, REQ:credentials)
 

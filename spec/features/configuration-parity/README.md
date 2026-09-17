@@ -48,6 +48,7 @@ Agents use the CLI non-interactively with `--json`. "—" is a documented except
 | 10a | Connect with a manifest file (any engine) | `ovdb databases connect --manifest` | Connect with a manifest file | Connect with a manifest file | same, after asking |
 | 11 | List databases | `ovdb databases` | Databases | Databases | `--json` |
 | 12 | Remove database registration | `ovdb databases remove` | Databases | Databases | same, after asking |
+| 12a | Reload databases | `ovdb databases reload <id>\|--all` | Databases (Reload) | Databases (Reload) | same as CLI |
 | 13 | Choose current database | `ovdb use`, `ovdb use --global` | Use in this project | Use as default (E3) | `--db` preferred |
 | 14 | Show current database | `ovdb use`, `ovdb pwd` | Home status line | Home status line | `ovdb pwd --json` |
 | 15 | Browse data (read-only) | `ovdb list`, `ovdb get` | Browse data | Browse data | same as CLI |
@@ -150,6 +151,7 @@ authenticated as in the credential table of
 | `GET /api/local/v1/engines` | 8 (sorted and pinned server-side) |
 | `GET/POST /api/local/v1/databases`, `DELETE /api/local/v1/databases/{id}` | 9, 11, 12 |
 | `POST /api/local/v1/databases/connect` | 10, 10a |
+| `POST /api/local/v1/databases/{id}/reload`, `POST /api/local/v1/databases/reload-all` | 12a |
 | `GET/PUT /api/local/v1/context` | 13, 14 (project scope with instance secret only) |
 | `GET /api/local/v1/demo`, `POST /api/local/v1/demo/install` | 18, 19 |
 | `GET /api/local/v1/skills`, `POST /api/local/v1/skills/install` | 20, 21 |

@@ -61,30 +61,41 @@ name and description, keeping returned order.
 #### REQ: manifest-only-engines-are-honest
 
 Choosing Firestore, MySQL or PostgreSQL in any interface MUST show "Set this up with a manifest
-file" with the steps `ovdb init --engine <id>` (then edit the file), and **Connect with a
-manifest file**, plus a documentation link, and MUST NOT collect connection details.
+file" with the steps `ovdb init --engine <id>` (then edit the file), plus a documentation link,
+and MUST NOT collect connection details. The next step is **Connect with a manifest file**
+(`ovdb databases connect --manifest`) once guided connect ships (increment 5); until then it
+reads "Put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`",
+matching the placeholder-and-reload path SQLite already uses.
 
 ### Create a database
 
 #### REQ: create-new-database
 
-Creating MUST take an id (`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`, unique), inGitDB or SQLite, and an
-absolute, normalized location. Defaults: inGitDB schemaless at `<data home>/<id>/`; SQLite at
-`<data home>/<id>.sqlite`, where data home is `OVDB_DATA_HOME` or `~/ovdb`. The server MUST
-write `databases/<id>.yaml`, create the storage and mount it without restart. The client MUST
-resolve the data home and send the absolute default location.
+Creating MUST take an id (`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`, unique ignoring case), inGitDB or
+SQLite, and an absolute, normalized location. Defaults: inGitDB schemaless at
+`<data home>/<id>/`; SQLite at `<data home>/<id>.sqlite`, where data home is `OVDB_DATA_HOME`
+or `~/ovdb`. The server MUST write `databases/<id>.yaml`, create the storage and mount it
+without restart. The client MUST resolve the data home and send the absolute default location.
 
 #### REQ: create-never-overwrites
 
-Creation MUST fail without changes with `already_exists` for a registered id, or
-`location_not_empty` when the inGitDB folder exists and is not empty or the SQLite file
-exists; `next` MUST offer another name, another location, or Connect.
+Creation MUST fail without changes with `already_exists` (id comparison case-insensitive) for
+a registered id, or `location_not_empty` when the inGitDB folder exists and is not empty or
+the SQLite file exists; `next` MUST offer another name, another location, or Connect.
+
+#### REQ: create-refuses-unsafe-locations
+
+Creating MUST fail without changes with `invalid_argument` and a `reason` naming the conflict
+when the location is inside `OVDB_HOME`, the runtime directory, or inside or around another
+registered database's storage (nested inside it, or itself containing it); `next` MUST offer
+another location.
 
 #### REQ: sqlite-next-step-is-schema
 
-Creating a SQLite database MUST end with the next step to describe a first collection's
-schema (command and documentation link), stated before any write is suggested; the Result
-MUST NOT suggest adding a record that would fail.
+Creating a SQLite database MUST declare a placeholder `example` collection in the manifest so
+the database mounts cleanly, and end with the next step to edit the manifest to describe the
+real schema and run `ovdb databases reload <id>` (command and documentation link), stated
+before any write is suggested; the Result MUST NOT suggest adding a record that would fail.
 
 #### REQ: create-result-next-actions
 
@@ -130,6 +141,16 @@ where the data remains, and clear any context that pointed to it, saying so.
 `OVDB_PREVIEW`; with it, only when `--addr` is given explicitly (an `OVDB_OWNER_TOKEN`
 variable alone does not select the legacy path).
 
+#### REQ: reload-database
+
+`ovdb databases reload <id>` MUST unmount and remount that one registered database from its
+current manifest on disk, so edits made directly to a manifest (schema changes, a
+manifest-only engine dropped into `databases/`) take effect without a server restart;
+`ovdb databases reload --all` MUST do the same for every registered database. Both MUST
+report per-database success or "needs attention" with a redacted reason, the same as startup
+mounting, and MUST NOT change a database's registration or delete its storage. TUI and web
+Databases screens MUST offer a **Reload** action per database and for all.
+
 ### Commands
 
 | Action | CLI |
@@ -140,6 +161,7 @@ variable alone does not select the legacy path).
 | Connect with a manifest file | `ovdb databases connect --manifest <absolute path> [--json]` |
 | List | `ovdb databases [--json]` |
 | Remove | `ovdb databases remove <id> [--yes]` |
+| Reload | `ovdb databases reload <id>\|--all [--json]` |
 | Write a manifest | `ovdb init --engine <engine>` (help lists all five engines) |
 
 ### Example copy
@@ -193,9 +215,9 @@ What next?
 
 ### AC: postgres-is-manifest-only (verifies REQ:manifest-only-engines-are-honest)
 
-**Given** the Create flow in TUI and web
+**Given** the Create flow in TUI and web, before increment 5 ships guided connect
 **When** the person picks PostgreSQL
-**Then** both show "Set this up with a manifest file" with `ovdb init --engine postgres`, Connect with a manifest file and a docs link, and no field for connection details
+**Then** both show "Set this up with a manifest file" with `ovdb init --engine postgres`, a docs link, no field for connection details, and the next step "Put the manifest in `<OVDB_HOME>/databases` and run `ovdb databases reload <name>`"
 
 ### AC: create-ingitdb-default (verifies REQ:create-new-database)
 
@@ -205,15 +227,21 @@ What next?
 
 ### AC: create-refuses-overwrite (verifies REQ:create-never-overwrites)
 
-**Given** `<data home>/notes/` contains files
-**When** the person creates `notes` in the web console
-**Then** nothing is written and the problem has `location_not_empty` with next actions for another name, another location and Connect
+**Given** `<data home>/notes/` contains files, and separately a database `Notes` already registered
+**When** the person creates `notes` in the web console, and `ovdb databases create notes` runs
+**Then** the first writes nothing and the problem has `location_not_empty` with next actions for another name, another location and Connect; the second fails with `already_exists` because `notes` and `Notes` collide ignoring case
+
+### AC: create-refuses-unsafe-location (verifies REQ:create-refuses-unsafe-locations)
+
+**Given** a registered database `notes` at `<data home>/notes/`
+**When** the person creates a database at `<OVDB_HOME>/x`, and separately at `<data home>/notes/sub`
+**Then** both fail without changes with `invalid_argument`, the reason names the OVDB home or the other database's storage, and `next` offers another location
 
 ### AC: sqlite-points-to-schema (verifies REQ:sqlite-next-step-is-schema)
 
 **Given** a fresh setup
 **When** `ovdb databases create shop --engine sqlite --json` runs
-**Then** `next` starts with describing a collection schema and contains no add-record command
+**Then** the manifest declares a placeholder `example` collection, `next` starts with editing the manifest and running `ovdb databases reload shop`, and contains no add-record command
 
 ### AC: result-next-actions (verifies REQ:create-result-next-actions)
 
@@ -244,6 +272,12 @@ What next?
 **Given** `OVDB_PREVIEW=1`, `OVDB_OWNER_TOKEN=T` and `ovdb serve --data-dir ./data` on port 7000
 **When** `ovdb databases create crm --addr http://127.0.0.1:7000` runs, and `ovdb databases create notes` runs
 **Then** the first calls `POST /v1/databases` as today and writes nothing to the registry; the second uses the local server
+
+### AC: reload-remounts-database (verifies REQ:reload-database)
+
+**Given** registered databases `crm` (a manifest edited by hand after creation) and `notes`, with `crm`'s edit making its schema invalid
+**When** `ovdb databases reload crm --json` runs, and then `ovdb databases reload --all --json` runs
+**Then** the first remounts `crm` and reports it "needs attention" with a redacted reason without touching `notes`'s registration or data, and the second reports both databases' states without a server restart
 
 ## Open Questions
 
