@@ -189,7 +189,18 @@ Local mode MUST accept exactly the three credentials and routes in the table. Th
 secret is created at start in the runtime directory and sent by CLI and TUI as
 `Authorization: Bearer`; clients MUST verify the instance id via `GET /api/local/v1/whoami`
 before sending data, reporting "already running" or signalling a process. Scoped tokens live
-in `<OVDB_HOME>/auth.json`.
+in `<OVDB_HOME>/auth.json`. Under `openvaultdb-go` v0.5.1+, a database's access-control
+policies bind the owner exactly as they bind any other principal: both the instance secret and
+a console session forwarded as the owner are subject to those policies, matching `OwnerToken`'s
+documented behaviour (admin, but database policies still apply).
+
+#### REQ: console-session-write-restrictions
+
+A console session cookie MUST NOT write `server.cors` through `PUT /api/local/v1/config`, nor
+create, list or revoke tokens through `/v1/tokens`; both MUST return `403 forbidden` with
+`next` pointing at the equivalent CLI command (`ovdb config set server.cors …`,
+`ovdb token create|list|revoke`), matching [configuration parity](../configuration-parity/README.md#REQ:exceptions-need-rationale)
+exception E7. The instance secret keeps full access to both.
 
 #### REQ: tokens-against-local-server
 
@@ -225,8 +236,17 @@ used codes MUST show the landing page.
 #### REQ: sessions
 
 The session cookie MUST be `HttpOnly`, `SameSite=Lax`, host-only and named
-`ovdb_session_<port>`. Sessions MUST be stored hashed in `sessions.json` with a 30-day sliding
-expiry and survive server restarts.
+`ovdb_session_<port>`. Sessions MUST be stored hashed in `sessions.json` and survive server
+restarts. Because browsers do not isolate cookies by port, a session created on a fallback host
+(`127.0.0.1`, `localhost`, `[::1]`) would otherwise be sent to any other local server on that
+host; its cookie MUST therefore be a browser-session cookie (no `Max-Age`/`Expires`) with an
+8-hour absolute, non-renewing lifetime. A session created on `ovdb.localhost` — a host other
+local servers do not share — MUST keep a 30-day sliding expiry.
+
+#### REQ: logout
+
+`POST /logout` MUST clear the session cookie and its stored hash, then redirect to the landing
+page. The console and TODO app MUST offer "Sign out" wherever a session is shown.
 
 #### REQ: session-ended-copy
 
@@ -259,9 +279,11 @@ side effects; local API request bodies MUST be `application/json`.
 
 Every local-mode response, including `401`, `403` and the landing page, MUST send
 `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. HTML responses MUST also
-send `Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`
-and `X-Frame-Options: DENY`. Console and apps MUST render record values as text only (no
-`v-html`, enforced by lint). Only first-party embedded apps MAY be served under `/apps/`.
+send `Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`
+and `X-Frame-Options: DENY`. Every `/api/local/v1/…` response and every authenticated HTML
+response MUST also send `Cache-Control: no-store`. Console and apps MUST render record values
+as text only (no `v-html`, enforced by lint). Only first-party embedded apps MAY be served
+under `/apps/`.
 
 #### REQ: redacted-errors
 
@@ -283,7 +305,8 @@ MUST say so instead of opening a blank page. Release builds MUST fail without as
 #### REQ: route-layout
 
 Local mode MUST route `/.well-known/openvaultdb`, `/v1/…`, `/authorize`, `/token`, `/login`,
-`/api/local/v1/…`, `/apps/todo/…` and `/…` (console) with client-side route fallback.
+`/logout`, `/api/local/v1/…`, `/apps/todo/…` and `/…` (console) with client-side route
+fallback.
 Middleware order MUST be security headers → Host allowlist → authentication →
 cross-origin protection (cookie requests) → CORS (`server.cors`, bearer requests) → routes.
 

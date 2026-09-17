@@ -718,6 +718,20 @@ folded back into the spec and this plan:
 | The status document is built up field group by field group across increments | `first-run-onboarding` `REQ:status-command` notes increment 1a ships only version, locations, server and `next` |
 | S5 confirmed `skillsync` needs one `Sync` call per skill with its own `PluginIdentity`, no upstream change | `ai-agent-skills` `REQ:install-with-skillsync` clarified (no behaviour change) |
 
+**Implementation amendments (2026-09-17, increments 1b/1c).** Findings from building the browser
+sign-in flow and the TUI Home screen, folded back into the specs and this plan:
+
+| Finding | Change |
+|---|---|
+| S7's ACL manifest check confirmed database access-control policies bind the owner under `openvaultdb-go` v0.5.1+, not only scoped tokens | `local-server-and-web-console` `REQ:credentials` and `database-setup-and-providers` `REQ:connect-with-manifest` state it |
+| The credential table's "owner" grant for console sessions on the general `/api/local/v1/…` row would let a browser session write `server.cors` and manage tokens, which parity exception E7 reserves for the CLI | `local-server-and-web-console` gains `REQ:console-session-write-restrictions` (403 `forbidden` with a CLI `next`) |
+| Browsers do not isolate cookies by port, so the planned 30-day sliding session cookie would leak across any local server sharing a fallback host (`127.0.0.1`, `localhost`, `[::1]`) | `REQ:sessions` splits by host: 30-day sliding on `ovdb.localhost`, 8-hour absolute non-renewing on fallback hosts; decision 0007 gets an Observed Consequence |
+| There was no way to end a session from the browser | `POST /logout` + "Sign out" added (`REQ:logout`, routed, and in the endpoint table) |
+| TUI and web each risked computing Home's status line and option order themselves | `GET /api/local/v1/home` added to the endpoint table, returning ordered options (`label_key`, `web_label_key`, `description_key`, `badge`) and `next` |
+| The `server` document lacked the `next` list `status` already carries, and `config`'s `PUT` gave no signal whether a write changed anything | `server` document now carries `next`; `PUT /api/local/v1/config` response carries `changed` |
+| The CSP allowed form submission to non-`self` origins, and authenticated responses had no cache directive | CSP gains `form-action 'self'`; `Cache-Control: no-store` added to `/api/local/v1/…` and authenticated HTML |
+| Home's "Start the OVDB server" description was static text that stayed accurate only while stopped | Its description is now state-dependent (stopped vs running), driven by `description_key` |
+
 ## Open Questions
 
 - Should `ovdb get --json` also normalize `key` to the absolute path for symmetry with `{"key"}`,

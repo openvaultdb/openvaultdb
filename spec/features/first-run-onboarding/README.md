@@ -60,6 +60,11 @@ Explore data MUST be disabled with "Create or connect a database first" when non
 This is the founder's order (2026-09-16): trying comes before committing to storage, and
 starting the server comes last because the other options start it when needed. The web wording
 differs because a page served by the server cannot start it (parity E1); it can only show it.
+The fourth option's description is state-dependent: while the server is stopped it reads "Open
+the web console at http://ovdb.localhost:<port>"; once running it instead states that the
+server is running at that address. TUI and web MUST render this from the same
+`description_key` in [`GET /api/local/v1/home`](../configuration-parity/README.md#REQ:local-api-endpoints),
+not compute it locally.
 
 #### REQ: home-status-line
 
