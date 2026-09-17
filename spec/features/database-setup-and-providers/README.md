@@ -111,14 +111,14 @@ an absolute path, validate it by mounting once, and MUST NOT write into the user
 Failures MUST use `storage_unavailable` with a redacted reason, except that a folder with
 engine inGitDB that has no `.ingitdb/` directory (for example a code project's own Git
 repository, or an empty folder) MUST be refused with `invalid_argument`, pointing at Create or
-at the folder's actual `.ingitdb` folder, so a first write can never land inside someone's
+at choosing the folder that contains `.ingitdb/`, so a first write can never land inside someone's
 own project or an unrelated empty folder. Connecting a SQLite file MUST describe, in the
 generated manifest, only the tables that have an `id` column; when none qualify the result is
 `schema_required` with next steps to edit the manifest or read the docs (matching Create's
-SQLite next step). Known limitation, not fixed by this feature: `id`-column detection is
-case-sensitive although SQLite column names are not, so a table whose only key column is
-`ID` is not detected; and because `openvaultdb-go` strict mode does not filter storage at the
-file level, a connected SQLite file's undeclared tables and columns remain readable to owner
+SQLite next step). The `id` column is matched ignoring case (`ID` qualifies), as SQLite
+column names are. Known limitation, not fixed by this feature
+([openvaultdb-go#27](https://github.com/openvaultdb/openvaultdb-go/issues/27)): because
+`openvaultdb-go` strict mode does not filter storage at the file level, a connected SQLite file's undeclared tables and columns remain readable to owner
 credentials even though the manifest does not describe them — the Result MUST say so. Known
 limitation, also not fixed by this feature: connecting an inGitDB folder adds
 `.git/dalgo2ingitdb/transaction.lock` (a `dalgo2ingitdb` library artifact created by the mount
