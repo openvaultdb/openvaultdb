@@ -96,14 +96,15 @@ Examples from `todo:/lists/to-buy`:
 
 All accept `--db`, `--json` and `--no-start`; `list` accepts `--limit` (default 50).
 
-`--json` output is the existing `/v1` response body, unchanged:
+`--json` output of reads is the existing `/v1` response body, unchanged; writes, whose `/v1`
+response has no body, print the affected key:
 
 | Command | `--json` success body | Source |
 |---|---|---|
 | `list` at root | `{"id","engine","schemaMode","collections"}` | `GET /v1/databases/{db}` |
 | `list` at a collection | `{"records":[{"key","data"}]}` | `POST …/query` |
 | `get` | `{"key","data"}` | `GET …/records/{key}` |
-| `set`, `add`, `delete` | nothing (the `/v1` response has no body); success is exit `0` and the key is printed to stderr | `PUT`/`PATCH`, `POST`, `DELETE` |
+| `set`, `add`, `delete` | `{"key":"/lists/to-buy/items/k3f9x2"}` — the affected record's absolute escaped path, usable as `<path>` in the next command | built by the CLI (`PUT`/`PATCH`, `POST` and `DELETE` return no body) |
 | any failure | `{"error":{"code","message"}}` with the `/v1` code | `/v1` error body |
 
 Human output (without `--json`) maps `/v1` errors into the envelope using the table in
@@ -132,9 +133,12 @@ At the root `list` MUST list collections; at a collection it MUST list records (
 
 `get` prints a record. `set` with JSON creates or replaces it; `set --field k=v` updates named
 fields, parsing `v` as a JSON literal when valid and as a string otherwise. `add` generates a
-short URL-safe id (or `--id`), inserts without overwriting and prints the absolute path.
-`delete` removes one record without prompting, prints its absolute path, and refuses
-collection paths.
+short URL-safe id (or `--id`) and inserts without overwriting. `delete` removes one record
+without prompting and refuses collection paths. `set`, `add` and `delete` MUST print the
+affected record's absolute escaped path on stdout: in human output as part of the result line
+(for example `todo: added /lists/to-buy/items/k3f9x2`), and with `--json` as exactly one object
+`{"key":"<absolute path>"}`, so agents can use the key `add` generated without parsing text or
+reading stderr.
 
 #### REQ: path-kind-mismatch-guidance
 
@@ -235,7 +239,7 @@ API MUST refuse project-scope writes authenticated only by a session cookie.
 
 **Given** the demo
 **When** `ovdb add /lists/to-buy/items '{"title":"Tea","done":false}' --db todo` prints P, then `set P --field done=true`, `get P --json`, `delete P` run with `--db todo`
-**Then** `get` prints `{"key":…,"data":{…,"done":true}}`, and a later `get P` exits `1`; its human output uses `not_found` and with `--json` prints the `/v1` error body
+**Then** `add` prints P on stdout, `add --json` prints exactly `{"key":"<P>"}` on stdout, `set --json` and `delete --json` print `{"key":"<P>"}`, `get` prints `{"key":…,"data":{…,"done":true}}`, and a later `get P` exits `1`; its human output uses `not_found` and with `--json` prints the `/v1` error body
 
 ### AC: kind-mismatch-hint (verifies REQ:path-kind-mismatch-guidance)
 

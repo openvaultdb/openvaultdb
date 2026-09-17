@@ -49,7 +49,8 @@ differently, one interface gains options the others lack.
 4. **Machine contracts defined once** (in [configuration parity](../features/configuration-parity/README.md)):
    an error envelope `{code, message, reason?, next[]}` with a closed `code` list; `--json`
    output of configuration commands identical to the local API response body with
-   `"schema": 1`, and of data commands identical to the existing `/v1` bodies; exit codes `0`
+   `"schema": 1`, and of data commands identical to the existing `/v1` bodies (writes, which have
+   no `/v1` body, print `{"key"}`); exit codes `0`
    success and `1` any failure (the existing `ovdb` contract); one copy catalogue
    `copy/en.json` embedded in Go and imported by the Vue build.
 5. **Strict parity with explicit exceptions.** Every user-visible capability is reachable
