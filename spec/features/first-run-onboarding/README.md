@@ -175,6 +175,10 @@ OVDB skills, telemetry state, and `next` (the entries above that still apply). `
 equal `GET /api/local/v1/status`. Without the gate, and whenever `--url` is given, `ovdb
 status` MUST behave as today.
 
+The document grows one field group per increment as its capability lands; increment 1a ships
+only version, locations, server state and `next`. A field group MUST NOT appear before its
+capability is implemented in every interface.
+
 ### Telemetry question
 
 #### REQ: telemetry-asked-after-first-success
