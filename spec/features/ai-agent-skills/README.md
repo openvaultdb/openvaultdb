@@ -183,7 +183,7 @@ Or: try the TODO demo first.
 
 ### AC: skill-less-agent-learns-options (verifies REQ:agent-bootstrap-without-skill)
 
-**Given** no skills installed and a non-interactive environment with `OVDB_PREVIEW=1`
+**Given** no skills installed and a non-interactive environment
 **When** `ovdb status --json` runs
 **Then** `next` contains the terminal, web, commands, demo and skill-install entries, the last labelled to ask the person first
 

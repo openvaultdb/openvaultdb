@@ -135,6 +135,10 @@ Declined; usage errors exit `1` with code `invalid_argument`.
   (`ovdb config set server.port <N+1>`) must work precisely when the server cannot start and so
   cannot depend on a server being reachable. When a server is running, `config set` goes through
   it like every other mutation.
+- 2026-09-19: The founder approved the named user-facing CLI surface and its local defaults.
+  All named commands are now visible and callable without `OVDB_PREVIEW`; only the unfinished
+  bare-command TUI remains gated, and `ovdb server run` remains internal. This supersedes the
+  pre-approval gate recorded under Consequences at Decision Time.
 
 ## Affected Features
 

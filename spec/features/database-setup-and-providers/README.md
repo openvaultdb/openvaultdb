@@ -158,17 +158,17 @@ principal, not only scoped tokens (see [local server and web console](../local-s
 
 #### REQ: list-and-remove
 
-With `OVDB_PREVIEW=1`, `ovdb databases` MUST list registered databases (id, engine, location,
+`ovdb databases` MUST list registered databases (id, engine, location,
 mount state) from state files without a server, taking mount state from the server's
-`mounts.json` when it runs and reporting "unknown (server not running)" otherwise; without the
-gate, or with an explicit `--url`, it MUST behave as today. `ovdb databases remove <id>` MUST unregister without deleting data, say
+`mounts.json` when it runs and reporting "unknown (server not running)" otherwise; with an
+explicit `--url`, it MUST use the legacy remote-server path. `ovdb databases remove <id>` MUST unregister without deleting data, say
 where the data remains, and clear any context that pointed to it, saying so.
 
 #### REQ: legacy-create-compatible
 
-`ovdb databases create` MUST keep today's `POST /v1/databases` behaviour without
-`OVDB_PREVIEW`; with it, only when `--addr` is given explicitly (an `OVDB_OWNER_TOKEN`
-variable alone does not select the legacy path).
+`ovdb databases create` MUST use the local setup by default and keep today's
+`POST /v1/databases` behaviour only when `--addr` is given explicitly (an
+`OVDB_OWNER_TOKEN` variable alone does not select the legacy path).
 
 #### REQ: reload-database
 
@@ -310,13 +310,13 @@ What next?
 
 ### AC: remove-keeps-data (verifies REQ:list-and-remove)
 
-**Given** `OVDB_PREVIEW=1`, `notes` registered and set as the project context, and no server running
+**Given** `notes` registered and set as the project context, and no server running
 **When** `ovdb databases` and then `ovdb databases remove notes --yes` run
 **Then** the list works without starting a server, removal leaves the data folder intact and names it, and reports the cleared context
 
 ### AC: legacy-create-still-works (verifies REQ:legacy-create-compatible)
 
-**Given** `OVDB_PREVIEW=1`, `OVDB_OWNER_TOKEN=T` and `ovdb serve --data-dir ./data` on port 7000
+**Given** `OVDB_OWNER_TOKEN=T` and `ovdb serve --data-dir ./data` on port 7000
 **When** `ovdb databases create crm --addr http://127.0.0.1:7000` runs, and `ovdb databases create notes` runs
 **Then** the first calls `POST /v1/databases` as today and writes nothing to the registry; the second uses the local server
 
