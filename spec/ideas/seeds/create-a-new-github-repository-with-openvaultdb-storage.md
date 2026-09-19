@@ -22,6 +22,10 @@ Creating in an organization is functional, not just UX: `POST /orgs/{org}/repos`
 
 ## Decision: the provider app is independent
 
-The app is https://github.com/apps/openvaultdb (App ID 4786001, client ID `Iv23liJsM9tKD7ZnLwDo`), owned by the **openvaultdb** organization — as REQ:openvaultdb-github-app-registration in `openvaultdb/spec/features/sneat-space-export` already mandates. Independence preserves provider/consumer neutrality (Sneat is otherwise both provider and consumer), the consent-screen brand, and OVDB's ability to operate its own provider identity for self-hosted and third-party consumers.
+Use https://github.com/apps/openvaultdb (App ID 4786001, client ID
+`Iv23liJsM9tKD7ZnLwDo`), owned by **openvaultdb**, as
+REQ:openvaultdb-github-app-registration already mandates. This keeps the provider identity
+neutral and preserves the OpenVaultDB consent-screen brand.
 
-To verify before relying on it: GitHub documents transferring app ownership, but whether App ID and client ID survive, whether installations persist, and whether the private key must be reissued are unverified. Installations are effectively nil today (`sneat-co/ovdb` install verification is dormant and fail-open), so acting now is cheap. Related coupling: the app's OAuth callback is pinned to `https://sneat.app/github/ovdb-installed` — a consumer's domain inside a provider-owned app.
+Before relying on it, verify ownership-transfer identity, installation continuity, private-key
+rotation, and replace the callback pinned to `https://sneat.app/github/ovdb-installed`.
