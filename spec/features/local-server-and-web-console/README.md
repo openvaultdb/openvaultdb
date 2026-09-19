@@ -60,9 +60,8 @@ accepted (resolves the Open Question below).
 
 The web console, TODO app, local API, login, Host allowlist and local-mode authentication
 MUST exist only in local mode (`ovdb server start`, `ovdb open`, TUI, auto-start). `ovdb serve`
-with its existing flags MUST behave exactly as today; without `OVDB_PREVIEW=1`, bare
-`ovdb serve` MUST still fail as today, and with it the error MUST suggest
-`ovdb server start`.
+with its existing flags MUST behave exactly as today and fail as today when invoked without
+its required database inputs. Named local-mode commands are public without `OVDB_PREVIEW`.
 
 #### REQ: single-server-home-lock
 
@@ -213,7 +212,7 @@ exception E7. The instance secret keeps full access to both.
 
 #### REQ: tokens-against-local-server
 
-With `OVDB_PREVIEW=1` and no explicit `--addr` or `--owner-token`, `ovdb token create|list|revoke`
+With no explicit `--addr` or `--owner-token`, `ovdb token create|list|revoke`
 MUST call the running local server (auto-starting it) with the instance secret. With those
 flags they MUST behave as today; an `OVDB_OWNER_TOKEN` environment variable alone does not
 select the legacy path, matching [database setup and providers](../database-setup-and-providers/README.md#REQ:legacy-create-compatible).
@@ -433,7 +432,7 @@ credential-less code exchanges at `/token`) → routes.
 
 ### AC: token-against-local-server (verifies REQ:tokens-against-local-server, REQ:credentials)
 
-**Given** `OVDB_PREVIEW=1`, a local-mode server and database `todo`
+**Given** a local-mode server and database `todo`
 **When** `ovdb token create --db todo --scope read-only --json` runs and the token calls `GET /v1/databases/todo`, `PUT /v1/databases/todo/records/lists/x` and `GET /api/local/v1/status`
 **Then** the read succeeds, the write is denied by capability, the local API returns `403 forbidden`, and `auth.json` is under OVDB home
 

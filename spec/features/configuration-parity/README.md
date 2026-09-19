@@ -220,10 +220,12 @@ CI MUST run Go unit tests for lifecycle, paths and context on Ubuntu, macOS and 
 runners, and Playwright (Chromium) journeys on Linux. Safari, Edge and `*.localhost`
 resolution are a manual checklist.
 
-#### REQ: increments-keep-parity
+#### REQ: public-cli-parity-accounting
 
-A capability MUST NOT be visible outside `OVDB_PREVIEW=1` until all its non-exception cells
-are implemented and tested.
+Every named user-facing CLI command MUST remain visible without `OVDB_PREVIEW`. Missing
+non-CLI cells MUST remain explicit in the capability matrix as incomplete or as a justified
+exception; they gate release-readiness claims, not CLI help. Only the unfinished bare-command
+TUI remains preview-gated, and `server run` remains internal.
 
 ### Canonical journeys
 
@@ -329,11 +331,11 @@ not their items yet.
 **When** CI runs
 **Then** lifecycle, path and context tests pass on Ubuntu, macOS and Windows, and the Playwright journeys pass on Linux
 
-### AC: gate-hides-incomplete (verifies REQ:increments-keep-parity)
+### AC: public-cli-reports-incomplete-parity (verifies REQ:public-cli-parity-accounting)
 
 **Given** Connect exists in CLI and TUI but not yet in the web console
 **When** OVDB runs without `OVDB_PREVIEW`
-**Then** `ovdb --help` does not list `databases connect` and bare `ovdb` behaves as today
+**Then** `ovdb databases --help` lists `connect`, the matrix still marks the missing web cell, bare `ovdb` behaves as today, and `ovdb server --help` does not list internal `run`
 
 ### AC: journey-a-passes (verifies REQ:journey-a-terminal)
 
@@ -349,7 +351,7 @@ not their items yet.
 
 ### AC: journey-c-passes (verifies REQ:journey-c-agent)
 
-**Given** `OVDB_PREVIEW=1`, stdin closed, `CLAUDECODE=1` and no skills installed
+**Given** stdin closed, `CLAUDECODE=1` and no skills installed
 **When** the Journey C command script runs
 **Then** `ovdb status --json` lists the five `next` entries, every command finishes, the record round-trips, and telemetry is still `not_asked`
 

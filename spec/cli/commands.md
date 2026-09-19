@@ -31,10 +31,13 @@ Propose the MVP command surface without committing to exact flags.
 | `audit` | `tail`, `show`, `export`, `verify` |
 | `cloud` | `login`, `status`, `logout` |
 
-Local onboarding and configuration commands of the `ovdb` binary (Draft, 2026-09-17; hidden,
-and changed defaults of existing commands gated, behind `OVDB_PREVIEW=1` until approved).
+Local onboarding and configuration commands of the `ovdb` binary (Draft, 2026-09-17; named
+user-facing commands and their local defaults public after founder approval on 2026-09-19).
 They call a person's own authenticated local OVDB server; output, errors and exit codes follow
 the machine contracts in [configuration parity](../features/configuration-parity/README.md).
+
+Only the unfinished bare-command TUI remains behind `OVDB_PREVIEW=1`. Internal plumbing
+(`ovdb server run`) MUST NOT appear in normal help.
 
 | Group | Examples | Specification |
 |---|---|---|

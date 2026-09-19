@@ -177,7 +177,7 @@ need confirmation MUST fail with `confirmation_required` naming the flag (`--yes
 
 #### REQ: status-command
 
-With `OVDB_PREVIEW=1`, `ovdb status` MUST read state files without starting a server and
+`ovdb status` MUST read state files without starting a server and
 report: version, locations, server state (running, addresses, version), databases (id,
 engine, location, mount state from the running server or "unknown (server not running)"),
 current context and scope, demo installed, installed
@@ -224,10 +224,11 @@ preference.
 
 #### REQ: preview-gate
 
-Until founder approval, `OVDB_PREVIEW=1` MUST gate bare-`ovdb` TUI launch, changed defaults of
-existing commands (`status`, `databases`, `databases create`, `serve`, `token`; `init` only
-gains engines in its help) and help visibility of new commands. New commands remain callable when hidden. Removing the gate
-MUST be one isolated change with release notes for the changed defaults.
+Founder approval was granted on 2026-09-19 for every named user-facing command and its local
+default behaviour. Those commands MUST be visible in normal help and callable without
+`OVDB_PREVIEW`. `OVDB_PREVIEW=1` MUST gate only the unfinished bare-`ovdb` TUI launch. Internal
+plumbing (`ovdb server run`) MUST remain hidden. The release that removes the named-command
+gate MUST carry release notes for the changed defaults.
 
 ## Dependencies
 
@@ -277,7 +278,7 @@ MUST be one isolated change with release notes for the changed defaults.
 
 ### AC: status-covers-whole-setup (verifies REQ:status-command)
 
-**Given** `OVDB_PREVIEW=1`, a running server, the demo installed, a project context `todo`, and telemetry not asked
+**Given** a running server, the demo installed, a project context `todo`, and telemetry not asked
 **When** `ovdb status --json` runs, and `ovdb status --url http://127.0.0.1:6832` runs
 **Then** the first equals the local API status body with context scope `project`, except the skills group; the second behaves as today
 
@@ -287,11 +288,11 @@ MUST be one isolated change with release notes for the changed defaults.
 **When** the caller runs `ovdb status --json`
 **Then** the skills group and its `next` entries reflect `/y`, matching `ovdb skills list --json`, not the server's own `/x` view
 
-### AC: status-unchanged-without-gate (verifies REQ:preview-gate, REQ:status-command)
+### AC: named-commands-public-without-gate (verifies REQ:preview-gate, REQ:status-command)
 
-**Given** no `OVDB_PREVIEW` and a legacy `ovdb serve` on 6832
+**Given** no `OVDB_PREVIEW`, a local setup and a legacy `ovdb serve` on 6832
 **When** `ovdb status`, `ovdb databases` and `ovdb databases create x --owner-token T` run
-**Then** each calls the server exactly as today
+**Then** each uses the local setup by default; `status --url` and the database commands' explicit remote flags retain the legacy server path
 
 ### AC: telemetry-question-is-late-and-once (verifies REQ:telemetry-asked-after-first-success)
 
