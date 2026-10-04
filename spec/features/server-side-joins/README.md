@@ -53,8 +53,11 @@ is handled as relational, the default refusal and the offset, scan and parse-fai
 parameter binding only), counting row and byte budgets after the policy filter, the 503
 `query_capacity` code on the database route gate, and collection-scoped grants. The
 first quotation covers Part 1; the second covers external sources, which are Part 2 and not in
-this Feature's scope. Where the implementation pull requests in openvaultdb-go (38, 39, 37 and
-40, open when this was written) already fixed a rule, this Feature follows the code and says so.
+this Feature's scope. State of the implementation pull requests in openvaultdb-go when this was
+last revised (2026-10-04): 38 and 37 open; 39 merged as d23488d and 40 merged as e323446. Where
+they already fixed a rule, this Feature follows the code and says so. "Main" below means
+openvaultdb-go main at e323446 or later; "before pull request 40" means the server as it was
+until that merge.
 
 Where things live. The OJ implementation plan is filed in sneat-co/backstage at
 `spec/research/datatug-ecosystem-review-2026-10/14-ovdb-joins-plan.md`; the ids OJ-nn, OV-01 and
@@ -73,7 +76,7 @@ Actors: an API caller (the demo or the CLI), a scoped-token user, the OVDB Cloud
 | 1 | I fetch `/.well-known/openvaultdb`. | A `query` block lists the endpoint, joins, GROUP BY, aggregates, cross-database support and the limits. | `discovery-advertises-query`, `capabilities-per-database` |
 | 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve; the same document on a protected mount is refused. | `single-database-join-pushdown`, `relational-profile-accepted`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `parameters-and-names-cannot-change-query` |
 | 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `cross-database-endpoint-single-source`, `response-shape`, `mount-lease-drains-on-unmount`, `consistency-documented` |
-| 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused` |
+| 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join; a lone-source read of such an engine is refused on `/v1/dtql` and served on the per-database endpoint. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused`, `lone-source-outside-join-set-by-endpoint` |
 | 5 | My query is too big or too slow. | 422 `query_budget_exceeded` naming the limit and a hint; never partial rows. | `budget-exceeded-is-422-never-partial`, `timeout-is-504`, `budget-errors-report-limit-only`, `paging-headers-refused` |
 | 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; only her rows; a COUNT equals her readable rows; no row count for the protected source. | `grant-checked-for-every-source`, `policy-applied-per-leaf`, `count-equals-readable-rows`, `no-row-count-for-protected-source`, `nested-join-authorised`, `profile-refusals`, `budget-errors-report-limit-only`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `collection-scoped-grant-checked`, `hidden-field-not-reachable` |
 | 7 | (nothing) Two hundred visitors click the same demo question. | Identical GETs come from cache; excess in-memory queries get 503 with `Retry-After`; the instance stays up. | `identical-gets-cacheable`, `capacity-gate-503`, `database-route-capacity-gate` |
@@ -96,15 +99,23 @@ or not, take the **new path**: the refusals of `REQ: profile-refusals`, the pagi
 Every other (non-relational) document on the per-database endpoint takes the existing
 single-collection path, and its request, response and errors (including the 400 `invalid_dtql` for
 a cursor or a limit above 1000) MUST NOT change. That holds whether or not its one source carries
-`database`: today the validator has no check on that value and ignores it (read from code in
-openvaultdb-go `pkg/core/query.go`, not executed), DataTug CLI sends it on federated leaves and
-needs `key` in the rows, and this Feature does not change that (but see Open Question D).
-`/v1/dtql` has no existing path, so it has no behaviour to keep: a single-source document posted
-there, with or without a join, is handled as relational. The per-database endpoint
+`database`: before openvaultdb-go pull request 40 the validator ignored that value; since it
+merged (main e323446, `pkg/core/query.go:180`, read through `gh`, not executed) `schema`,
+`database` and `scan` on the root collection are refused with a 400 `invalid_dtql`. DataTug CLI
+sends `database` on federated leaves and needs `key` in the rows. This Feature's rule is the
+earlier behaviour for `database` (accepted, ignored, `key` kept); implementing it removes that
+part of the check, and it waits for Open Question D. The name rules of pull request 40 are part
+of the existing path and stay. `/v1/dtql` has no existing path, so it has no behaviour to keep:
+every document posted there, with or without a join and with or without one source, is handled
+as relational (a `database` on its sources is required, not ignored). That includes a plain
+single-source read of an engine outside the join set (Firestore, say): `/v1/dtql` refuses it with
+the 422 of `REQ: routing`, and the per-database endpoint, which has the existing path, still
+serves it. This is intended; a caller who wants that read uses the per-database endpoint. The
+per-database endpoint
 `/v1/databases/{db}/dtql` MUST accept a relational document when every source is in that database
 and MUST refuse a relational document, with a 400 naming the source and before any read, when a
 source's `database` differs from `{db}` (Open Question A). A new `/v1/dtql` (POST, and GET with `q` and `parameters` as the
-single-collection path has today) MUST accept cross-database documents and MUST require a
+single-collection path has) MUST accept cross-database documents and MUST require a
 `database` on every source. The Cloudflare Worker already forwards every `/v1/` path, so no header change is
 needed because the execution summary travels in the body.
 
@@ -113,12 +124,14 @@ needed because the execution summary travels in the body.
 **PLAN DESIGN** for parameter binding; the rest was added in review. On both routes, parameter
 values MUST be bound as values and never spliced into text. Names are refused unless plain, with a
 400 `invalid_dtql`, and what passes MUST still reach a database only as a quoted identifier: a
-field name is one or more dot-separated segments of letters, digits, underscore and hyphen (a
-segment may start with `$` before a letter or underscore, no `--`, at most 256 bytes); a column
-alias, a source alias and a field qualifier that names no source in scope are ASCII identifiers
+field name is one or more dot-separated segments of Unicode letters, digits, underscore and
+hyphen (a segment may start with `$` before a letter or underscore, no `--`, at most 256 bytes;
+Firestore field names may be non-ASCII and numeric map keys are legal); a column alias, a source
+alias and a field qualifier that names no source in scope are ASCII identifiers
 (`[A-Za-z_][A-Za-z0-9_]*`); a collection name follows the existing collection-name rule. This
-follows openvaultdb-go pull request 40, which fixed these rules for the single-collection path;
-the relational path MUST apply the same rules. A database error's text MUST NOT be returned to
+follows openvaultdb-go pull request 40 (merged; `pkg/core/query_guard.go` on main), which fixed
+these rules for the single-collection path and defines them in code; the relational path MUST
+apply the same rules. A database error's text MUST NOT be returned to
 the caller. (Column aliases are new caller text in the generated SQL and in `columns`.)
 
 #### REQ: name-resolution
@@ -175,7 +188,7 @@ MUST gain `joins` and `aggregation`. The protocol string MUST NOT change.
 | One mount, SQLite (PostgreSQL after OV-01), no access policies, no subquery | `database` | The database, inside a read transaction; if the adapter declines the join, DALgo's bounded engine runs inside the same transaction |
 | Several mounts | `in-memory` | DALgo over leaf reads; a flat equality join without ORDER BY streams |
 | One mount with access policies, or a subquery, or inGitDB | `in-memory` | DALgo over leaf reads through the secured handle |
-| PostgreSQL or MySQL mount | refused, 501 `query_unsupported` naming the engine | Today's guard (openvaultdb-go pull request 40): every structured query on those mounts is refused until OV-01 |
+| PostgreSQL or MySQL mount | refused, 501 `query_unsupported` naming the engine | The guard on main (openvaultdb-go pull request 40, merged): every structured query on those mounts is refused until OV-01 |
 | Any other engine outside the join set | refused, 422 naming the engine | |
 
 The design follows the first quotation (OVDB passes the document to DALgo, which joins) and runs
@@ -315,7 +328,7 @@ Journey step 2.
 
 **Given** two databases mounted and a non-relational document `from: {database: X, name: C}` with X different from `{db}`
 **When** it is posted to `/v1/databases/{db}/dtql`
-**Then** the response is exactly what the server returns today (`{records:[{key,data}]}`, the `database` ignored), and the same document with X equal to `{db}` returns the same shape
+**Then** the response is `{records:[{key,data}]}` with the `database` ignored, as before openvaultdb-go pull request 40 (pending Open Question D; main returns a 400 `invalid_dtql`), and the same document with X equal to `{db}` returns the same shape
 
 ### AC: parameters-and-names-cannot-change-query (verifies REQ:values-and-names-never-text)
 
@@ -388,6 +401,14 @@ Journey step 4.
 **Given** a PostgreSQL mount, and a mounted database whose engine is otherwise outside the join set (Firestore, say)
 **When** a join over each is posted
 **Then** the first returns a 501 `query_unsupported` naming the engine and the second a 422 naming the engine, each with no rows
+
+### AC: lone-source-outside-join-set-by-endpoint (verifies REQ:endpoints, REQ:routing)
+
+Journey step 4.
+
+**Given** a mounted database whose engine is outside the join set but cleared for structured queries (Firestore, say, with a fake or emulated driver), and a non-relational single-source document `from: {database: X, name: C}` over it
+**When** the document is posted to `/v1/dtql` and then to `/v1/databases/X/dtql`
+**Then** the first returns a 422 naming the engine and no rows (every document on `/v1/dtql` is relational, and the routing table refuses the engine), and the second returns 200 with `{records:[{key,data}]}` exactly as the existing path does
 
 ### AC: budget-exceeded-is-422-never-partial (verifies REQ:limits)
 
@@ -604,32 +625,35 @@ Four findings from reading the code, independent of this Feature, kept here unti
    skip authorisation of the nested source. The design never does that (`REQ: policy-per-leaf`);
    `nested-join-authorised` tests it.
 3. **Schema-qualified sources and `scan` on the existing single-collection path.** DALgo treats a
-   schema-qualified source as an opaque resource, so collection policies may not match it, and the
-   existing validator (`pkg/core/query.go`) has no `schema` or `scan` check; DALgo's access layer
-   has no check on scan orders either (it checks WHERE, GROUP BY, HAVING, ORDER BY and columns,
-   not `ScanOrders`, at v0.88.0 or at dalgo origin/main 984e8bb). That path is frozen by
-   `REQ: endpoints`, so `REQ: profile-refusals` does not reach it; this finding stays open for it,
-   for `schema` and for `scan` on a policy-protected source. A reading of DALgo
-   (`access/policy.go`, also not executed) suggests the policy is default-deny and an opaque
-   resource matches only opaque-query rules, so the probable result for `schema` is a denial, not
-   a leak; for `scan.orderBy` on a redacted field the result was not checked, and whether the SQL
-   adapter honours `scan` on a plain single-source read was not checked either. It closes with a
-   test in openvaultdb-go that posts a `schema`-qualified single-collection document, and one with
-   `scan.orderBy` on a redacted field, to a policy-protected mount and asserts denial or an order
-   that does not depend on the field. A `schema` refusal added to the existing validator would
-   break the browser demo (it sends `schema` on single-collection documents when the relation has
-   one) and `REQ: endpoints` freezes the path, so the denial test is the way to close it. (Pull
-   request 40, open, adds a refusal of `schema`, `database` and `scan` on the root collection;
-   Open Question D.)
-4. **Collection-scoped grants and EXISTS subqueries on today's server.** Today's validator does
-   not inspect `where`, DALgo v0.88.0 parses `where: {exists: {query: ...}}`, the handler
-   authorises only the root collection (`pkg/server/dtql.go`), and DALgo runs the nested query
-   through ordinary leaf reads. A token scoped to one collection may therefore already be able to
-   test rows of another collection in the same database. This Feature closes it by classing
-   subquery documents as relational, with `REQ: subquery-sources-authorised`, and tests it with
-   `collection-scoped-grant-checked`. It also closes with a test against today's openvaultdb-go
-   (before any of this Feature is implemented) that posts such a document with a token scoped to
-   one collection and asserts a 403.
+   schema-qualified source as an opaque resource, so collection policies may not match it, and
+   DALgo's access layer has no check on scan orders either (it checks WHERE, GROUP BY, HAVING,
+   ORDER BY and columns, not `ScanOrders`, at v0.88.0 or at dalgo origin/main 984e8bb). Before
+   openvaultdb-go pull request 40 the existing validator (`pkg/core/query.go`) had no `schema` or
+   `scan` check. Since that pull request merged (main e323446, `pkg/core/query.go:180`), main
+   refuses `schema`, `database` and `scan` on the root collection with a 400 `invalid_dtql`, so
+   this finding is closed there; it reopens only if Open Question D restores acceptance of those
+   fields on the existing path. `REQ: endpoints` freezes that path as it was before the pull
+   request, so until D is answered the Feature and main differ, and the new path refuses
+   `schema` and `scan` itself (`REQ: profile-refusals`). A reading of DALgo (`access/policy.go`,
+   also not executed) suggests the policy is default-deny and an opaque resource matches only
+   opaque-query rules, so the probable result for `schema` is a denial, not a leak; for
+   `scan.orderBy` on a redacted field the result was not checked, and whether the SQL adapter
+   honours `scan` on a plain single-source read was not checked either. If D restores
+   acceptance, it closes with a test in openvaultdb-go that posts a `schema`-qualified
+   single-collection document, and one with `scan.orderBy` on a redacted field, to a
+   policy-protected mount and asserts denial or an order that does not depend on the field.
+   Pull request 40's refusal breaks the browser demo's schema-qualified reads (the demo sends
+   `schema` when a relation has one; read from code, not executed).
+4. **Collection-scoped grants and EXISTS subqueries on main.** The validator on main checks names
+   inside `where` but does not refuse an EXISTS subquery, DALgo v0.88.0 parses
+   `where: {exists: {query: ...}}`, the handler authorises only the root collection
+   (`pkg/server/dtql.go`), and DALgo runs the nested query through ordinary leaf reads. A token
+   scoped to one collection may therefore already be able to test rows of another collection in
+   the same database. This Feature closes it by classing subquery documents as relational, with
+   `REQ: subquery-sources-authorised`, and tests it with `collection-scoped-grant-checked`. It
+   also closes with a test against openvaultdb-go main (before any of this Feature is
+   implemented) that posts such a document with a token scoped to one collection and asserts a
+   403.
 
 ## Out of scope for the first version
 
@@ -677,7 +701,7 @@ for 3, a policy-protected database is aggregated in memory over the rows the cal
    otherwise one in-memory join at a time. Prices were not checked. (`REQ: limits`.)
 7. Engines in joins at launch: SQLite and local inGitDB only; PostgreSQL right after the
    PostgreSQL stream's OV-01; Firestore, GitHub-backed inGitDB and MySQL refused (full scans there
-   cost money or API quota, and MySQL has no safe compiler; PostgreSQL and MySQL answer 501 `query_unsupported` today). Recommendation: yes.
+   cost money or API quota, and MySQL has no safe compiler; PostgreSQL and MySQL answer 501 `query_unsupported` on main). Recommendation: yes.
    (`REQ: relational-profile`, `engine-outside-join-set-refused`.)
 8. Joined results are returned whole, at most 1000 rows, with no consistent paging in the first
    version of this feature. Recommendation: yes; charts and lookups fit, and paging a joined
@@ -687,7 +711,7 @@ for 3, a policy-protected database is aggregated in memory over the rows the cal
 Author's additions (not from the plan):
 
 A. What status and code should relational-profile refusals use? This Feature writes a 422 scoped
-   to the new path (relational documents and every document on `/v1/dtql`), keeping today's 400 `invalid_dtql` for a non-relational document on the per-database endpoint; the plan names
+   to the new path (relational documents and every document on `/v1/dtql`), keeping the existing 400 `invalid_dtql` for a non-relational document on the per-database endpoint; the plan names
    none. Alternative: reuse the 400 `invalid_dtql` everywhere. Recommendation: the scoped 422 with
    a stable code naming the refused element, recorded in `docs/api.md` at implementation. Two
    related choices go with it. First, a relational document whose source carries a foreign
@@ -695,8 +719,8 @@ A. What status and code should relational-profile refusals use? This Feature wri
    with a mismatching `database` instead would be a deliberate breaking change that DataTug CLI
    (which sends `database` on federated leaves and needs `key`) would have to follow, so this
    Feature leaves that input unchanged. Second, the paging headers on the new path get
-   a 422 whose code is chosen with the rest. Today's code answers relational refusals with the
-   400 `invalid_dtql`: openvaultdb-go pull request 38 wraps them in `ErrInvalidDTQL` and no
+   a 422 whose code is chosen with the rest. Open pull request 38 answers relational refusals with the
+   400 `invalid_dtql`: it wraps them in `ErrInvalidDTQL` and no
    server task yet maps them to a 422.
 B. Are the limits right for a 512 MiB instance (1000 rows, 10 s, 2 concurrent in-memory queries,
    1 on OVDB Cloud)? Recommendation: ship these defaults, configurable, and adjust after OJ-08
@@ -704,15 +728,19 @@ B. Are the limits right for a 512 MiB instance (1000 rows, 10 s, 2 concurrent in
 C. Does Cloud Run's default concurrency apply to OVDB Cloud? Recommendation: assume yes (the
    deploy sets no concurrency flag) and let the capacity gate, not Cloud Run, bound memory.
 
-D. Where the code differs from this Feature on a lone source that names a `database`. This Feature
-   keeps such a document on the existing path (`REQ: endpoints`), because DataTug CLI sends
-   `database` on federated leaves and needs `key` in the rows. The open pull requests in
-   openvaultdb-go differ: pull request 38's classifier treats a one-source document that names a
-   database as relational, which drops `key`, and pull request 40 makes the existing validator
-   refuse `schema`, `database` and `scan` on the root collection with a 400, which would also
-   break the browser demo's `schema`. Recommendation: keep this Feature's rule and change both
-   pull requests, unless DataTug CLI and the demo are changed first; the decision is the
-   founder's, and it changes `single-source-with-database-unchanged` and risk finding 3.
+D. Where main differs from this Feature on a lone source that names a `database`, or a `schema`
+   or `scan`. This Feature keeps such a document on the existing path (`REQ: endpoints`), because
+   DataTug CLI sends `database` on federated leaves and needs `key` in the rows. Openvaultdb-go
+   differs in two ways. Pull request 40 is merged (main e323446): the existing validator refuses
+   `schema`, `database` and `scan` on the root collection with a 400 `invalid_dtql`, which on a
+   reading of the code (not executed) would also break DataTug CLI's federated leaves and the
+   browser demo's `schema`. Open pull request 38's classifier treats a one-source document that
+   names a database as relational, which drops `key`. Two choices. (1) Restore acceptance of
+   `database` in openvaultdb-go (and decide `schema` and `scan` separately), and change pull
+   request 38's classifier; this Feature stands and risk finding 3 reopens for `schema` and
+   `scan` if they are accepted again. Recommendation. (2) Keep main, change DataTug CLI and the
+   demo first, and change `single-source-with-database-unchanged` to expect the 400. The
+   decision is the founder's.
 
 Cut order if the window slips (a plan note, not a question): OJ-11, OJ-10, OJ-12, then subqueries.
 
