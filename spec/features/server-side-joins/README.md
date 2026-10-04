@@ -34,8 +34,7 @@ web app and were not executed.)
 
 ### Origin and authority
 
-The founder's words (2026-10-04, verbatim; these are the only statements in this Feature that are
-the founder's). The first is a stated vision and desire, not a ruling; the second is a request
+The founder's words (2026-10-04; these are the only verbatim founder statements in this Feature; Open Question 3 paraphrases a third, about aggregation). The first is a stated vision and desire, not a ruling; the second is a request
 with "maybe" twice, not a ruling:
 
 > "OVDB get DTQL query and pass it to DALgo that can join. So OVDB can join recordset from
@@ -66,11 +65,11 @@ Actors: an API caller (the demo or the CLI), a scoped-token user, the OVDB Cloud
 | # | Step | Good outcome | Criteria |
 |---|---|---|---|
 | 1 | I fetch `/.well-known/openvaultdb`. | A `query` block lists the endpoint, joins, GROUP BY, aggregates, cross-database support and the limits. | `discovery-advertises-query`, `capabilities-per-database` |
-| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve; the same document on a protected mount is refused. | `single-database-join-pushdown`, `relational-profile-accepted`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented` |
-| 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `response-shape`, `mount-lease-drains-on-unmount` |
+| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve; the same document on a protected mount is refused. | `single-database-join-pushdown`, `relational-profile-accepted`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `parameters-and-names-cannot-change-query` |
+| 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `response-shape`, `mount-lease-drains-on-unmount`, `consistency-documented` |
 | 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused` |
 | 5 | My query is too big or too slow. | 422 `query_budget_exceeded` naming the limit and a hint; never partial rows. | `budget-exceeded-is-422-never-partial`, `timeout-is-504`, `budget-errors-report-limit-only`, `paging-headers-refused` |
-| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; only her rows; a COUNT equals her readable rows; no row count for the protected source. | `grant-checked-for-every-source`, `policy-applied-per-leaf`, `count-equals-readable-rows`, `no-row-count-for-protected-source`, `nested-join-authorised`, `profile-refusals`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `hidden-field-not-reachable` |
+| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; only her rows; a COUNT equals her readable rows; no row count for the protected source. | `grant-checked-for-every-source`, `policy-applied-per-leaf`, `count-equals-readable-rows`, `no-row-count-for-protected-source`, `nested-join-authorised`, `profile-refusals`, `budget-errors-report-limit-only`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `hidden-field-not-reachable` |
 | 7 | (nothing) Two hundred visitors click the same demo question. | Identical GETs come from cache; excess in-memory queries get 503 with `Retry-After`; the instance stays up. | `identical-gets-cacheable`, `capacity-gate-503`, `database-route-capacity-gate` |
 | 8 | As operator I deploy OVDB Cloud. | The deploy smoke join passes. | `deploy-smoke-join` |
 | 9 | I run the demo question in the browser. | One query request; on a server without joins, the same answer by the browser path. | `demo-uses-server-join-when-advertised`, `demo-falls-back-on-failure` |
@@ -84,15 +83,27 @@ Plan task OJ-08 must cite every id; the other OJ tasks cite the ids of the steps
 #### REQ: endpoints
 
 **PLAN DESIGN.** A DTQL document is **relational** when it has a join, GROUP BY, HAVING, an
-aggregate, a column alias, a subquery, or a `database` on any source. Every other document takes
-the existing single-collection path, and its request, response and errors (including the 400
-`invalid_dtql` for a cursor or a limit above 1000) MUST NOT change. The per-database endpoint
+aggregate, a column alias or a subquery. A `database` on a source does not make a document
+relational. Every other (non-relational) document takes the existing single-collection path on the
+per-database endpoint, and its request, response and errors (including the 400 `invalid_dtql` for
+a cursor or a limit above 1000) MUST NOT change. That holds whether or not its one source carries
+`database`: today the validator has no check on that value and ignores it (read from code in
+openvaultdb-go `pkg/core/query.go`, not executed), DataTug CLI sends it on federated leaves and
+needs `key` in the rows, and this Feature does not change that. On `/v1/dtql` the same document
+runs through the new path. The per-database endpoint
 `/v1/databases/{db}/dtql` MUST accept a relational document when every source is in that database
-and MUST refuse, with a 400 naming the source and before any read, a source whose `database`
-differs from `{db}`. A new `/v1/dtql` (POST, and GET with `q` and `parameters` as the
+and MUST refuse a relational document, with a 400 naming the source and before any read, when a
+source's `database` differs from `{db}` (Open Question A). A new `/v1/dtql` (POST, and GET with `q` and `parameters` as the
 single-collection path has today) MUST accept cross-database documents and MUST require a
 `database` on every source. The Cloudflare Worker already forwards every `/v1/` path, so no header change is
 needed because the execution summary travels in the body.
+
+#### REQ: values-and-names-never-text
+
+**PLAN DESIGN.** On both routes, parameter values MUST be bound as values and never spliced into
+text; collection, field and alias names MUST reach a database only as quoted identifiers; a
+database error's text MUST NOT be returned to the caller. (Column aliases are new caller text in
+the generated SQL and in `columns`.)
 
 #### REQ: name-resolution
 
@@ -114,7 +125,8 @@ the seam.
 
 **PLAN DESIGN.** In this first version the relational profile MUST refuse, with a 422 naming the
 refused element: cursors, `schema`, `money`, parent and collection-group sources, more than 8
-sources, join depth above 4, a limit above 1000, and `scan` on a policy-protected source. The 422
+sources, join depth above 4, a limit above 1000, and `scan` on a policy-protected source. Any element of a relational document that
+`REQ: relational-profile` does not list MUST be refused with the same 422, naming the element. The 422
 applies to relational documents only; a non-relational document keeps the existing 400. The status
 and code are Open Question A. (`schema` is refused because DALgo's access layer treats a
 schema-qualified source as an opaque resource that collection policies do not match; `scan` is
@@ -152,7 +164,8 @@ and the founder's stated reason (Open Question 5).
 
 **PLAN DESIGN.** A single wrapper MUST be the only place that authorises a source read, counts
 it and budgets it. Every source read of the in-memory route, including subquery sources, MUST
-pass through it.
+pass through it. Row and byte budgets MUST count only rows the secured handle returns to the
+caller's principal, never rows scanned.
 
 ### Response
 
@@ -160,8 +173,9 @@ pass through it.
 
 **PLAN DESIGN.** A successful response MUST be
 `{"records":[{"data":{...}}],"columns":["..."],"execution":{"route","elapsedMs","rowsReturned","sources":[{"database","collection","rows","elapsedMs"}]}}`.
-`key` MUST be present only for single-collection results. A single-collection response keeps exactly
-`{"records":[{"key","data"}]}`: `columns` and `execution` are never added to it. Known difference, accepted for the
+Every relational response, including one over a single source, has `columns` and `execution` and no
+`key`. A non-relational response keeps exactly `{"records":[{"key","data"}]}`: `columns` and
+`execution` are never added to it. Known difference, accepted for the
 first version: SQLite booleans are not coerced back in joined rows.
 
 ### Limits
@@ -180,7 +194,7 @@ so a test can set it small:
 | DALgo join | 10,000 rows, 16 MiB | 422, path of the join node |
 | DALgo aggregation | 100,000 groups, 64 MiB | 422 |
 | Concurrent in-memory queries | 2 (1 on OVDB Cloud at 512 MiB) | 503 `query_capacity`, `Retry-After` |
-| Concurrent database-route queries | 4 | 503 |
+| Concurrent database-route queries | 4 | 503 `query_capacity`, `Retry-After` |
 
 Budget errors MUST report the limit, never the observed figure. A query MUST never return
 partial rows. Joined results are returned whole; the paging headers on a relational document
@@ -216,7 +230,7 @@ grant check for its database and collection, then the mount's policy at its leaf
 #### REQ: hidden-fields-unreachable
 
 **PLAN DESIGN.** A field that policy redacts for the caller MUST NOT be usable, directly or by
-alias, as a join key, group key, aggregate input or column, and MUST NOT appear in `data`. (This is
+alias, as a join key, group key, aggregate input, column, filter predicate (WHERE, HAVING, join ON) or sort key, and MUST NOT appear in `data`. (This is
 the reason policy-protected mounts run in memory over redacted rows; dalgo issue 148, a hidden
 field behind an alias, is open.)
 
@@ -266,6 +280,22 @@ Journey step 1.
 **When** discovery is fetched
 **Then** each database's `capabilities` carries `joins` and `aggregation` values that match what the routing table allows for it
 
+### AC: single-source-with-database-unchanged (verifies REQ:endpoints)
+
+Journey step 2.
+
+**Given** two databases mounted and a non-relational document `from: {database: X, name: C}` with X different from `{db}`
+**When** it is posted to `/v1/databases/{db}/dtql`
+**Then** the response is exactly what the server returns today (`{records:[{key,data}]}`, the `database` ignored), and the same document with X equal to `{db}` returns the same shape
+
+### AC: parameters-and-names-cannot-change-query (verifies REQ:values-and-names-never-text)
+
+Journey step 2.
+
+**Given** a relational document whose parameter value, and another whose column alias, contain a quote and SQL text
+**When** each is posted to the `database` route
+**Then** the value comes back as data or the response is a 4xx, never a different result set and never database error text
+
 ### AC: relational-profile-accepted (verifies REQ:relational-profile, REQ:endpoints)
 
 Journey step 2.
@@ -278,9 +308,9 @@ Journey step 2.
 
 Journey step 2.
 
-**Given** an unprotected SQLite database where Invoice joined to Customer, grouped by country and ordered by the total, reads more than 10,000 joined rows (ORDER BY puts the document outside DALgo's streaming aggregate plan)
+**Given** a generated database with the Chinook table names and more than 10,000 invoices (Chinook itself has 412), unprotected SQLite, where Invoice joined to Customer, grouped by country and ordered by the total, reads more than 10,000 joined rows (ORDER BY puts the document outside DALgo's streaming aggregate plan)
 **When** that document is posted to its endpoint
-**Then** the response is 200 with `execution.route: database`; and, as the negative control, the identical document over the same data on a route that must run in memory (a policy-protected mount) returns 422 `query_budget_exceeded`. OJ-08 confirms the control fails before relying on it
+**Then** the response is 200 with `execution.route: database`; and, as the negative control, the identical document, posted by a principal the policy lets read every row, on a policy-protected mount over the same data returns 422 `query_budget_exceeded`. OJ-08 first shows the control returns 422, then relies on it
 
 ### AC: response-shape (verifies REQ:response-shape)
 
@@ -288,7 +318,7 @@ Journey step 2, 3.
 
 **Given** a single-database join and a cross-database join
 **When** each is posted
-**Then** each response has `records[].data`, an ordered `columns` list and an `execution` object with `route`, `elapsedMs`, `rowsReturned` and `sources[]` (`database`, `collection`, `rows`, `elapsedMs`); `key` is absent on both and present on a single-collection result
+**Then** each response has `records[].data`, an ordered `columns` list and an `execution` object with `route`, `elapsedMs`, `rowsReturned` and `sources[]` (`database`, `collection`, `rows`, `elapsedMs`); `key` is absent on both and present on a non-relational result; a relational document over one source (a COUNT, say) also has `columns` and `execution` and no `key`
 
 ### AC: result-row-cap (verifies REQ:limits)
 
@@ -344,13 +374,13 @@ Journey step 5, 6.
 
 **Given** an over-budget query that reads a policy-protected source
 **When** it is posted
-**Then** the error names the limit and not the number of rows observed
+**Then** the error names the limit and not the number of rows observed; and a protected source larger than the source-read limit, of which the caller can read fewer rows than the limit, returns no budget error
 
 ### AC: profile-refusals (verifies REQ:profile-refusals)
 
 Journey step 6.
 
-**Given** relational documents with a cursor, a `schema`, a `money` value, a parent source, a collection-group source, nine sources, join depth five, limit 1001, and a `scan` on a policy-protected source; and one single-collection document with a cursor and another with limit 1001
+**Given** relational documents with a cursor, a `schema`, a `money` value, a parent source, a collection-group source, nine sources, join depth five, limit 1001, a `scan` on a policy-protected source, and an element the profile does not list (a right join, or a join algorithm hint); and one single-collection document with a cursor and another with limit 1001
 **When** each is posted
 **Then** each relational document returns a 422 naming the refused element and none reaches a database; the two single-collection documents return the existing 400 `invalid_dtql`
 
@@ -366,7 +396,7 @@ Journey step 6.
 
 Journey step 6.
 
-**Given** a policy-protected database joined to a public one and alice readable on some of the protected rows
+**Given** a policy-protected database joined to a public one, alice readable on some of the protected rows, and alice holding a server-wide token (or authentication off and the policy keyed on the resolved principal), per Open Question 4
 **When** alice posts the join
 **Then** the result contains only joined rows built from rows she can read
 
@@ -374,7 +404,7 @@ Journey step 6.
 
 Journey step 6.
 
-**Given** the same databases
+**Given** the same databases and the same server-wide token
 **When** alice posts a COUNT over the protected source
 **Then** the count equals the number of protected rows she can read
 
@@ -391,15 +421,15 @@ Journey step 6.
 Journey step 6.
 
 **Given** two databases mounted
-**When** a document with a source whose `database` is the other database is posted to `/v1/databases/{db}/dtql`
+**When** a relational document with a source whose `database` is the other database is posted to `/v1/databases/{db}/dtql`
 **Then** the response is a 400 naming that source and nothing is read
 
 ### AC: subquery-source-authorised (verifies REQ:subquery-sources-authorised)
 
 Journey step 6.
 
-**Given** alice's token grants database A only, and a policy-protected database P readable by alice in part
-**When** she posts a document whose subquery reads database B, and another whose subquery reads P
+**Given** alice holds a token granting only database P, which is policy-protected and readable by her in part, and database B is also mounted
+**When** she posts a document over P whose subquery reads B, and another whose subquery reads P
 **Then** the first returns a 403 naming B and the second returns only results built from rows she can read
 
 ### AC: hidden-field-not-reachable (verifies REQ:hidden-fields-unreachable)
@@ -407,8 +437,8 @@ Journey step 6.
 Journey step 6.
 
 **Given** a protected collection with a field redacted for alice
-**When** she posts documents using that field as a join key, a group key, an aggregate input and an aliased column
-**Then** none exposes the field's values, in `data` or by grouping, and each is refused or returns the field absent
+**When** she posts documents using that field as a join key, a group key, an aggregate input, an aliased column, a filter predicate and a sort key
+**Then** none exposes the field's values, in `data` or by grouping, filtering or ordering, and each is refused or returns the field absent
 
 ### AC: nested-join-authorised (verifies REQ:policy-per-leaf, REQ:leaf-wrapper)
 
@@ -496,7 +526,7 @@ Journey step 5.
 
 **Given** a relational document
 **When** it is posted with the paging headers
-**Then** the response is a 422
+**Then** the response is a 422 (the code is Open Question A)
 
 ### AC: consistency-documented (verifies REQ:consistency-statement)
 
@@ -536,7 +566,9 @@ Three findings from reading the code, independent of this Feature, kept here unt
    and an opaque resource matches only opaque-query rules, so the probable result is a denial, not
    a leak. It closes with a test in openvaultdb-go that posts a `schema`-qualified
    single-collection document to a policy-protected mount and asserts denial, or with a `schema`
-   refusal added to the existing validator.
+   refusal added to the existing validator, which the browser demo would break (it sends `schema`
+   on single-collection documents when the relation has one) and which `REQ: endpoints` freezes;
+   so the denial test is the way to close it.
 
 ## Out of scope for the first version
 
@@ -560,7 +592,7 @@ the plan's recommendation. Questions A to C are the author's additions.
    browser sends one joined request when the server advertises joins and falls back to today's
    browser join on any failure, so the demo cannot be taken down by two 512 MiB instances being
    busy. (`REQ: demo-fallback`.)
-3. Policy-protected databases: the plan reads an earlier founder instruction, that aggregation
+3. Policy-protected databases: the plan reads an earlier founder statement, that aggregation
    runs natively where the server supports it, as extending to joins. On a database with access
    policies the plan recommends an exception: OVDB aggregates over policy-filtered rows itself,
    bounded at 10,000 rows, until dalgo issue 148 (hidden field behind an alias) is closed and
@@ -592,7 +624,13 @@ Author's additions (not from the plan):
 A. What status and code should relational-profile refusals use? This Feature writes a 422 scoped
    to relational documents, keeping today's 400 `invalid_dtql` for everything else; the plan names
    none. Alternative: reuse the 400 `invalid_dtql` everywhere. Recommendation: the scoped 422 with
-   a stable code naming the refused element, recorded in `docs/api.md` at implementation.
+   a stable code naming the refused element, recorded in `docs/api.md` at implementation. Two
+   related choices go with it. First, a relational document whose source carries a foreign
+   `database` on the per-database endpoint is a 400 here; refusing a non-relational document
+   with a mismatching `database` instead would be a deliberate breaking change that DataTug CLI
+   (which sends `database` on federated leaves and needs `key`) would have to follow, so this
+   Feature leaves that input unchanged. Second, the paging headers on a relational document get
+   a 422 whose code is chosen with the rest.
 B. Are the limits right for a 512 MiB instance (1000 rows, 10 s, 2 concurrent in-memory queries,
    1 on OVDB Cloud)? Recommendation: ship these defaults, configurable, and adjust after OJ-08
    records heap at the bounds; the plan measured nothing.
