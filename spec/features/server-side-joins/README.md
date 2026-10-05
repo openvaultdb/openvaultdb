@@ -20,9 +20,13 @@ unprotected SQLite mount holds every source, otherwise in DALgo's bounded in-mem
 guarded source reads), and returns at most 1000 rows with ordered columns and an execution
 summary. Every source read is authorised against the caller's grants for its database and
 collection, every query is bounded, and the response never reveals the size of data the caller
-cannot read. As a launch limit, a relational document that names a database with access policies
-is refused; joins over such databases are planned after launch. Part 1 covers sources registered
-on one server. External sources are Part 2 and are out of scope here.
+cannot read. On a database with access policies the answer is the one the same question gives on
+a copy of the database that holds only the rows and fields the caller may read, and the policies
+are compiled into the SQL statement, so that the database filters and aggregates. The first shape
+it runs is a document of one collection that groups or aggregates, on SQLite; joins, subqueries
+and documents over several databases are refused with a fixed 422 until they are built
+(`REQ: protected-database-queries` states shape by shape what runs and what is refused). Part 1
+covers sources registered on one server. External sources are Part 2 and are out of scope here.
 
 ## Problem
 
@@ -36,7 +40,7 @@ web app and were not executed.)
 
 ### Origin and authority
 
-The founder's words (2026-10-04; these are the only verbatim founder statements in this Feature; Open Question 3 paraphrases a third, about aggregation). The first is a stated vision and desire, not a ruling; the second is a request
+The founder's words (2026-10-04; these are the only verbatim founder statements in this Feature; Closed question 3 paraphrases a third, about aggregation, and the owner's decisions of 2026-10-05 are paraphrased and not quoted). The first is a stated vision and desire, not a ruling; the second is a request
 with "maybe" twice, not a ruling:
 
 > "OVDB get DTQL query and pass it to DALgo that can join. So OVDB can join recordset from
@@ -46,6 +50,18 @@ with "maybe" twice, not a ruling:
 > "We should fix OVDB to allow joins. And maybe even external data sources (if allowed by OVDB
 > server config). Maybe with support of both whitelisted and blacklisted external sources"
 
+The owner's decisions of 2026-10-05, paraphrased and not quoted. Asked whether relational queries
+on a database with access policies may stay refused, the owner decided that they must be built,
+and not left refused. Asked how, he decided that they run natively: row rules and field lists are
+compiled into the SQL statement, so that the database filters and aggregates, with no row cap
+where the engine runs the whole document. `REQ: protected-database-queries` states what runs
+under that decision, shape by shape. The shape-by-shape rules of that requirement come from a
+design of 2026-10-05 that an independent reviewer read; it is not in the original plan, and the
+owner has not ruled on its details. It describes what the
+server is to run: openvaultdb-go v0.13.0 still refuses every relational document on a database with
+access policies, and the server work that makes the criteria of this requirement pass has not
+landed.
+
 Everything else below, including every limit, route, error code and the profile's contents, is
 the design of the OJ implementation plan (written from code reading on 2026-10-04; nothing in
 it was executed). It is proposed for review, not ruled. Items are marked **PLAN DESIGN**. Parts
@@ -53,19 +69,23 @@ of them were added in review and are not in the plan: the rule that every docume
 is handled as relational, the default refusal and the offset, scan and parse-failure rules of
 `REQ: profile-refusals`, name validation in `REQ: values-and-names-never-text` (the plan covers
 parameter binding only), counting row and byte budgets after the policy filter, the 503
-`query_capacity` code on the database route gate, collection-scoped grants, the refusal of
-relational documents on databases with access policies (`REQ: protected-databases-refused`), the
-rule that a subquery-only document and a root that names a database are relational on the
+`query_capacity` code on the database route gate, collection-scoped grants, the rule that a
+subquery-only document and a root that names a database are relational on the
 per-database endpoint while the endpoint's own database is dropped from the root, the strict
-field-name rule on relational documents, and two whole requirements, `REQ: check-order` and
+field-name rule on relational documents, the limit of the profile to five aggregate functions
+and the refusal of `first` and `last` (the plan accepts every aggregate DALgo has), the parts of
+`REQ: discovery` beyond the block and the two capabilities (the five aggregate names,
+`protectedDatabases`, `fieldNames`, the keys of `limits`, the rule for `joinEngines` and the
+reading of the metadata 422), and two whole requirements, `REQ: check-order` and
 `REQ: field-resolution` (the plan has no order of checks, no ambiguous-field rule and no wildcard
-rule). Those two are marked **Added in review; not in the plan**, and
-`REQ: protected-databases-refused` is marked **Decided in review; not in the plan**, because the
-plan designs the opposite for a protected mount (in-memory over its secured handle). Three of
-these groups are decisions taken in review and reported to the founder, who has not answered
-them: the refusal of relational documents on databases with access policies (Open Question 3),
-the rule that a subquery-only document and a root that names a database are relational on the
-per-database endpoint, and the strict field-name rule (both Open Question D). The
+rule). Those two are marked **Added in review; not in the plan**.
+`REQ: protected-database-queries` replaces the requirement that refused every relational document
+on a database with access policies, which was decided in review because the plan designed the
+opposite for a protected mount (in-memory over its secured handle); it is marked
+**Decided on 2026-10-05; not in the plan**. Two of the groups above are decisions taken in review
+and reported to the founder, who has not answered them: the rule that a subquery-only document
+and a root that names a database are relational on the per-database endpoint, and the strict
+field-name rule (both Open Question D). The
 first quotation covers Part 1; the second covers external sources, which are Part 2 and not in
 this Feature's scope. This Feature was last revised on 2026-10-05 against openvaultdb-go main at
 34eac4b, which holds the relational path, the discovery of the query profile, the field lists that
@@ -90,22 +110,23 @@ Actors: an API caller (the demo or the CLI), a scoped-token user, the OVDB Cloud
 
 | # | Step | Good outcome | Criteria |
 |---|---|---|---|
-| 1 | I fetch `/.well-known/openvaultdb`. | A `query` block, in either authentication mode, lists the endpoint, joins, GROUP BY, five aggregate functions, cross-database support, the limits as data and the join engines; each database's `capabilities` says whether it takes part in joins and aggregation. | `discovery-advertises-query`, `discovery-limits-are-the-enforced-bounds`, `capabilities-per-database` |
+| 1 | I fetch `/.well-known/openvaultdb`. | A `query` block, in either authentication mode, lists the endpoint, joins, GROUP BY, five aggregate functions, cross-database support, the limits as data and the join engines; each database's `capabilities` says whether it takes part in joins and aggregation, and a new key says what runs on databases with access policies. | `discovery-advertises-query`, `discovery-limits-are-the-enforced-bounds`, `capabilities-per-database`, `protected-databases-flag-is-a-false-boolean`, `protected-database-queries-discovered` |
 | 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve, and the same data split across two mounts is a 422 `query_budget_exceeded`. The same join on a mount with access policies is a 422 `authorization_unsupported`. | `single-database-join-pushdown`, `relational-profile-accepted`, `subquery-only-document-is-relational`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `default-schema-dropped`, `parameters-and-names-cannot-change-query`, `ambiguous-field-refused`, `field-without-list-refused`, `aggregate-reads-first-source`, `wildcard-expands-in-field-order` |
 | 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `cross-database-endpoint-single-source`, `default-schema-dropped`, `response-shape`, `mount-lease-drains-on-unmount`, `consistency-documented` |
-| 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join; a lone-source read of such an engine is refused on `/v1/dtql` and served on the per-database endpoint; a relational document that names a database with access policies has no label and is a 422 `authorization_unsupported`. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused`, `lone-source-outside-join-set-by-endpoint` |
+| 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join; a lone-source read of such an engine is refused on `/v1/dtql` and served on the per-database endpoint; a document of one collection that groups or aggregates on a SQLite database with access policies is labelled `database`, and any other relational document that names a database with access policies has no label and is a 422 `authorization_unsupported`. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused`, `lone-source-outside-join-set-by-endpoint` |
 | 5 | My query is too big or too slow. | 422 `query_budget_exceeded` naming the limit and a hint; never partial rows. | `budget-exceeded-is-422-never-partial`, `timeout-is-504`, `budget-errors-report-limit-only`, `paging-headers-refused` |
-| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; on the protected database every join, COUNT, nested join and aggregate is the same 422 `authorization_unsupported` with no rows and no `execution`, while a single-collection read of it on the per-database endpoint returns only the rows she may read; refused profile elements are a 400 `invalid_dtql`. | `grant-checked-for-every-source`, `protected-database-refuses-relational-document`, `profile-refusals`, `first-and-last-refused`, `check-order-decides-the-status`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `collection-scoped-grant-checked` |
+| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database I count, group and aggregate one collection, and I join it to a public one. | 403 naming the other database; on the protected database a COUNT or an aggregate over one collection returns only her own figures, run by the database, while a field she may not read, and a collection she may not read or that the database does not declare, are the same 403 `ACCESS_DENIED`; every join, nested join, subquery and document over two databases is the same 422 `authorization_unsupported` with no rows and no `execution`; refused profile elements are a 400 `invalid_dtql`. | `grant-checked-for-every-source`, `protected-database-refuses-relational-document`, `protected-aggregate-runs-in-the-database`, `count-equals-readable-rows`, `aggregate-equals-permitted-copy`, `hidden-field-not-reachable`, `unknown-and-denied-collection-are-indistinguishable`, `no-row-count-for-protected-source`, `profile-refusals`, `first-and-last-refused`, `check-order-decides-the-status`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `collection-scoped-grant-checked` |
 | 7 | (nothing) Two hundred visitors click the same demo question. | Identical GETs come from cache; excess in-memory queries get 503 with `Retry-After`; the instance stays up. | `identical-gets-cacheable`, `capacity-gate-503`, `database-route-capacity-gate` |
 | 8 | As operator I deploy OVDB Cloud. | The deploy smoke join passes. | `deploy-smoke-join` |
 | 9 | I run the demo question in the browser. | One query request; on a server without joins, the same answer by the browser path. | `demo-uses-server-join-when-advertised`, `demo-falls-back-on-failure` |
 
 Whole-journey test: a single HTTP test walks steps 1 to 7 and asserts mechanism, not only output
-(pushdown proved by the in-memory control, the budget error, the refusal of every relational shape
-on a database with access policies): `journey-over-http`. Plan task OJ-08 must cite every id of the
-steps it walks; the other OJ tasks cite the ids of the steps they implement. The criteria of
-databases with access policies that are not testable at launch are under "After launch: joins over
-databases with access policies" and belong to no step.
+(pushdown proved by the in-memory control, the budget error, the refusal of every shape that a
+database with access policies does not run, and the figures of the one it does): `journey-over-http`. Plan
+task OJ-08 must cite every id of the steps it walks; the other OJ tasks cite the ids of the steps
+they implement. The criteria of databases with access policies that cannot be tested yet are
+under "Later: joins, subqueries and several databases with access policies" and belong to no
+step.
 
 ### Endpoints
 
@@ -160,28 +181,36 @@ caller can predict the status of any request from this Feature alone:
    not bind (400 `bad_request` or `invalid_dtql`); then a document that parses and that the
    profile accepts, so that every refusal of `REQ: profile-refusals`, every alias or qualifier that is not an identifier and every name that
    the wider quoted-name rule of `REQ: values-and-names-never-text` refuses is a 400
-   `invalid_dtql`, or `invalid_key` for a collection name.
+   `invalid_dtql`, or `invalid_key` for a collection name. That includes a field or a wildcard with
+   no source in a join that holds no subquery, which the DTQL parser refuses (`REQ: field-resolution`).
 3. Every source has a database: a source with none on `/v1/dtql`, or a database other than `{db}`
    on the per-database endpoint (400 `invalid_dtql`).
 4. The caller's grant covers every database and collection a source names, at any depth (403
    `forbidden`, naming the first it does not cover, whether or not that database is mounted).
 5. Every database a source names is mounted (404 `not_found`).
-6. No database a source names has access policies (422 `authorization_unsupported`,
-   `REQ: protected-databases-refused`).
+6. No database a source names has access policies when the document is of a shape that such a
+   database does not run (422 `authorization_unsupported`, `REQ: protected-database-queries`). The
+   shape decides, and neither the collections the document names nor the policy do.
 7. Every collection a source names is one that its database declares, under its canonical name,
-   where the engine builds SQL (404 `not_found`).
+   where the engine builds SQL (404 `not_found`); for a database with access policies, a
+   collection that it does not declare, or that is spelled otherwise than its canonical name, is
+   answered exactly as a collection that the policy denies (403 `ACCESS_DENIED`, the same status,
+   headers and body; `REQ: protected-database-queries`).
 8. No paging header is present (422 `snapshot_unsupported`).
 9. Every database is on an engine that can be queried (501 `query_unsupported`), and then on one
    in the join set (422 `join_engine_unsupported`).
 10. The executor's own check of the document, before it asks for a slot: a field name that the
     wider rule accepts and the strict one of a relational document refuses, one output name on
     two columns, a `param` in a YAML body, which binds none (400 `invalid_dtql`). A database with
-    access policies refuses that document at check 6 first, with the 422; the same `param` in a
-    JSON body or a GET that does not bind it is check 2.
+    access policies refuses a document of a shape it does not run at check 6 first, with the 422;
+    the same `param` in a JSON body or a GET that does not bind it is check 2.
 11. A free slot on the route, after the queue wait of the server's settings (503
-    `query_capacity`); then, while the query runs, the bounds of
+    `query_capacity`); then, before a row is read, the field-list refusals of `REQ: field-resolution`
+    (400 `invalid_dtql`); then, while the query runs, the bounds of
     `REQ: limits` (422 `query_budget_exceeded`), the time limit (504 `query_timeout`) and a shape
-    that DALgo or the database refuses (400 `invalid_dtql`).
+    that DALgo or the database refuses (400 `invalid_dtql`). On a database with access policies the
+    access layer refuses a field that the caller's policy hides (403 `ACCESS_DENIED`) when the read
+    starts, before any statement is sent.
 
 Checks 3 to 11 apply to a document on the new path. None of them applies as written to a
 single-collection document. It passes checks 1 and 2 and the grant on its one collection (403
@@ -189,7 +218,7 @@ single-collection document. It passes checks 1 and 2 and the grant on its one co
 names (`REQ: values-and-names-never-text`) and for bounds (`REQ: limits`): a database with access
 policies is read through its policy, and the paging headers page the result. The answer for a
 collection that the database does not declare, on that path, is not changed by this Feature and is
-not specified here.
+not specified here, except for a database with access policies, where it is the 403 of check 7.
 
 #### REQ: values-and-names-never-text
 
@@ -228,8 +257,9 @@ HAVING, the aggregate functions `count`, `sum`, `avg`, `min` and `max` (in any l
 column aliases, subqueries, join algorithm hints, and source aliases, plus everything the existing
 single-collection profile accepts (field columns,
 WHERE, ORDER BY, a LIMIT up to 1000, parameters) and an `offset` up to 10,000. Subqueries always
-run in memory. Engines in a join are limited at launch (`REQ: routing`). As a launch limit,
-`first` and `last`, which DALgo also provides, are not in the profile: they need a stable row
+run in memory. Engines in a join are limited at launch (`REQ: routing`). The plan accepts every
+aggregate DALgo has; the limit to five functions is a launch limit added in review and not in the
+plan. `first` and `last`, which DALgo also provides, are not in the profile: they need a stable row
 order, which no engine the server runs declares, and they return after launch together with an
 ordering for aggregates (`REQ: profile-refusals`). A join tree may nest to
 any depth within the bound of 8 sources (`REQ: profile-refusals`); its depth is not bounded
@@ -241,11 +271,13 @@ and bounds `offset`; a hint only chooses among join algorithms DALgo bounds itse
 
 **Added in review; not in the plan.** A source supplies a **field list** to the join engine: the
 names of the fields a record of it can hold. A SQLite mount supplies the columns of the table in
-the table's order, the key column `id` included. A strict inGitDB collection supplies the fields
-its schema declares, sorted by name, when it declares at least one and none of them has the type
-object or any; a record's key is not a field there. A partial or schemaless database, a collection
-that declares no field or one of the type object or any, a database with access policies (no
-relational document reaches one at launch) and a subquery used as a source supply none.
+the table's order, the key column `id` included, whatever its schema declares. A strict database on
+an engine whose driver supplies no columns (local inGitDB at launch, Firestore when the operator
+lists it) supplies the fields its schema declares, sorted by name, when it declares at least one
+and none of them has the type object or any; a record's key is not a field there. On those
+engines, a partial or schemaless database and a collection that declares no field or one of the
+type object or any supply none. So does a database with access policies (a document of more than
+one source does not reach one yet), and so does a subquery used as a source.
 
 The rules below apply to a query of more than one source. The outermost query, a derived source, a
 scalar subquery and an EXISTS test are each a query with the sources of their own; a query of one
@@ -268,14 +300,18 @@ not.
   the source that carries it.
 - A wildcard of a source (`source.*`, with or without `exclude`) MUST expand to the fields of that
   source's field list, on the database route and on the in-memory route alike. A SQLite source
-  therefore returns its key column and a strict inGitDB source does not. `columns` lists the
-  expanded names sorted by name, at the position of the wildcard. A wildcard of a source that
-  supplies no field list is not specified here.
+  therefore returns its key column and a strict inGitDB source does not. In `columns` a wildcard
+  stands, at its position, for the names the rows of the answer carry that no other column of the
+  select list names and that it does not exclude, sorted by name; an answer with no rows lists no
+  name for it. A wildcard of a source that supplies no field list is not specified here. A
+  wildcard that names no source, and a document of several sources that has no column list, are
+  not specified here.
 
 A document that has a join and no subquery never reaches these rules with an unqualified field: the
 DTQL parser refuses a field or a wildcard that carries no source in such a document, with a 400
-`invalid_dtql`, before a field list is asked for. The rules decide a document that has a join and a
-subquery, which runs in memory (`REQ: routing`).
+`invalid_dtql`, before a field list is asked for. The rules decide a query that has a join and holds
+a subquery, in a clause or as a source; such a query runs in memory (`REQ: routing`). The parser's
+rule applies to each query of the document on its own.
 
 #### REQ: profile-refusals
 
@@ -302,7 +338,11 @@ and dalgo PR 197 has not landed.)
 
 #### REQ: discovery
 
-**PLAN DESIGN.** `/.well-known/openvaultdb` MUST carry a `query` block in both authentication
+**PLAN DESIGN** for the block and the two capabilities; the five aggregate names,
+`protectedDatabases`, `fieldNames`, the keys of `limits`, the rule for `joinEngines` and the
+reading of the metadata 422 were added in review; the key `protectedDatabaseQueries` and the
+computing of the two capabilities apart were decided on 2026-10-05 and are not in the plan.
+`/.well-known/openvaultdb` MUST carry a `query` block in both authentication
 modes, and each database's `capabilities` MUST carry `joins` and `aggregation`. The protocol
 string MUST NOT change. Every value is read from the code that enforces it, so that a client that
 follows discovery is not refused for what discovery said. The shape of both documents, with
@@ -312,13 +352,28 @@ documents", subsection "Discovery"); this requirement states what a client may r
 - The `query` block holds the endpoint that reads several databases (`/v1/dtql`), the document
   format, `features`, `limits` and `joinEngines`. It holds nothing that belongs to one database, so
   it is the same in both modes. With authentication off the document also lists the databases;
-  with it on no database is listed, and a caller reads the `capabilities` of a database from its
-  metadata (`GET /v1/databases/{db}`).
+  with it on no database is listed, and a caller whose token grants `collections:read` on a
+  database reads its `capabilities` from its metadata (`GET /v1/databases/{db}`); a token without
+  that capability gets a 403 `forbidden` there, whatever the database.
 - `features` names five aggregate functions, `count`, `sum`, `avg`, `min` and `max`, and states
   `windowFunctions: false`, `externalSources: false`, `protectedDatabases: false` and
   `fieldNames: plain`, beside the join types (`inner` and `left`), grouping, HAVING, subqueries and
   cross-database support. `first` and `last` are not named: they are refused on every route
   (`REQ: profile-refusals`).
+- `features.protectedDatabases` keeps its type, a JSON boolean, and its value, `false`, until no
+  relational shape of the profile is refused on a database with access policies for its shape
+  alone. A boolean cannot say "partly", and `false` promises nothing the server does not do. What
+  does run on such databases is stated by a key added beside it, `features.protectedDatabaseQueries`,
+  an object that holds `engines`, the engines on which a database with access policies runs
+  relational documents (`["sqlite"]` at first), and one boolean each for `aggregation` (a
+  document of one collection that groups or aggregates), `joins` (a join inside one database),
+  `subqueries` (a subquery, a derived source or EXISTS) and `crossDatabase` (a document over
+  several databases, one of which has access policies). Each value is read from the rule that
+  decides the request, so that it is true exactly when a document of that shape is run; the first
+  of them, `aggregation`, is `true` and the other three are `false` while only a document of one
+  collection runs.
+  The key names no database, so it is the same with authentication on and off. It is added and
+  never changed in type, and a client that does not know it ignores it.
 - `limits` states, as data, what one document may ask for: twelve keys, each the value the server
   enforces, and none of the capacity of the server (no concurrency slots and no queue wait). Three
   values come from the server's settings: `timeoutMs`, `maxSourceRows` and `maxSourceBytes`. Nine
@@ -329,14 +384,19 @@ documents", subsection "Discovery"); this requirement states what a client may r
 - `joinEngines` lists only the engines whose databases can take part in a relational document: the
   engines of the operator's list that the structured-query guard clears, without the GitHub-backed
   inGitDB engine, which no list enables (`REQ: routing`).
-- A database's `joins` and `aggregation` are true exactly when a relational document that names
-  it is not refused for the database itself: its engine is in `joinEngines` and it has no access
-  policies. At launch the two carry the same value.
+- A database's `joins` and `aggregation` are computed apart, each from the rule that decides a
+  request of its own shape: `aggregation` is true exactly when a document of one source that
+  groups or aggregates and names the database is not refused for the database itself, and
+  `joins` exactly when a join of its collections is not. For a database without access policies
+  both are true when its engine is in `joinEngines`, as before. For a SQLite database with access
+  policies `aggregation` is `true` and `joins` is `false`; for a local inGitDB database with
+  access policies both are `false`.
 - A database with access policies is not described by its metadata: the metadata route answers
-  422 `authorization_unsupported`. With authentication off the discovery list says `joins: false`
-  and `aggregation: false` for it. With authentication on there is no list, and that 422 is
-  itself the statement that the database takes no relational document; a relational document that
-  names it is refused with the same code (`REQ: protected-databases-refused`).
+  422 `authorization_unsupported`, after the 403 for a token without `collections:read`. With
+  authentication off the discovery list gives its `joins` and `aggregation` as above. With
+  authentication on there is no list, and that 422 says only that the metadata of such a database
+  is not served: what such databases run is stated by `features.protectedDatabaseQueries`, and by
+  the 422 that a document of a shape they do not run gets (`REQ: protected-database-queries`).
 
 ### Routing
 
@@ -349,14 +409,16 @@ documents", subsection "Discovery"); this requirement states what a client may r
 | One mount, SQLite (PostgreSQL after OV-01), no access policies, no subquery and no null test | `database` | The database, inside one read transaction. When the database cannot compile a join that has no aggregation, nothing has been read yet and the document is read again on the in-memory route, whose label the response then carries |
 | Several mounts, none with access policies | `in-memory` | DALgo over leaf reads; a flat equality join without ORDER BY streams |
 | One mount without access policies that holds a subquery or a null test, or one inGitDB mount | `in-memory` | DALgo over leaf reads |
-| A mount with access policies among the databases the document names | refused, 422 `authorization_unsupported`, no route label | Nothing runs: the refusal comes before any collection name is looked up (`REQ: protected-databases-refused`) |
+| One mount, SQLite, with access policies, and a document of one source that groups or aggregates, with no subquery, derived source or EXISTS and no scan clause; a null test does not change the route | `database` | The database, inside one read transaction under one policy snapshot, with the caller's row rules in the statement and the field lists checked before it (`REQ: protected-database-queries`). A refusal on this route is never followed by a read in memory |
+| Any other document that names a mount with access policies (a join, a subquery, a derived source, several databases, or a protected inGitDB mount) | refused, 422 `authorization_unsupported`, no route label | Nothing runs: the refusal comes before any collection name is looked up (`REQ: protected-database-queries`) |
 | PostgreSQL or MySQL mount | refused, 501 `query_unsupported` naming the engine | The guard on main (openvaultdb-go pull request 40, merged): every structured query on those mounts is refused until OV-01 |
 | Any other engine outside the join set | refused, 422 `join_engine_unsupported` naming the engine | The operator's list of join engines, SQLite and local inGitDB by default; a GitHub-backed inGitDB mount is never joined |
 
 The design follows the first quotation (OVDB passes the document to DALgo, which joins) and runs
 a query inside one unprotected SQLite mount in SQLite; that extension to joins is the plan's
-reading, not a founder statement. A policy-protected mount is refused at launch
-(`REQ: protected-databases-refused`); how joins over it are served after launch is Open Question 3.
+reading, not a founder statement. On a policy-protected mount the owner's decision of 2026-10-05
+applies (`REQ: protected-database-queries`): what runs there is the first of the two rows for
+such a mount, and the rest is refused until it is built.
 The label can say `database` or `in-memory` but not whether the adapter accepted the join,
 because DALgo hides that decision behind an unexported wrapper; closing that needs a DALgo change
 and the founder's stated reason (Open Question 5).
@@ -376,15 +438,17 @@ caller's principal, never rows scanned.
 order the document selects them, and `execution` with the route, the elapsed time, the number of
 rows returned and, for each source, its database and collection; on the `in-memory` route each
 source also carries `rows` and `elapsedMs`, and on the `database` route the database reports no
-more. `docs/api.md` of openvaultdb-go owns the shape, with examples.
+more. When a source has access policies, the block carries no row count and no elapsed time for it,
+and no elapsed time for the request (`REQ: protected-database-queries`). `docs/api.md` of
+openvaultdb-go owns the shape, with examples.
 Every response on the new path, including one over a single source and every successful response
 from `/v1/dtql`, has `columns` and `execution` and no `key`. A non-relational response on the
 per-database endpoint keeps exactly `{"records":[{"key","data"}]}`: `columns` and `execution` are
 never added to it. A relational row is not passed through the schema coercion of the
 single-collection path: a declared boolean of a SQLite mount is 0 or 1 in a relational row and
-`true` or `false` in a single-collection record (read from code, not executed: no test holds a
-declared boolean, and a relational test over a declared boolean column on both routes is a
-follow-up in openvaultdb-go). This difference is accepted for the first version.
+`true` or `false` in a single-collection record (pinned on the database route by
+`TestDocumentedBooleanOfARelationalRowIsNotCoerced` in openvaultdb-go; the in-memory route is not
+pinned, and a test over a declared boolean there is a follow-up). This difference is accepted for the first version.
 
 ### Limits
 
@@ -432,52 +496,140 @@ mount is resolved (403 before 404), and again at each leaf. On the `database` ro
 leaf wrapper is not involved, so this check is the only grant check there. A 403 for a
 cross-database document MUST name the database that is not allowed. Grants naming several databases: Open Question 4.
 
-#### REQ: protected-databases-refused
+#### REQ: protected-database-queries
 
-**Decided in review; not in the plan (Open Question 3).** This is a launch limit. A relational document that names a database with access
-policies in any of its sources, at any depth and in a subquery included, MUST be refused with a
-422 `authorization_unsupported` that carries no rows and no `execution`, and that names the
-database and no collection. The refusal comes after the grant check (403) and the lookup of the
-database (404), and before any collection name is looked up and before anything is read, so the
-answer depends on the databases the document names and on nothing else: it is the same whichever
-collections the document names, declared or not, readable or not, and whatever shape it has (a
-join, a nested join, a COUNT, an aggregate, an alias, a subquery). A document of one plain
-collection on the per-database endpoint is not relational and is still read through the mount's
-policy: it returns only the rows the caller may read. Joins over databases with access policies
-are planned after launch; the requirements below that concern them, and their criteria, are kept
-under "After launch: joins over databases with access policies".
+**Decided on 2026-10-05; not in the plan.** It replaces the requirement that refused every
+relational document on a database with access policies (Closed question 3). It states the rule for
+every shape, what the server runs of it now, and what it refuses.
+
+**The rule.** On a database with access policies a caller may ask the same questions as on any
+other database: join, group, count, sum, average, minimum, maximum. The answer MUST equal the
+answer that the same question gives on a **permitted copy** of the database, a copy that holds, for
+this caller, only the rows the caller may read and only the fields the caller may read. A count
+counts the caller's rows and no others. A question that names a field the caller may not read MUST
+be refused whole, wherever the field stands: selected, filtered on, grouped by, sorted by, joined
+on, aggregated, tested for empty, or hidden behind another name. The caller gets the whole answer
+or a refusal, never a part of one, and a shape for which the server cannot keep this rule MUST be
+refused.
+
+**Bounds.** When every collection of a document is in one database whose engine can run the whole
+document, the database does the filtering and the arithmetic itself, and no row cap applies to
+what it reads. A document that spans several databases, or that the engine cannot run whole, is
+answered by the server from the rows the caller may read of each collection; that way is bounded:
+a join may hold at most 10,000 rows and 16 MiB, counted on the caller's own rows only. An answer
+holds at most 1000 rows and 8 MiB either way. Only the first way is served so far: every document
+that runs on a database with access policies runs on the `database` route.
+
+**What runs.** A document runs on a database with access policies when all of this holds: it has
+exactly one source, and that source is a collection of that database; it has no subquery, derived
+source or EXISTS test and no `scan` clause; and the engine of the database is SQLite. It may
+group, aggregate with the five functions of `REQ: relational-profile`, alias columns, filter,
+test for null, order and limit, and it is accepted on both endpoints. Every other document that
+names a database with access policies is refused as the table below says. A document of one plain
+collection with no such feature is read by the single-collection path, through the mount's
+policy, as before.
+
+**How the policy is applied.** A document that runs is executed by the database, as one statement
+in one read transaction under one snapshot of the policy:
+
+- A row rule is added to the statement, joined with AND to the caller's own condition, which is
+  kept as one group, so that the database drops the rows the caller may not read before it groups.
+  Every aggregate sees only rows the caller may read, and `COUNT(*)` counts the rows that survive
+  the rule. The aggregate and the GROUP BY are in the statement; the server does not compute them.
+- A field list is checked before the statement is built, and nothing is redacted from rows after
+  the read. Every column's expression, WHERE, GROUP BY, HAVING, ORDER BY, every operand of an
+  aggregate and the operand of every null test is checked against the list. A hidden field is a 403
+  `ACCESS_DENIED` with the fixed text "access denied", and nothing is read. An alias names an
+  output and is never a permission: the check is on the expression behind it, so a hidden field
+  selected under an allowed alias is refused, and so is a selection of which every column is
+  refused. HAVING and ORDER BY may use an alias only for an aggregate over allowed fields.
+- Every value of a rule (the caller's id, roles and groups) reaches the database as a bound
+  value and never inside the statement text. A parameter of a rule that has no value denies the
+  request. Names (collection, field, alias) are written as quoted identifiers after the name rules
+  of `REQ: values-and-names-never-text`. The text of the statement depends on a value only by
+  whether it is nil, by the length of a list and by its type: two callers whose values have the
+  same types and lengths get byte-identical text.
+- A relational answer carries no record key. The key column of the table appears in `data` only
+  if the caller selected it and may read it.
+- A database that is busy when the read transaction starts is answered with a retryable 503 and
+  never with a denial or a 404.
+- A refusal on this route is never followed by a read in memory, whatever code it carries.
+- An answer that read a database with access policies is `Cache-Control: no-store`.
+- The `execution` block of such an answer carries the route, `rowsReturned` and, for each source,
+  its database and collection. It carries no row count for a source with access policies and no
+  elapsed time, neither the request's nor a source's. The time that a request takes still grows
+  with the rows the database scans, as in every system that filters rows, and the time limit and
+  the request limits of the server bound it; the server's own stopwatch is left out of the block so
+  that it is not a second signal.
+- An error or a bound MUST NOT depend on rows the caller may not read: a table whose hidden rows
+  hold hostile values (text in a numeric column, huge numbers, blobs) and outnumber every bound
+  answers exactly as the same table without them.
+
+**Unknown and denied collections.** For a database with access policies, a collection that the
+database does not declare, or that is spelled otherwise than its canonical name, MUST be answered
+exactly as a collection that the policy denies: the same status, headers and body, on both
+endpoints and for every shape that runs, at the handler's own check and for any not-found error
+that comes back from the executor. The database does not say which collections it declares.
+
+**What is refused.** A refusal decided by the shape of the document and the engine of the
+database never depends on a collection name or on the content of a policy: it is the same for
+every caller and every collection, declared or not, readable or not, and it comes before any
+collection name is looked up and before anything is read.
+
+| Document on a database with access policies | Status and code | Message | Until |
+|---|---|---|---|
+| Names a field the caller may not read, in any clause, under any alias | 403 `ACCESS_DENIED` | "access denied" | Always |
+| Names a collection the caller may not read, or one the database does not declare | 403 `ACCESS_DENIED`, the same body for both | "access denied" | Always |
+| Any join | 422 `authorization_unsupported` | Names the database and says which kinds of document it runs; never a collection | Joins on such databases are built |
+| A subquery, a derived source or an EXISTS test | 422 `authorization_unsupported` | Names the database | The in-memory route reads such sources |
+| A document that reads several databases, one of them with access policies | 422 `authorization_unsupported` | Names the database | The in-memory route reads such sources |
+| Any relational document on a protected local inGitDB mount | 422 `authorization_unsupported` | Names the database | The in-memory route reads such sources |
+| A `scan` clause, or any other element that `REQ: profile-refusals` refuses | 400 `invalid_dtql` | As on a database without policies | Stays |
+| A document that runs, sent with a paging header | 422 `snapshot_unsupported` | As on a database without policies | Stays |
+| `first` and `last`, `money`, a cursor | As on a database without policies | As on a database without policies | Not part of this requirement |
+| A relational document sent to the authorisation API (plan, inspect, sample) | 400, as today | As today | Not specified here |
+| A PostgreSQL mount, or a GitHub-backed inGitDB mount, with access policies | The mount is refused when it opens | As today | Not planned here |
+
+A 400 for a profile element is decided when the document is parsed (`REQ: check-order`, check 2),
+before the policy is asked, and is the same on a database with and without policies. The rules
+that only a join needs (where the row rule of a source goes, arithmetic in a join condition, a
+wildcard over a join) are stated by the revision that serves joins; until then every join is the
+422 above.
 
 #### REQ: policy-per-leaf
 
-**PLAN DESIGN, after launch.** Leaf reads MUST use the mount's secured handle with the request
+**PLAN DESIGN, not yet built.** Leaf reads MUST use the mount's secured handle with the request
 principal; joins and aggregates MUST happen above it. A nested join MUST never be handed whole to
 a protected handle (risk finding 2 below). Engines that cannot enforce policy cannot have policies
 (the mount refuses the configuration), so grants alone govern them; they are outside the join set
-at launch. At launch no relational document reads a database with access policies
-(`REQ: protected-databases-refused`).
+at launch. No relational document that needs leaf reads reads a database with access policies yet:
+the one shape that runs there runs inside the database (`REQ: protected-database-queries`), and
+every other is refused.
 
 #### REQ: row-count-privacy
 
-**PLAN DESIGN, after launch.** Results MUST derive only from rows the caller could read, source by
-source. The execution summary MUST NOT report scanned rows and MUST omit the row count for any
-source with access policies. A COUNT MUST equal the caller's readable rows. At launch the
-execution summary reports the rows read from each source on the in-memory route, and every
-source of a relational answer is a database without access policies.
+**PLAN DESIGN.** It applies now to a document of one source that runs on a database with access
+policies (`REQ: protected-database-queries`), and to joins and in-memory reads when they are
+built. Results MUST derive only from rows the caller could read, source by source. The execution
+summary MUST NOT report scanned rows and MUST omit the row count for any source with access
+policies; on an answer that read such a source it also carries no elapsed time. A COUNT MUST equal
+the caller's readable rows. The execution summary reports the rows read from each source on the
+in-memory route, and every source of an in-memory answer is a database without access policies.
 
 #### REQ: subquery-sources-authorised
 
 **PLAN DESIGN.** A source inside a subquery MUST be authorised exactly as a top-level source: the
 grant check for its database and collection, before anything is read, and, for a database with
-access policies (after launch), the mount's policy at its leaf read.
+access policies (when the in-memory route reads such sources), the mount's policy at its leaf read.
 
 #### REQ: hidden-fields-unreachable
 
-**PLAN DESIGN, after launch.** A field that policy redacts for the caller MUST NOT be usable,
-directly or by alias, as a join key, group key, aggregate input, column, filter predicate (WHERE,
-HAVING, join ON) or sort key, and MUST NOT appear in `data`. (This is the reason policy-protected
-mounts are read one collection at a time; dalgo issue 148, a hidden field behind an alias, is
-open.) At launch no relational document reads a database with access policies
-(`REQ: protected-databases-refused`).
+**PLAN DESIGN.** It applies now to a document of one source that runs on a database with access
+policies, and to joins when they are built. A field that policy redacts for the caller MUST NOT be
+usable, directly or by alias, as a join key, group key, aggregate input, column, filter predicate
+(WHERE, HAVING, join ON) or sort key, and MUST NOT appear in `data`. An alias is a name for an
+output and never a permission: the check is on the expression behind it
+(`REQ: protected-database-queries`). No join reads a database with access policies yet.
 
 ### Consistency
 
@@ -491,9 +643,10 @@ both.
 
 #### REQ: cacheable-gets
 
-**PLAN DESIGN.** GET responses MUST be public for the smallest `cache_ttl` of the involved
+**PLAN DESIGN**; the `no-store` sentence was added on 2026-10-05. GET responses MUST be public for the smallest `cache_ttl` of the involved
 databases only when the server is read-only, authentication is off and no involved database has
-policies; otherwise they MUST NOT be publicly cacheable. (An edge cache in the Worker is
+policies; otherwise they MUST NOT be publicly cacheable, and an answer that read a database with
+access policies carries `Cache-Control: no-store`. (An edge cache in the Worker is
 cuttable, OJ-11.)
 
 #### REQ: demo-fallback
@@ -515,7 +668,7 @@ Journey step 1.
 
 **Given** a server in either authentication mode
 **When** `GET /.well-known/openvaultdb` is fetched
-**Then** the body has a `query` block with the endpoint `/v1/dtql`, the format, `features` (the join types `inner` and `left`, grouping, HAVING, subqueries, cross-database support, the five aggregate functions `count`, `sum`, `avg`, `min` and `max`, `windowFunctions: false`, `externalSources: false`, `protectedDatabases: false`, `fieldNames: plain`), `limits` and `joinEngines`; the block is the same in both modes; with authentication on the document lists no database; and the protocol string is unchanged
+**Then** the body has a `query` block with the endpoint `/v1/dtql`, the format, `features` (the join types `inner` and `left`, grouping, HAVING, subqueries, cross-database support, the five aggregate functions `count`, `sum`, `avg`, `min` and `max`, `windowFunctions: false`, `externalSources: false`, `protectedDatabases: false`, `fieldNames: plain`, and the object `protectedDatabaseQueries`), `limits` and `joinEngines`; the block is the same in both modes; with authentication on the document lists no database; and the protocol string is unchanged
 
 ### AC: discovery-limits-are-the-enforced-bounds (verifies REQ:discovery, REQ:limits)
 
@@ -529,9 +682,25 @@ Journey step 1.
 
 Journey step 1.
 
-**Given** a SQLite database, a local inGitDB database, a GitHub-backed inGitDB database, a database on an engine outside the join set (Firestore, say), a PostgreSQL database and a database with access policies mounted, under several operator lists of join engines
-**When** discovery is fetched and the metadata of each database is read, and a relational document naming each database is posted
-**Then** each database's `capabilities` carries `joins` and `aggregation`, true exactly when the relational document is not refused for the database itself, so that a client that reads `true` is not refused by it; an engine is in `joinEngines` exactly when a database on it without access policies advertises `joins: true`, and the GitHub-backed engine never is; and the database with access policies says `joins: false` in the discovery list while its metadata is a 422 `authorization_unsupported`
+**Given** a SQLite database, a local inGitDB database, a GitHub-backed inGitDB database, a database on an engine outside the join set (Firestore, say), a PostgreSQL database, a SQLite database with access policies and a local inGitDB database with access policies mounted, under several operator lists of join engines
+**When** discovery is fetched with authentication off, and for each database a one-source document that groups or aggregates and a join are posted
+**Then** each database's `capabilities` carries `joins` and `aggregation`, each true exactly when a document of its own shape that names the database is not refused for the database itself, so that a client that reads `true` is not refused by it; an engine is in `joinEngines` exactly when a database on it without access policies advertises `joins: true`, and the GitHub-backed engine never is; a database without access policies has the two equal as before; the SQLite database with access policies says `aggregation: true` and `joins: false`; the local inGitDB database with access policies says both `false`; and its metadata is a 422 `authorization_unsupported`, which a token without `collections:read` does not reach (403 `forbidden`)
+
+### AC: protected-databases-flag-is-a-false-boolean (verifies REQ:discovery)
+
+Journey step 1.
+
+**Given** a server that mounts a SQLite database with access policies, in either authentication mode, and a client that decodes `query.features.protectedDatabases` as a JSON boolean
+**When** discovery is fetched
+**Then** the value decodes as a boolean and is `false`, whatever the server runs on databases with access policies
+
+### AC: protected-database-queries-discovered (verifies REQ:discovery, REQ:protected-database-queries)
+
+Journey step 1.
+
+**Given** a server that mounts a SQLite database with access policies, in either authentication mode
+**When** discovery is fetched
+**Then** `query.features.protectedDatabaseQueries` is an object with `engines` listing `sqlite` and `aggregation: true`, `joins: false`, `subqueries: false` and `crossDatabase: false`; it names no database; it has the same content in both modes; and each of the four booleans equals whether a document of its shape that names a database with access policies on one of those engines is accepted
 
 ### AC: single-source-with-database-unchanged (verifies REQ:endpoints)
 
@@ -603,7 +772,7 @@ Journey step 2.
 
 **Given** a SQLite mount and a strict local inGitDB mount, and a join of two sources whose columns hold a wildcard of one source with an `exclude`, and a join of two SQLite mounts with a wildcard of one source
 **When** each is posted, so that the database route runs the first, and the in-memory route runs the other two
-**Then** each returns 200 and the wildcard stands for the fields of its source's field list less the excluded names: the columns of the SQLite table with its key column `id` on either route, and the declared fields of the inGitDB collection with no key; and `columns` lists the expanded names sorted by name, at the position of the wildcard
+**Then** each returns 200 and the wildcard stands for the fields of its source's field list less the excluded names: the columns of the SQLite table with its key column `id` on either route, and the declared fields of the inGitDB collection with no key; and in `columns` the wildcard stands, at its position, for the names the rows of the answer carry that no other column of the select list names and that it does not exclude, sorted by name, and an answer with no rows lists no name for it
 
 ### AC: single-database-join-pushdown (verifies REQ:routing)
 
@@ -649,9 +818,9 @@ Journey step 3.
 
 Journey step 4.
 
-**Given** one unprotected SQLite mount, two mounts, one policy-protected mount and one document with a subquery
-**When** a relational document runs against each
-**Then** the answers are `database`, `in-memory`, a 422 `authorization_unsupported` that has no label, and `in-memory`, in that order
+**Given** one unprotected SQLite mount, two mounts, one policy-protected SQLite mount, one document with a subquery, and a document of one collection that aggregates
+**When** a relational document runs against each: a join, a join across the two mounts, a join over the protected mount, the subquery document, and the aggregate over the protected mount
+**Then** the answers are `database`, `in-memory`, a 422 `authorization_unsupported` that has no label, `in-memory`, and `database`, in that order
 
 ### AC: engine-outside-join-set-refused (verifies REQ:routing)
 
@@ -717,13 +886,13 @@ Journey step 6.
 **When** she posts a join of A and B to `/v1/dtql`
 **Then** the response is a 403 naming B, returned even when B is not mounted (403 before 404), and no source is read
 
-### AC: protected-database-refuses-relational-document (verifies REQ:protected-databases-refused)
+### AC: protected-database-refuses-relational-document (verifies REQ:protected-database-queries)
 
 Journey step 6.
 
-**Given** a mount with access policies, a public database also mounted, and alice, who reads every database and belongs to a role the policy names
-**When** she posts a join of the protected mount to the public one and the same join reversed, a COUNT over the protected mount, a nested join whose innermost source is protected, an aggregate over a field the policy hides, and a subquery over the protected mount, each also with a collection the database does not declare or that the policy hides
-**Then** each returns the same 422 `authorization_unsupported`, with no rows, no `execution` and no collection name, and nothing is read from the mount; and a single-collection read of the protected mount on the per-database endpoint returns only the rows she may read, with keys
+**Given** a SQLite mount with access policies, a public database also mounted, and alice, who reads every database and belongs to a role the policy names
+**When** she posts a join of the protected mount to the public one and the same join reversed, a join of two collections of the protected mount, a nested join whose innermost source is protected, a subquery over the protected mount, an EXISTS test over it, a derived source over it, and a document of one collection that groups or aggregates on a protected local inGitDB mount, each also with a collection the database does not declare or that the policy hides
+**Then** each returns the same 422 `authorization_unsupported`, with no rows, no `execution` and no collection name, whatever collections the document names, and nothing is read from the mount; and a single-collection read of the protected mount on the per-database endpoint returns only the rows she may read, with keys
 
 ### AC: check-order-decides-the-status (verifies REQ:check-order)
 
@@ -845,41 +1014,153 @@ Journey step 2, 3.
 **When** it is read
 **Then** it states the one-transaction guarantee of the `database` route and the no-snapshot behavior of the `in-memory` route
 
-### AC: journey-over-http (verifies REQ:routing, REQ:limits, REQ:protected-databases-refused, REQ:check-order)
+### AC: journey-over-http (verifies REQ:routing, REQ:limits, REQ:protected-database-queries, REQ:check-order)
 
 Journey step 1 to 7.
 
 **Given** a server with Chinook, a countries database, a protected database and a scoped token
 **When** one test walks journey steps 1 to 7 over HTTP
-**Then** it asserts mechanism, not only output: the pushdown beyond the in-memory bound, the budget error, and the refusal of every relational shape on the protected database
+**Then** it asserts mechanism, not only output: the pushdown beyond the in-memory bound, the budget error, the refusal of every shape the protected database does not run, and, for the one it runs, the figures of the permitted copy and the route `database`
 
-## After launch: joins over databases with access policies
+### AC: protected-aggregate-runs-in-the-database (verifies REQ:protected-database-queries, REQ:routing)
 
-A relational document that names a database with access policies is refused at launch
-(`REQ: protected-databases-refused`), so the criteria below cannot be tested yet. They keep their
-original wording, with two changes of identifier for criteria whose first half holds at launch
-and appears above under its original name. They state what joins over such databases must do when
-they are built.
+Journey step 6.
+
+**Given** the fixture `shop`, a SQLite database with access policies. Its table `customers` holds c1 (Ada), c2 (Bob) and c3 (Cy), each with a name and an email; its table `orders` holds o1 (customer c1, rep maria, total 100), o2 (customer c2, rep omar, total 250) and o3 (customer c1, rep maria, total 40). The first column of each table is its key, `id`. The policy lets every signed-in user read `customers` without `email`, lets a user read the `orders` whose `rep` is that user, and lets a caller in the role `admin` read every order. Maria is signed in
+**When** she posts "how many orders, and what total" (a COUNT and a SUM over `orders`), and "total per customer" (the same with GROUP BY), to `/v1/databases/shop/dtql` and, with every source naming `shop`, to `/v1/dtql`
+**Then** each answer is a 200 with `columns`, `execution.route: database` and no `key`; and for each served request exactly one statement was sent to SQLite, which holds the aggregate and the GROUP BY and the row rule, in which the text holds no value of the caller's, and whose arguments hold the caller's id
+
+### AC: count-equals-readable-rows (verifies REQ:protected-database-queries, REQ:row-count-privacy)
+
+Journey step 6.
+
+**Given** the fixture `shop`, a larger fixture of the same shape, and the callers maria, omar and an admin
+**When** each posts a COUNT and a SUM over `orders`
+**Then** each count equals the number of rows that caller can read: for `shop` Maria gets 2 and 140, Omar 1 and 250, and the admin 3 and 390, and never the rows another caller reads
+
+### AC: aggregate-equals-permitted-copy (verifies REQ:protected-database-queries)
+
+Journey step 6.
+
+**Given** the fixture `shop`, a larger one, two callers and an admin, and for each caller a hand-built permitted copy (the fixture with the rows and the fields the caller may not read deleted) that carries no policy
+**When** each caller posts documents with SUM, AVG, MIN, MAX, COUNT of a field, DISTINCT forms, GROUP BY, HAVING, ORDER BY, a column alias used in HAVING and in ORDER BY, a null test, a limit and an offset, to both endpoints, and the same document is run without a policy on the caller's permitted copy
+**Then** the two answers are equal for every document, row for row and column for column; and, as the check of the test itself, the same comparison with the row rule removed from the policy reports a difference
+
+### AC: hidden-field-not-reachable (verifies REQ:protected-database-queries, REQ:hidden-fields-unreachable)
+
+Journey step 6.
+
+**Given** the fixture `shop` and Maria, who may not read `customers.email`
+**When** she posts documents that use that field as an aggregate input, as a selected column under an allowed alias, in GROUP BY, in HAVING, in ORDER BY, in a filter predicate and in a null test, and a document whose every selected column is refused
+**Then** each is a 403 `ACCESS_DENIED` with the text "access denied", none exposes the field's values, in `data` or by grouping, filtering or ordering, and no statement is sent to the database
+
+### AC: unknown-and-denied-collection-are-indistinguishable (verifies REQ:protected-database-queries)
+
+Journey step 6.
+
+**Given** the fixture `shop`, with a collection that the policy denies to Maria, one that the database does not declare, and one that is spelled otherwise than its canonical name
+**When** she posts a document of one collection that aggregates over each, to both endpoints, and a single-collection read of each to the per-database endpoint
+**Then** every answer has the same status, headers and body as the others, byte for byte (a 403 `ACCESS_DENIED`), so that the database does not say which collections it declares
+
+### AC: no-row-count-for-protected-source (verifies REQ:protected-database-queries, REQ:row-count-privacy)
+
+Journey step 6.
+
+**Given** the fixture `shop`
+**When** Maria posts an aggregate over `orders` and it succeeds
+**Then** `execution.sources` has no `rows` for the protected source, and no field of the response reports rows scanned
+
+### AC: protected-answer-carries-no-elapsed-time (verifies REQ:protected-database-queries, REQ:response-shape)
+
+No journey step.
+
+**Given** the fixture `shop`, and an unprotected database
+**When** an aggregate over `orders` is posted to each
+**Then** the `execution` block of the protected answer has the route, `rowsReturned` and the database and collection of each source, and no elapsed time, neither the request's nor a source's; and the answer of the unprotected database keeps the elapsed time of the request
+
+### AC: protected-answer-is-not-stored (verifies REQ:protected-database-queries, REQ:cacheable-gets)
+
+No journey step.
+
+**Given** the fixture `shop`
+**When** an aggregate is posted, and the same document is sent as a GET
+**Then** each response carries `Cache-Control: no-store`
+
+### AC: relational-answer-carries-no-record-key (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** the fixture `shop` and Maria, and a second table of the database whose policy hides its key column `id`
+**When** she posts an aggregate over `orders`, a document that selects `id` of `orders`, and a document that selects `id` of the second table
+**Then** the first answer carries no record key and no `id`; the second returns the `id` values of the rows she may read; and the third is a 403 `ACCESS_DENIED`
+
+### AC: no-row-cap-on-the-database-route (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** a protected table of more than 10,000 rows that the caller may read
+**When** the caller posts a COUNT and a grouped aggregate over it
+**Then** each answers with the whole count over every row the caller may read, on `execution.route: database`, and no refusal names a row bound
+
+### AC: hidden-rows-do-not-change-the-answer (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** two fixtures that hold the same rows for the caller, the second with added rows that the caller may not read, which outnumber every bound of the server and hold hostile values (text in a numeric column, huge numbers, blobs)
+**When** the same aggregate documents are posted for the caller to each
+**Then** the two answers have the same status, headers and body
+
+### AC: policy-values-are-bound (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** callers whose ids are a quote, a semicolon followed by a second statement, a comment marker, a backslash, a NUL byte, text that looks like a number, very long text and an empty string, and a policy whose row rule names the caller (`rep == $currentUser`)
+**When** each posts an aggregate over `orders`
+**Then** each id is data: the answer is the one the permitted copy gives (an empty result for an id that is no `rep`), the statement text is byte-identical to that of another caller whose id has the same type and length, and the tables are whole afterwards
+
+### AC: protected-refusal-reads-nothing (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** the fixture `shop`
+**When** Maria posts a join, a subquery, a document over `shop` and a second database, and a document that SQLite refuses to run
+**Then** each is refused as `REQ: protected-database-queries` says, and no statement is sent to the database after the refusal, in memory or otherwise
+
+### AC: busy-protected-database-is-retryable (verifies REQ:protected-database-queries)
+
+No journey step.
+
+**Given** a protected SQLite database whose file another connection holds locked
+**When** Maria posts an aggregate
+**Then** the answer is a 503 that a client may retry, and never a 403 or a 404
+
+## Later: joins, subqueries and several databases with access policies
+
+A join, a subquery and a document over several databases that name a database with access
+policies are refused (`REQ: protected-database-queries`), so the criteria below cannot be tested
+yet. They state what such documents must do when they are built. Three criteria that hold now
+for one source, `count-equals-readable-rows`, `hidden-field-not-reachable` and
+`no-row-count-for-protected-source`, are above, and each has a join variant here.
 
 ### AC: policy-applied-per-leaf (verifies REQ:policy-per-leaf)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** a policy-protected database joined to a public one, alice readable on some of the protected rows, and alice holding a server-wide token, per Open Question 4
 **When** alice posts the join
 **Then** the result contains only joined rows built from rows she can read
 
-### AC: count-equals-readable-rows (verifies REQ:policy-per-leaf, REQ:row-count-privacy)
+### AC: count-equals-readable-rows-in-a-join (verifies REQ:policy-per-leaf, REQ:row-count-privacy)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** the same databases and the same server-wide token
-**When** alice posts a COUNT over the protected source
-**Then** the count equals the number of protected rows she can read
+**When** alice posts a COUNT over a join that holds the protected source
+**Then** the count equals the number of joined rows built from the protected rows she can read
 
-### AC: no-row-count-for-protected-source (verifies REQ:row-count-privacy)
+### AC: no-row-count-for-protected-join-source (verifies REQ:row-count-privacy)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** the same databases
 **When** the join succeeds
@@ -887,23 +1168,23 @@ After launch; no journey step.
 
 ### AC: nested-join-authorised (verifies REQ:policy-per-leaf, REQ:leaf-wrapper)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** a join tree of depth three whose innermost source is protected and which alice may read only in part
 **When** alice posts it
 **Then** the innermost source's policy is applied and no row she cannot read influences the result
 
-### AC: hidden-field-not-reachable (verifies REQ:hidden-fields-unreachable)
+### AC: hidden-field-not-reachable-in-a-join (verifies REQ:hidden-fields-unreachable)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
-**Given** a protected collection with a field redacted for alice
+**Given** a protected collection with a field redacted for alice, joined to another collection
 **When** she posts documents using that field as a join key, a group key, an aggregate input, an aliased column, a filter predicate and a sort key
-**Then** none exposes the field's values, in `data` or by grouping, filtering or ordering, and each is refused or returns the field absent
+**Then** none exposes the field's values, in `data` or by grouping, filtering or ordering, and each is refused
 
 ### AC: subquery-source-authorised-over-protected (verifies REQ:subquery-sources-authorised)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** alice holds a token granting only database P, which is policy-protected and readable by her in part, and database B is also mounted
 **When** she posts a document over P whose subquery reads B, and another whose subquery reads P
@@ -911,7 +1192,7 @@ After launch; no journey step.
 
 ### AC: budget-errors-report-limit-only-over-protected (verifies REQ:limits, REQ:row-count-privacy)
 
-After launch; no journey step.
+Not yet testable; no journey step.
 
 **Given** an over-budget query that reads a policy-protected source
 **When** it is posted
@@ -926,13 +1207,15 @@ executed; findings 3 and 4 are closed by the tests named in them.
    limit, while the snapshot spool allows 512 MiB per snapshot and two slots
    (`pkg/server/dtql_pages.go` in openvaultdb-go) on a 512 MiB instance. Small sample databases
    hide it; a large one will not. Closed by plan tasks OJ-13 and OJ-09.
-2. **Nested join authorisation (INFERENCE).** DALgo's access layer builds its resource list from
-   the base source and first-level joins only and refuses field rules on joined sources
-   (`access/session.go` in dal-go/dalgo). A nested join handed whole to a protected handle may
-   skip authorisation of the nested source. The design never does that (`REQ: policy-per-leaf`).
-   At launch no relational document reaches a database with access policies
-   (`REQ: protected-databases-refused`), and `nested-join-authorised`, under "After launch", tests
-   it when joins over such databases are built.
+2. **Nested join authorisation (INFERENCE).** This finding was written when DALgo's access layer
+   was read as building its resource list from the base source and first-level joins only; the
+   layer at dalgo v0.89.6 lists every source of a query at any depth
+   (`access/query_sources.go` in dal-go/dalgo) and still refuses field rules and row rules on
+   joined sources. The design never hands a nested join whole to a protected handle
+   (`REQ: policy-per-leaf`). No join reaches a
+   database with access policies (`REQ: protected-database-queries`), and `nested-join-authorised`,
+   under "Later: joins, subqueries and several databases with access policies", tests it when
+   joins over such databases are built.
 3. **Schema-qualified sources and `scan` on the single-collection path (closed).** DALgo treats a
    schema-qualified source as an opaque resource, so collection policies may not match it, and
    DALgo's access layer has no check on scan orders either (it checks WHERE, GROUP BY, HAVING,
@@ -955,21 +1238,21 @@ executed; findings 3 and 4 are closed by the tests named in them.
 
 ## Out of scope for the first version
 
-Window functions; trace headers; boolean coercion in joined rows; joins over databases with
-access policies (after launch); all of Part 2 (external sources); CLI delegation. Items that are
-open questions rather than settled scope (grants naming several databases, joins over databases
-with access policies, exact labelling) are under Open Questions.
+Window functions; trace headers; boolean coercion in joined rows; joins, subqueries and
+documents over several databases that name a database with access policies, which are refused
+until they are built (`REQ: protected-database-queries`); all of Part 2 (external sources); CLI
+delegation. Items that are open questions rather than settled scope (grants naming several
+databases, exact labelling) are under Open Questions.
 
 ## Open Questions
 
-None of the open questions is decided. Questions 1 to 8 are the implementation plan's, in its
+None of the open questions below is decided. Questions 1 to 8 are the implementation plan's, in its
 order, each with the plan's recommendation. Questions A to D are the author's additions. Questions
-7, 8 and A are answered by the code on main and are closed under "Closed questions" below.
-Questions 3, 5 and D wait for the founder's own answer; until they are answered this Feature states
-the cautious behaviour: for 3, a relational document that names a database with access policies
-is refused; for 5, only what OVDB can do without DALgo's exported additions (the route label is
-`database` or `in-memory`, and DALgo's bound messages are matched by text); for D, the behaviour
-that main has.
+7, 8 and A are answered by the code on main, and question 3 by the owner's decision of 2026-10-05;
+all four are closed under "Closed questions" below. Questions 5 and D wait for the founder's own
+answer; until they are answered this Feature states the cautious behaviour: for 5, only what OVDB
+can do without DALgo's exported additions (the route label is `database` or `in-memory`, and
+DALgo's bound messages are matched by text); for D, the behaviour that main has.
 
 1. External sources, first form: must a caller be able to put any URL in a DTQL document, checked
    against an allow-list, or is it enough that the operator registers named external sources and
@@ -981,16 +1264,6 @@ that main has.
    browser sends one joined request when the server advertises joins and falls back to today's
    browser join on any failure, so the demo cannot be taken down by two 512 MiB instances being
    busy. (`REQ: demo-fallback`.)
-3. Policy-protected databases: the plan reads an earlier founder statement, that aggregation
-   runs natively where the server supports it, as extending to joins. At launch a relational
-   document that names a database with access policies is refused with a 422
-   `authorization_unsupported`, because DALgo's access layer authorises the base and first-level
-   join sources of a query and not what is nested deeper. Is that launch limit accepted? For
-   after launch the plan recommends an exception: OVDB aggregates over policy-filtered rows
-   itself, bounded at 10,000 rows, until dalgo issue 148 (hidden field behind an alias) is closed
-   and nested joins are authorised. Recommendation: accept the launch limit and build the
-   exception after launch. (`REQ: protected-databases-refused`, `REQ: routing`,
-   `REQ: policy-per-leaf`, `REQ: hidden-fields-unreachable`.)
 4. Tokens: a scoped application token names one database or all of them. Cross-database joins
    would therefore work for the owner token, server-wide tokens and auth-off public servers only.
    Is a grant that names several databases needed for launch? Recommendation: no; add it when the
@@ -1034,8 +1307,22 @@ Cut order if the window slips (a plan note, not a question): OJ-11, OJ-10, OJ-12
 ### Closed questions
 
 These were open questions of this Feature. The code on main answers each, and the test that pins
-the answer is named. The tests are in openvaultdb/openvaultdb-go, `pkg/server` unless a package is
-named.
+the answer is named, except question 3, which the owner's decision answers. The tests are in
+openvaultdb/openvaultdb-go, `pkg/server` unless a package is named.
+
+3. Policy-protected databases. Closed by the owner's decision of 2026-10-05 (paraphrased). The
+   question was whether the launch limit may stand, under which a relational document that names a
+   database with access policies is refused, and whether, after launch, OVDB should aggregate
+   over the policy-filtered rows itself, bounded at 10,000 rows. The owner decided that the
+   refusal must not stand and that the policies run natively: row rules and field lists are
+   compiled into the SQL statement, so that the database filters and aggregates, with no row cap
+   where the engine runs the whole document. `REQ: protected-database-queries` states what runs
+   and what is refused; the criteria that prove it are `protected-aggregate-runs-in-the-database`
+   and those listed with journey step 6. They are not yet passed by a released server:
+   openvaultdb-go v0.13.0 refuses every relational document on such a database. Joins,
+   subqueries and documents over several databases are built after the first slice, and the
+   criteria under "Later: joins, subqueries and several databases with access policies" wait for
+   them.
 
 7. Engines in joins at launch. Closed: the join set is SQLite and local inGitDB. The operator's
    list can add an engine that the structured-query guard clears (Firestore, say); PostgreSQL,
