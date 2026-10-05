@@ -68,10 +68,13 @@ the rule that a subquery-only document and a root that names a database are rela
 per-database endpoint, and the strict field-name rule (both Open Question D). The
 first quotation covers Part 1; the second covers external sources, which are Part 2 and not in
 this Feature's scope. This Feature was last revised on 2026-10-05 against openvaultdb-go main at
-2961796, which holds the relational path (pull requests 48 and 51); where the code fixes a rule,
-this Feature states it as the behaviour. "Main" below means openvaultdb-go main at 2961796. Three
-requirements are not yet met by that commit: `REQ: discovery`, `REQ: field-resolution` and the
-documentation sentence of `REQ: consistency-statement`.
+34eac4b, which holds the relational path, the discovery of the query profile, the field lists that
+mounts supply to the join engine and the protected routes (pull requests 48, 51, 52, 53, 54 and
+56); where the code fixes a rule, this Feature states it as the behaviour. "Main" below means
+openvaultdb-go main at 34eac4b. The request and response shapes, the status table and the worked
+examples of relational documents are owned by `docs/api.md` of openvaultdb-go, section "Query
+profile and relational documents"; this Feature keeps the requirements and the acceptance
+criteria and points there for the rest.
 
 Where things live. The OJ implementation plan is filed in sneat-co/backstage at
 `spec/research/datatug-ecosystem-review-2026-10/14-ovdb-joins-plan.md`; the ids OJ-nn, OV-01 and
@@ -87,12 +90,12 @@ Actors: an API caller (the demo or the CLI), a scoped-token user, the OVDB Cloud
 
 | # | Step | Good outcome | Criteria |
 |---|---|---|---|
-| 1 | I fetch `/.well-known/openvaultdb`. | A `query` block lists the endpoint, joins, GROUP BY, aggregates, cross-database support and the limits. | `discovery-advertises-query`, `capabilities-per-database` |
-| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve, and the same data split across two mounts is a 422 `query_budget_exceeded`. The same join on a mount with access policies is a 422 `authorization_unsupported`. | `single-database-join-pushdown`, `relational-profile-accepted`, `subquery-only-document-is-relational`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `default-schema-dropped`, `parameters-and-names-cannot-change-query`, `ambiguous-field-refused`, `wildcard-expands-in-field-order` |
+| 1 | I fetch `/.well-known/openvaultdb`. | A `query` block, in either authentication mode, lists the endpoint, joins, GROUP BY, five aggregate functions, cross-database support, the limits as data and the join engines; each database's `capabilities` says whether it takes part in joins and aggregation. | `discovery-advertises-query`, `discovery-limits-are-the-enforced-bounds`, `capabilities-per-database` |
+| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve, and the same data split across two mounts is a 422 `query_budget_exceeded`. The same join on a mount with access policies is a 422 `authorization_unsupported`. | `single-database-join-pushdown`, `relational-profile-accepted`, `subquery-only-document-is-relational`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `default-schema-dropped`, `parameters-and-names-cannot-change-query`, `ambiguous-field-refused`, `field-without-list-refused`, `aggregate-reads-first-source`, `wildcard-expands-in-field-order` |
 | 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `cross-database-endpoint-single-source`, `default-schema-dropped`, `response-shape`, `mount-lease-drains-on-unmount`, `consistency-documented` |
 | 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join; a lone-source read of such an engine is refused on `/v1/dtql` and served on the per-database endpoint; a relational document that names a database with access policies has no label and is a 422 `authorization_unsupported`. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused`, `lone-source-outside-join-set-by-endpoint` |
 | 5 | My query is too big or too slow. | 422 `query_budget_exceeded` naming the limit and a hint; never partial rows. | `budget-exceeded-is-422-never-partial`, `timeout-is-504`, `budget-errors-report-limit-only`, `paging-headers-refused` |
-| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; on the protected database every join, COUNT, nested join and aggregate is the same 422 `authorization_unsupported` with no rows and no `execution`, while a single-collection read of it on the per-database endpoint returns only the rows she may read; refused profile elements are a 400 `invalid_dtql`. | `grant-checked-for-every-source`, `protected-database-refuses-relational-document`, `profile-refusals`, `check-order-decides-the-status`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `collection-scoped-grant-checked` |
+| 6 | As alice, with a token for one database, I join it to another; as alice on a policy-protected database joined to a public one. | 403 naming the other database; on the protected database every join, COUNT, nested join and aggregate is the same 422 `authorization_unsupported` with no rows and no `execution`, while a single-collection read of it on the per-database endpoint returns only the rows she may read; refused profile elements are a 400 `invalid_dtql`. | `grant-checked-for-every-source`, `protected-database-refuses-relational-document`, `profile-refusals`, `first-and-last-refused`, `check-order-decides-the-status`, `per-database-endpoint-refuses-foreign-source`, `subquery-source-authorised`, `collection-scoped-grant-checked` |
 | 7 | (nothing) Two hundred visitors click the same demo question. | Identical GETs come from cache; excess in-memory queries get 503 with `Retry-After`; the instance stays up. | `identical-gets-cacheable`, `capacity-gate-503`, `database-route-capacity-gate` |
 | 8 | As operator I deploy OVDB Cloud. | The deploy smoke join passes. | `deploy-smoke-join` |
 | 9 | I run the demo question in the browser. | One query request; on a server without joins, the same answer by the browser path. | `demo-uses-server-join-when-advertised`, `demo-falls-back-on-failure` |
@@ -153,9 +156,9 @@ caller can predict the status of any request from this Feature alone:
 
 1. Authentication (401), and on the per-database endpoint a database `{db}` that is mounted (404).
 2. The request is a document: a URL over 8 KiB (414), an empty body, a URL parameter other than
-   `q` and `parameters`, or a parameter that is not bound (400 `bad_request` or `invalid_dtql`);
-   then a document that parses and that the profile accepts, so that every refusal of
-   `REQ: profile-refusals`, every alias or qualifier that is not an identifier and every name that
+   `q` and `parameters`, or a `param` that the `parameters` object of a JSON body or of a GET does
+   not bind (400 `bad_request` or `invalid_dtql`); then a document that parses and that the
+   profile accepts, so that every refusal of `REQ: profile-refusals`, every alias or qualifier that is not an identifier and every name that
    the wider quoted-name rule of `REQ: values-and-names-never-text` refuses is a 400
    `invalid_dtql`, or `invalid_key` for a collection name.
 3. Every source has a database: a source with none on `/v1/dtql`, or a database other than `{db}`
@@ -172,16 +175,21 @@ caller can predict the status of any request from this Feature alone:
    in the join set (422 `join_engine_unsupported`).
 10. The executor's own check of the document, before it asks for a slot: a field name that the
     wider rule accepts and the strict one of a relational document refuses, one output name on
-    two columns, a parameter that is not bound (400 `invalid_dtql`).
-11. A free slot on the route (503 `query_capacity`); then, while the query runs, the bounds of
+    two columns, a `param` in a YAML body, which binds none (400 `invalid_dtql`). A database with
+    access policies refuses that document at check 6 first, with the 422; the same `param` in a
+    JSON body or a GET that does not bind it is check 2.
+11. A free slot on the route, after the queue wait of the server's settings (503
+    `query_capacity`); then, while the query runs, the bounds of
     `REQ: limits` (422 `query_budget_exceeded`), the time limit (504 `query_timeout`) and a shape
     that DALgo or the database refuses (400 `invalid_dtql`).
 
-Checks 3 to 11 apply to a document on the new path. A single-collection document passes checks 1
-and 2 and the grant on its one collection (403 `forbidden`), and is then read by the
-single-collection path, where checks 6 and 8 and the join-set half of 9 do not apply: a database
-with access policies is read through its policy, the paging headers page the result, and an
-engine that can be queried serves it (an engine that cannot is a 501 `query_unsupported`).
+Checks 3 to 11 apply to a document on the new path. None of them applies as written to a
+single-collection document. It passes checks 1 and 2 and the grant on its one collection (403
+`forbidden`), and is then read by the single-collection path, which has its own rules for field
+names (`REQ: values-and-names-never-text`) and for bounds (`REQ: limits`): a database with access
+policies is read through its policy, and the paging headers page the result. The answer for a
+collection that the database does not declare, on that path, is not changed by this Feature and is
+not specified here.
 
 #### REQ: values-and-names-never-text
 
@@ -216,10 +224,14 @@ involved mount MUST be leased for the request so that unmounting drains.
 #### REQ: relational-profile
 
 **PLAN DESIGN.** The profile MUST accept inner and left joins, nested join trees, GROUP BY,
-HAVING, the aggregates DALgo provides, column aliases, subqueries, join algorithm hints, and
-source aliases, plus everything the existing single-collection profile accepts (field columns,
+HAVING, the aggregate functions `count`, `sum`, `avg`, `min` and `max` (in any letter case),
+column aliases, subqueries, join algorithm hints, and source aliases, plus everything the existing
+single-collection profile accepts (field columns,
 WHERE, ORDER BY, a LIMIT up to 1000, parameters) and an `offset` up to 10,000. Subqueries always
-run in memory. Engines in a join are limited at launch (`REQ: routing`). A join tree may nest to
+run in memory. Engines in a join are limited at launch (`REQ: routing`). As a launch limit,
+`first` and `last`, which DALgo also provides, are not in the profile: they need a stable row
+order, which no engine the server runs declares, and they return after launch together with an
+ordering for aggregates (`REQ: profile-refusals`). A join tree may nest to
 any depth within the bound of 8 sources (`REQ: profile-refusals`); its depth is not bounded
 separately. Window functions do not exist in DTQL; discovery MUST carry `windowFunctions: false` as
 the seam. (Hints and the offset bound follow openvaultdb-go pull request 38, which accepts hints
@@ -227,21 +239,56 @@ and bounds `offset`; a hint only chooses among join algorithms DALgo bounds itse
 
 #### REQ: field-resolution
 
-**Added in review; not in the plan** (not yet met by main). An unqualified field that more than one source in scope carries MUST be refused
-with a 400 `invalid_dtql`, and never bound to the first source. A wildcard column (`*` or
-`source.*`) MUST expand to the fields of the sources in the order of the sources and of their
-fields, on the database route and on the in-memory route alike, so that one document returns the
-same columns whichever route runs it.
+**Added in review; not in the plan.** A source supplies a **field list** to the join engine: the
+names of the fields a record of it can hold. A SQLite mount supplies the columns of the table in
+the table's order, the key column `id` included. A strict inGitDB collection supplies the fields
+its schema declares, sorted by name, when it declares at least one and none of them has the type
+object or any; a record's key is not a field there. A partial or schemaless database, a collection
+that declares no field or one of the type object or any, a database with access policies (no
+relational document reaches one at launch) and a subquery used as a source supply none.
+
+The rules below apply to a query of more than one source. The outermost query, a derived source, a
+scalar subquery and an EXISTS test are each a query with the sources of their own; a query of one
+source is not looked at, and a field qualified with its source is read as written, declared or
+not.
+
+- An unqualified field that two sources of the query carry MUST be refused with a 400
+  `invalid_dtql` that names the field, and never bound to the first source. A field that only one
+  source carries is bound to that source, except where the third rule below says otherwise. The key
+  column is a column of every SQLite table, so an unqualified `id` over two SQLite tables is
+  ambiguous.
+- When any source of the query supplies no field list, an unqualified field of the query MUST be
+  refused with a 400 `invalid_dtql` that tells the caller to qualify it with its source, because
+  the engine cannot tell which source carries it. This is not an ambiguity and does not say so.
+- In a query that aggregates (GROUP BY, HAVING or an aggregate function), a bare name in GROUP BY,
+  HAVING, ORDER BY, the columns or the argument of an aggregate MUST be a field of the first
+  source; a name that only another source carries is refused with a 400 `invalid_dtql` that tells
+  the caller to qualify it, and is never read from the first source. HAVING and ORDER BY of such a
+  query read the alias of a column of the select list as that column. WHERE and ON read a name from
+  the source that carries it.
+- A wildcard of a source (`source.*`, with or without `exclude`) MUST expand to the fields of that
+  source's field list, on the database route and on the in-memory route alike. A SQLite source
+  therefore returns its key column and a strict inGitDB source does not. `columns` lists the
+  expanded names sorted by name, at the position of the wildcard. A wildcard of a source that
+  supplies no field list is not specified here.
+
+A document that has a join and no subquery never reaches these rules with an unqualified field: the
+DTQL parser refuses a field or a wildcard that carries no source in such a document, with a 400
+`invalid_dtql`, before a field list is asked for. The rules decide a document that has a join and a
+subquery, which runs in memory (`REQ: routing`).
 
 #### REQ: profile-refusals
 
-**PLAN DESIGN** for the list; the default refusal and the last three rules were added in review.
-In this first version a relational document MUST be refused, with a 400 `invalid_dtql` that names
+**PLAN DESIGN** for the list; the default refusal, the aggregate-function rule and the last three
+rules were added in review. In this first version a relational document MUST be refused, with a
+400 `invalid_dtql` that names
 the refused element, before any read: cursors (a DTQL document has no key for a cursor, so the
 deserialiser's 400 names `startFrom`), `schema`, `money`, parent and collection-group sources,
 more than 8 sources, subqueries nested deeper than 4, a limit above 1000 or an `offset` above
-10,000 on the outermost query, and `scan` on any source (protected or not; this follows pull
-request 38, and the reason is below). The depth of a join tree is not bounded separately. Any
+10,000 on the outermost query, an aggregate function outside the five that the profile accepts
+(`first` and `last` included, in any letter case and in any position of the document, on every
+route), and `scan` on any source (protected or not; this follows pull request 38, and the reason
+is below). The depth of a join tree is not bounded separately. Any
 element of a document on the new path that `REQ: relational-profile` does not list MUST be refused
 with the same 400, naming the element. A document that DALgo's deserialiser rejects (a right join,
 say) is the same 400 `invalid_dtql`, because it cannot be classed before it parses. The status and
@@ -255,9 +302,41 @@ and dalgo PR 197 has not landed.)
 
 #### REQ: discovery
 
-**PLAN DESIGN.** `/.well-known/openvaultdb` MUST gain a `query` block (endpoint, format,
-features, limits, join engines) in both authentication modes, and each database's `capabilities`
-MUST gain `joins` and `aggregation`. The protocol string MUST NOT change.
+**PLAN DESIGN.** `/.well-known/openvaultdb` MUST carry a `query` block in both authentication
+modes, and each database's `capabilities` MUST carry `joins` and `aggregation`. The protocol
+string MUST NOT change. Every value is read from the code that enforces it, so that a client that
+follows discovery is not refused for what discovery said. The shape of both documents, with
+examples, is owned by `docs/api.md` of openvaultdb-go (section "Query profile and relational
+documents", subsection "Discovery"); this requirement states what a client may rely on.
+
+- The `query` block holds the endpoint that reads several databases (`/v1/dtql`), the document
+  format, `features`, `limits` and `joinEngines`. It holds nothing that belongs to one database, so
+  it is the same in both modes. With authentication off the document also lists the databases;
+  with it on no database is listed, and a caller reads the `capabilities` of a database from its
+  metadata (`GET /v1/databases/{db}`).
+- `features` names five aggregate functions, `count`, `sum`, `avg`, `min` and `max`, and states
+  `windowFunctions: false`, `externalSources: false`, `protectedDatabases: false` and
+  `fieldNames: plain`, beside the join types (`inner` and `left`), grouping, HAVING, subqueries and
+  cross-database support. `first` and `last` are not named: they are refused on every route
+  (`REQ: profile-refusals`).
+- `limits` states, as data, what one document may ask for: twelve keys, each the value the server
+  enforces, and none of the capacity of the server (no concurrency slots and no queue wait). Three
+  values come from the server's settings: `timeoutMs`, `maxSourceRows` and `maxSourceBytes`. Nine
+  are fixed bounds: `maxResultRows` and `maxResultBytes` of the answer; `maxSources`,
+  `maxSubqueryDepth`, `maxLimit` and `maxOffset` of the profile (`REQ: profile-refusals`); and
+  `maxInMemoryJoinRows`, `maxInMemoryJoinBytes` and `maxGroups` of DALgo's in-memory engine
+  (`REQ: limits`).
+- `joinEngines` lists only the engines whose databases can take part in a relational document: the
+  engines of the operator's list that the structured-query guard clears, without the GitHub-backed
+  inGitDB engine, which no list enables (`REQ: routing`).
+- A database's `joins` and `aggregation` are true exactly when a relational document that names
+  it is not refused for the database itself: its engine is in `joinEngines` and it has no access
+  policies. At launch the two carry the same value.
+- A database with access policies is not described by its metadata: the metadata route answers
+  422 `authorization_unsupported`. With authentication off the discovery list says `joins: false`
+  and `aggregation: false` for it. With authentication on there is no list, and that 422 is
+  itself the statement that the database takes no relational document; a relational document that
+  names it is refused with the same code (`REQ: protected-databases-refused`).
 
 ### Routing
 
@@ -293,10 +372,11 @@ caller's principal, never rows scanned.
 
 #### REQ: response-shape
 
-**PLAN DESIGN.** A successful response MUST be
-`{"records":[{"data":{...}}],"columns":["..."],"execution":{"route","elapsedMs","rowsReturned","sources":[{"database","collection","rows","elapsedMs"}]}}`,
-where each source carries `rows` and `elapsedMs` on the `in-memory` route and only its `database`
-and `collection` on the `database` route, where the database reports no more.
+**PLAN DESIGN.** A successful response MUST carry `records` (each row as `data`), `columns` in the
+order the document selects them, and `execution` with the route, the elapsed time, the number of
+rows returned and, for each source, its database and collection; on the `in-memory` route each
+source also carries `rows` and `elapsedMs`, and on the `database` route the database reports no
+more. `docs/api.md` of openvaultdb-go owns the shape, with examples.
 Every response on the new path, including one over a single source and every successful response
 from `/v1/dtql`, has `columns` and `execution` and no `key`. A non-relational response on the
 per-database endpoint keeps exactly `{"records":[{"key","data"}]}`: `columns` and `execution` are
@@ -311,19 +391,26 @@ follow-up in openvaultdb-go). This difference is accepted for the first version.
 #### REQ: limits
 
 **PLAN DESIGN.** Defaults, sized for a 512 MiB instance (Open Questions 6 and B). The time limit,
-the source-read bounds and the two concurrency limits are settings of the server, so that a test
-can set them small; the request body, the result and the DALgo bounds are fixed:
+the source-read bounds, the two concurrency limits and the queue wait are settings of the server,
+so that a test can set them small; the request body, the result and the DALgo bounds are fixed.
+The last column is the key of `query.limits` in discovery that states the value (`REQ: discovery`):
 
-| Limit | Default | Told to the caller as |
-|---|---|---|
-| Request body | 1 MiB (existing) | 400 |
-| Result | 1000 rows, 8 MiB | 422 `query_budget_exceeded` |
-| Time | 10 s | 504 `query_timeout` |
-| Source reads per request | 100,000 rows, 64 MiB (streamed) | 422 with limit name and hint |
-| DALgo join | 10,000 rows, 16 MiB | 422, path of the join node |
-| DALgo aggregation | 100,000 groups, 64 MiB | 422 |
-| Concurrent in-memory queries | 2 (1 on OVDB Cloud at 512 MiB) | 503 `query_capacity`, `Retry-After` |
-| Concurrent database-route queries | 4 | 503 `query_capacity`, `Retry-After` |
+| Limit | Default | Told to the caller as | Key of `query.limits` |
+|---|---|---|---|
+| Request body | 1 MiB (existing) | 400 | none |
+| Result | 1000 rows, 8 MiB | 422 `query_budget_exceeded` | `maxResultRows`, `maxResultBytes` |
+| Time | 10 s | 504 `query_timeout` | `timeoutMs` |
+| Source reads per request | 100,000 rows, 64 MiB (streamed) | 422 with limit name and hint | `maxSourceRows`, `maxSourceBytes` |
+| DALgo join | 10,000 rows, 16 MiB | 422, path of the join node | `maxInMemoryJoinRows`, `maxInMemoryJoinBytes` |
+| DALgo aggregation | 100,000 groups, 64 MiB | 422 | `maxGroups` |
+| Concurrent in-memory queries | 2 (1 on OVDB Cloud at 512 MiB) | 503 `query_capacity`, `Retry-After` | none |
+| Concurrent database-route queries | 4 | 503 `query_capacity`, `Retry-After` | none |
+| Queue wait for a slot | 1 s | the 503 above, after the wait | none |
+
+A query that finds its route full waits up to the queue wait for a slot and is refused with the
+503 only after it. The concurrency limits and the queue wait are capacity, which discovery does
+not state. The profile's own bounds (`maxSources`, `maxSubqueryDepth`, `maxLimit` and `maxOffset`
+of `query.limits`) are those of `REQ: profile-refusals`.
 
 Budget errors MUST report the limit, never the observed figure. A query MUST never return
 partial rows. Joined results are returned whole: the paging headers on a document on the new path
@@ -331,8 +418,9 @@ partial rows. Joined results are returned whole: the paging headers on a documen
 and no snapshot is taken.
 
 These limits and settings bind the new path. A single-collection document is not gated or timed
-by them; it keeps the bounds of the single-collection path: at most 1000 records, 8 MiB and a
-fixed 10 s.
+by them; it keeps the bounds of the single-collection path: without the paging headers at most
+1000 records, 8 MiB and a fixed 10 s, and with them the bounds of the snapshot paging protocol,
+which this Feature does not change.
 
 ### Access control
 
@@ -427,15 +515,23 @@ Journey step 1.
 
 **Given** a server in either authentication mode
 **When** `GET /.well-known/openvaultdb` is fetched
-**Then** the body has a `query` block with endpoint, format, features (joins, GROUP BY, aggregates, cross-database), `windowFunctions: false`, the limits and the join engines, and the protocol string is unchanged
+**Then** the body has a `query` block with the endpoint `/v1/dtql`, the format, `features` (the join types `inner` and `left`, grouping, HAVING, subqueries, cross-database support, the five aggregate functions `count`, `sum`, `avg`, `min` and `max`, `windowFunctions: false`, `externalSources: false`, `protectedDatabases: false`, `fieldNames: plain`), `limits` and `joinEngines`; the block is the same in both modes; with authentication on the document lists no database; and the protocol string is unchanged
+
+### AC: discovery-limits-are-the-enforced-bounds (verifies REQ:discovery, REQ:limits)
+
+Journey step 1.
+
+**Given** a server configured with a time limit and source-read bounds of its own, in either authentication mode
+**When** discovery is fetched, and then documents at, and one step over, each of the four profile bounds (sources, subquery depth, limit, offset) are posted
+**Then** `query.limits` has exactly twelve numeric keys (`timeoutMs`, `maxSourceRows`, `maxSourceBytes`, `maxResultRows`, `maxResultBytes`, `maxSources`, `maxSubqueryDepth`, `maxLimit`, `maxOffset`, `maxInMemoryJoinRows`, `maxInMemoryJoinBytes`, `maxGroups`) and no concurrency slot or queue wait; the first three carry the configured values and the others the fixed ones; and each document inside a bound is answered while each document over it is a 400 `invalid_dtql`
 
 ### AC: capabilities-per-database (verifies REQ:discovery)
 
 Journey step 1.
 
-**Given** one SQLite database and one inGitDB database mounted
-**When** discovery is fetched
-**Then** each database's `capabilities` carries `joins` and `aggregation` values that match what the routing table allows for it
+**Given** a SQLite database, a local inGitDB database, a GitHub-backed inGitDB database, a database on an engine outside the join set (Firestore, say), a PostgreSQL database and a database with access policies mounted, under several operator lists of join engines
+**When** discovery is fetched and the metadata of each database is read, and a relational document naming each database is posted
+**Then** each database's `capabilities` carries `joins` and `aggregation`, true exactly when the relational document is not refused for the database itself, so that a client that reads `true` is not refused by it; an engine is in `joinEngines` exactly when a database on it without access policies advertises `joins: true`, and the GitHub-backed engine never is; and the database with access policies says `joins: false` in the discovery list while its metadata is a 422 `authorization_unsupported`
 
 ### AC: single-source-with-database-unchanged (verifies REQ:endpoints)
 
@@ -481,17 +577,33 @@ Journey step 2.
 
 Journey step 2.
 
-**Given** a SQLite mount and a local inGitDB mount, each with a join whose two sources both carry a field `CustomerId`
-**When** a document selects `CustomerId` with no source qualifier, against each mount
-**Then** each returns a 400 `invalid_dtql` naming the field and no rows, and the same document with the field qualified returns 200
+**Given** a SQLite mount and a strict local inGitDB mount, each with a join whose two sources both carry a field `CustomerId` and an EXISTS test on a third read, and, separately, two SQLite mounts whose tables both carry a column `city` and a key column `id`
+**When** a document selects `CustomerId` (or `city`, or `id`) with no source qualifier, against each mount on each endpoint, and the same document with the field qualified
+**Then** each unqualified document returns a 400 `invalid_dtql` that says the field is ambiguous and names it, and no rows; the qualified one returns 200; and a field that only one source carries is answered from that source
+
+### AC: field-without-list-refused (verifies REQ:field-resolution)
+
+Journey step 2.
+
+**Given** a SQLite mount joined to a local inGitDB mount in partial mode (which supplies no field list), by a document that holds an EXISTS test
+**When** a document selects a field with no source qualifier, and the same document with the field qualified
+**Then** the unqualified one returns a 400 `invalid_dtql` that tells the caller to qualify the field and does not call it ambiguous, whether or not the name is one that only one source carries; the qualified one returns 200, a field that the manifest does not declare included; and a document of one source is read as it is written
+
+### AC: aggregate-reads-first-source (verifies REQ:field-resolution)
+
+Journey step 2.
+
+**Given** a SQLite mount and a strict local inGitDB mount that supply their fields, and a join of invoices and customers with an EXISTS test, grouped and aggregated
+**When** a document names, with no source qualifier, a field that only the second source carries, in GROUP BY, in the argument of an aggregate in the columns, in HAVING or in ORDER BY, and then the same document with every field qualified, with the field in the first source, or with the name only in WHERE
+**Then** each of the first four returns a 400 `invalid_dtql` that names the field and tells the caller to qualify it, and no rows; the others return the same grouped rows, on each mount and each endpoint
 
 ### AC: wildcard-expands-in-field-order (verifies REQ:field-resolution)
 
 Journey step 2.
 
-**Given** the same SQLite mount and local inGitDB mount, and a join of two sources with a wildcard column
-**When** it is posted against each mount, so that the database route runs the first and the in-memory route the second
-**Then** each returns 200 and the columns are the fields of the first source and then those of the second, each in its declared order, the same on both routes
+**Given** a SQLite mount and a strict local inGitDB mount, and a join of two sources whose columns hold a wildcard of one source with an `exclude`, and a join of two SQLite mounts with a wildcard of one source
+**When** each is posted, so that the database route runs the first, and the in-memory route runs the other two
+**Then** each returns 200 and the wildcard stands for the fields of its source's field list less the excluded names: the columns of the SQLite table with its key column `id` on either route, and the declared fields of the inGitDB collection with no key; and `columns` lists the expanded names sorted by name, at the position of the wildcard
 
 ### AC: single-database-join-pushdown (verifies REQ:routing)
 
@@ -588,6 +700,14 @@ Journey step 6.
 **Given** relational documents with a cursor, a `schema`, a `money` value, a parent source, a collection-group source, nine sources, subqueries nested five deep, limit 1001, offset 10,001, a `scan` on a policy-protected source and a `scan` on an unprotected one; a relational document with a join algorithm hint, a relational document with `offset` 10,000, one with limit 1000 and one whose join tree is five levels deep, which the profile accepts; a document with a right join, which DALgo's deserialiser rejects; and one single-collection document with a cursor and another with limit 1001
 **When** each is posted to the per-database endpoint
 **Then** each refused document returns a 400 `invalid_dtql` naming the refused element (the cursor is refused by the deserialiser, which names `startFrom`) and none reaches a database, the scan on a policy-protected source included; the four accepted documents return 200; the right-join document returns the 400 `invalid_dtql`; and the two single-collection documents return the same 400 `invalid_dtql`
+
+### AC: first-and-last-refused (verifies REQ:profile-refusals, REQ:relational-profile)
+
+Journey step 6.
+
+**Given** four documents that apply an aggregate function to a column: over one source, over a join that one database runs on the per-database endpoint, over the same join on `/v1/dtql`, and over a join across two databases that runs in memory; each written with `first`, with `last` (in lower, upper and mixed case) and with each of `count`, `sum`, `avg`, `min` and `max`
+**When** each is posted
+**Then** each document that uses `first` or `last`, in any letter case and in any position of the document, returns a 400 `invalid_dtql` that names the function, before anything is read, on every route; and each document that uses one of the five accepted functions returns 200
 
 ### AC: grant-checked-for-every-source (verifies REQ:grants-before-mounts)
 
@@ -902,8 +1022,12 @@ D. A lone source that names a `database`, a `schema` or a `scan`, a subquery-onl
    400 `invalid_dtql` even on SQLite (`REQ: values-and-names-never-text`). A client that sends such
    a document gets the 400. This was set in review and reported to the founder, who has not
    answered it. Pinned by `TestRelationalDTQLOverHTTPAcceptance` (a one-source document that names
-   its own database), `TestSingleCollectionDocumentAndTheDefaultSchemaOverHTTP` and
-   `TestTheJourneyOfAJoinOverHTTP` (step 2). Is this accepted? The decision is the founder's.
+   its own database, and the subtest for a document whose only relational feature is a
+   subquery), `TestSingleCollectionDocumentAndTheDefaultSchemaOverHTTP`,
+   `TestTheJourneyOfAJoinOverHTTP` (step 2), `TestRelationalDTQLStatusesOverHTTP` (a field name
+   that only the wider quoted-name rule accepts is refused on a relational document) and
+   `TestSQLiteColumnWithASpaceIsQueryableOverHTTP` (the same column is read by the single-collection
+   path). Is this accepted? The decision is the founder's.
 
 Cut order if the window slips (a plan note, not a question): OJ-11, OJ-10, OJ-12, then subqueries.
 
@@ -917,9 +1041,11 @@ named.
    list can add an engine that the structured-query guard clears (Firestore, say); PostgreSQL,
    MySQL and an unknown engine are a 501 `query_unsupported` even when listed (PostgreSQL joins
    after OV-01); a GitHub-backed inGitDB mount is never joined; a database on an engine outside
-   the list is a 422 `join_engine_unsupported`. Pinned by
-   `TestRelationalHandlerRefusesEnginesTheGuardOrTheListLeavesOut` and
-   `TestJoinEnginesOmitsTheGitHubEngineWhateverTheListSays`.
+   the list is a 422 `join_engine_unsupported`. Discovery lists as `joinEngines` only the engines
+   whose databases can take part (`REQ: discovery`). Pinned by
+   `TestRelationalHandlerRefusesEnginesTheGuardOrTheListLeavesOut`,
+   `TestJoinEnginesOmitsTheGitHubEngineWhateverTheListSays` and
+   `TestAdvertisedJoinsEqualWhatARelationalRequestGets`.
 8. Paging of joined results. Closed: joined results are returned whole, at most 1000 rows, and a
    paging header on the new path is a 422 `snapshot_unsupported`. Pinned by
    `TestRelationalDTQLOverHTTPAcceptance` (the paging headers are refused on a relational
