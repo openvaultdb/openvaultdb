@@ -56,13 +56,22 @@ parameter binding only), counting row and byte budgets after the policy filter, 
 `query_capacity` code on the database route gate, collection-scoped grants, the refusal of
 relational documents on databases with access policies (`REQ: protected-databases-refused`), the
 rule that a subquery-only document and a root that names a database are relational on the
-per-database endpoint while the endpoint's own database is dropped from the root, and the strict
-field-name rule on relational documents. The last three groups are decisions taken in review and
-reported to the founder, who has not answered them (the first is Open Question 3). The
+per-database endpoint while the endpoint's own database is dropped from the root, the strict
+field-name rule on relational documents, and two whole requirements, `REQ: check-order` and
+`REQ: field-resolution` (the plan has no order of checks, no ambiguous-field rule and no wildcard
+rule). Those two are marked **Added in review; not in the plan**, and
+`REQ: protected-databases-refused` is marked **Decided in review; not in the plan**, because the
+plan designs the opposite for a protected mount (in-memory over its secured handle). Three of
+these groups are decisions taken in review and reported to the founder, who has not answered
+them: the refusal of relational documents on databases with access policies (Open Question 3),
+the rule that a subquery-only document and a root that names a database are relational on the
+per-database endpoint, and the strict field-name rule (both Open Question D). The
 first quotation covers Part 1; the second covers external sources, which are Part 2 and not in
 this Feature's scope. This Feature was last revised on 2026-10-05 against openvaultdb-go main at
 2961796, which holds the relational path (pull requests 48 and 51); where the code fixes a rule,
-this Feature states it as the behaviour. "Main" below means openvaultdb-go main at 2961796.
+this Feature states it as the behaviour. "Main" below means openvaultdb-go main at 2961796. Three
+requirements are not yet met by that commit: `REQ: discovery`, `REQ: field-resolution` and the
+documentation sentence of `REQ: consistency-statement`.
 
 Where things live. The OJ implementation plan is filed in sneat-co/backstage at
 `spec/research/datatug-ecosystem-review-2026-10/14-ovdb-joins-plan.md`; the ids OJ-nn, OV-01 and
@@ -79,7 +88,7 @@ Actors: an API caller (the demo or the CLI), a scoped-token user, the OVDB Cloud
 | # | Step | Good outcome | Criteria |
 |---|---|---|---|
 | 1 | I fetch `/.well-known/openvaultdb`. | A `query` block lists the endpoint, joins, GROUP BY, aggregates, cross-database support and the limits. | `discovery-advertises-query`, `capabilities-per-database` |
-| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve, and the same data split across two mounts is a 422 `query_budget_exceeded`. A document on a mount with access policies is a 422 `authorization_unsupported`. | `single-database-join-pushdown`, `relational-profile-accepted`, `subquery-only-document-is-relational`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `default-schema-dropped`, `parameters-and-names-cannot-change-query`, `ambiguous-field-refused`, `wildcard-expands-in-field-order` |
+| 2 | I post one DTQL document joining Chinook Invoice to Customer and grouping by country to `/v1/databases/chinook/dtql`. | One response, ordered columns, at most 1000 rows, `execution.route: database`; with an ORDER BY and more than 10,000 joined rows it still succeeds, which a streaming in-memory plan cannot serve, and the same data split across two mounts is a 422 `query_budget_exceeded`. The same join on a mount with access policies is a 422 `authorization_unsupported`. | `single-database-join-pushdown`, `relational-profile-accepted`, `subquery-only-document-is-relational`, `response-shape`, `result-row-cap`, `result-byte-limit`, `consistency-documented`, `single-source-with-database-unchanged`, `default-schema-dropped`, `parameters-and-names-cannot-change-query`, `ambiguous-field-refused`, `wildcard-expands-in-field-order` |
 | 3 | I post a document joining `chinook.Customer` to a countries database on the same server to `/v1/dtql`. | Joined rows; `execution.sources` lists both sources with rows and milliseconds. | `cross-database-join`, `cross-database-endpoint-single-source`, `default-schema-dropped`, `response-shape`, `mount-lease-drains-on-unmount`, `consistency-documented` |
 | 4 | (nothing) The server decides where the work runs. | The route label says `database` or `in-memory`; a 501 `query_unsupported` or a 422 names an engine that cannot join; a lone-source read of such an engine is refused on `/v1/dtql` and served on the per-database endpoint; a relational document that names a database with access policies has no label and is a 422 `authorization_unsupported`. | `route-label-follows-routing`, `ingitdb-route-label`, `engine-outside-join-set-refused`, `lone-source-outside-join-set-by-endpoint` |
 | 5 | My query is too big or too slow. | 422 `query_budget_exceeded` naming the limit and a hint; never partial rows. | `budget-exceeded-is-422-never-partial`, `timeout-is-504`, `budget-errors-report-limit-only`, `paging-headers-refused` |
@@ -139,15 +148,16 @@ body.
 
 #### REQ: check-order
 
-**PLAN DESIGN.** A request MUST be answered by the first of these checks that fails, so that a
+**Added in review; not in the plan.** A request MUST be answered by the first of these checks that fails, so that a
 caller can predict the status of any request from this Feature alone:
 
 1. Authentication (401), and on the per-database endpoint a database `{db}` that is mounted (404).
 2. The request is a document: a URL over 8 KiB (414), an empty body, a URL parameter other than
    `q` and `parameters`, or a parameter that is not bound (400 `bad_request` or `invalid_dtql`);
    then a document that parses and that the profile accepts, so that every refusal of
-   `REQ: profile-refusals` and every name that the wider quoted-name rule of
-   `REQ: values-and-names-never-text` refuses is a 400 `invalid_dtql`.
+   `REQ: profile-refusals`, every alias or qualifier that is not an identifier and every name that
+   the wider quoted-name rule of `REQ: values-and-names-never-text` refuses is a 400
+   `invalid_dtql`, or `invalid_key` for a collection name.
 3. Every source has a database: a source with none on `/v1/dtql`, or a database other than `{db}`
    on the per-database endpoint (400 `invalid_dtql`).
 4. The caller's grant covers every database and collection a source names, at any depth (403
@@ -160,16 +170,24 @@ caller can predict the status of any request from this Feature alone:
 8. No paging header is present (422 `snapshot_unsupported`).
 9. Every database is on an engine that can be queried (501 `query_unsupported`), and then on one
    in the join set (422 `join_engine_unsupported`).
-10. The query runs: a free slot on its route (503 `query_capacity`), the bounds of `REQ: limits`
-    (422 `query_budget_exceeded`), the time limit (504 `query_timeout`), a field name that the
-    wider rule accepts and the strict one of a relational document refuses, and a shape that
-    DALgo or the database refuses (400 `invalid_dtql`).
+10. The executor's own check of the document, before it asks for a slot: a field name that the
+    wider rule accepts and the strict one of a relational document refuses, one output name on
+    two columns, a parameter that is not bound (400 `invalid_dtql`).
+11. A free slot on the route (503 `query_capacity`); then, while the query runs, the bounds of
+    `REQ: limits` (422 `query_budget_exceeded`), the time limit (504 `query_timeout`) and a shape
+    that DALgo or the database refuses (400 `invalid_dtql`).
+
+Checks 3 to 11 apply to a document on the new path. A single-collection document passes checks 1
+and 2 and the grant on its one collection (403 `forbidden`), and is then read by the
+single-collection path, where checks 6 and 8 and the join-set half of 9 do not apply: a database
+with access policies is read through its policy, the paging headers page the result, and an
+engine that can be queried serves it (an engine that cannot is a 501 `query_unsupported`).
 
 #### REQ: values-and-names-never-text
 
 **PLAN DESIGN** for parameter binding; the rest was added in review. On both routes, parameter
 values MUST be bound as values and never spliced into text. Names are refused unless plain, with a
-400 `invalid_dtql`, and what passes MUST still reach a database only as a quoted identifier. A
+400 `invalid_dtql` (`invalid_key` for a collection name), and what passes MUST still reach a database only as a quoted identifier. A
 relational document holds the strict field-name rule on every engine: a field name is one or more
 dot-separated segments of Unicode letters, combining marks, digits, underscore and hyphen (a
 segment starts with a letter, a digit or an underscore, or with `$` before a letter or underscore,
@@ -180,7 +198,8 @@ same rule on every engine except SQLite and inGitDB, which quote every name they
 statement and accept the wider rule of `pkg/core/query_guard.go` (a column named `zip code` can be
 selected there and cannot be named by a relational document). A column alias, a source alias and a
 field qualifier that names no source in scope are ASCII identifiers (`[A-Za-z_][A-Za-z0-9_]*`); a
-collection name follows the existing collection-name rule. These rules are defined in code
+collection name follows the existing collection-name rule, and a collection name that breaks it
+is a 400 `invalid_key`. These rules are defined in code
 (`pkg/core/query_guard.go` and `pkg/joinexec/walk.go` on main). A database error's text MUST NOT
 be returned to the caller. (Column aliases are new caller text in the generated SQL and in
 `columns`.)
@@ -208,7 +227,7 @@ and bounds `offset`; a hint only chooses among join algorithms DALgo bounds itse
 
 #### REQ: field-resolution
 
-**PLAN DESIGN.** An unqualified field that more than one source in scope carries MUST be refused
+**Added in review; not in the plan** (not yet met by main). An unqualified field that more than one source in scope carries MUST be refused
 with a 400 `invalid_dtql`, and never bound to the first source. A wildcard column (`*` or
 `source.*`) MUST expand to the fields of the sources in the order of the sources and of their
 fields, on the database route and on the in-memory route alike, so that one document returns the
@@ -283,8 +302,9 @@ from `/v1/dtql`, has `columns` and `execution` and no `key`. A non-relational re
 per-database endpoint keeps exactly `{"records":[{"key","data"}]}`: `columns` and `execution` are
 never added to it. A relational row is not passed through the schema coercion of the
 single-collection path: a declared boolean of a SQLite mount is 0 or 1 in a relational row and
-`true` or `false` in a single-collection record. This difference is accepted for the first
-version.
+`true` or `false` in a single-collection record (read from code, not executed: no test holds a
+declared boolean, and a relational test over a declared boolean column on both routes is a
+follow-up in openvaultdb-go). This difference is accepted for the first version.
 
 ### Limits
 
@@ -310,6 +330,10 @@ partial rows. Joined results are returned whole: the paging headers on a documen
 (a relational document, or any document on `/v1/dtql`) MUST return a 422 `snapshot_unsupported`,
 and no snapshot is taken.
 
+These limits and settings bind the new path. A single-collection document is not gated or timed
+by them; it keeps the bounds of the single-collection path: at most 1000 records, 8 MiB and a
+fixed 10 s.
+
 ### Access control
 
 #### REQ: grants-before-mounts
@@ -322,7 +346,7 @@ cross-database document MUST name the database that is not allowed. Grants namin
 
 #### REQ: protected-databases-refused
 
-**PLAN DESIGN.** This is a launch limit. A relational document that names a database with access
+**Decided in review; not in the plan (Open Question 3).** This is a launch limit. A relational document that names a database with access
 policies in any of its sources, at any depth and in a subquery included, MUST be refused with a
 422 `authorization_unsupported` that carries no rows and no `execution`, and that names the
 database and no collection. The refusal comes after the grant check (403) and the lookup of the
@@ -547,7 +571,7 @@ Journey step 5.
 
 **Given** the time limit configured to a small value and a query that runs longer than it
 **When** it is posted
-**Then** the response is a 504 `query_timeout` and the server remains able to answer the next request
+**Then** the response is a 504 `query_timeout` and the server remains able to answer the next request (a single-collection read, which the setting does not bind, is answered 200 under the same setting)
 
 ### AC: budget-errors-report-limit-only (verifies REQ:limits)
 
@@ -820,11 +844,12 @@ with access policies, exact labelling) are under Open Questions.
 
 None of the open questions is decided. Questions 1 to 8 are the implementation plan's, in its
 order, each with the plan's recommendation. Questions A to D are the author's additions. Questions
-7, 8, A and D are answered by the code on main and are closed under "Closed questions" below.
-Questions 3 and 5 wait for the founder's own answer; until they are answered this Feature states
+7, 8 and A are answered by the code on main and are closed under "Closed questions" below.
+Questions 3, 5 and D wait for the founder's own answer; until they are answered this Feature states
 the cautious behaviour: for 3, a relational document that names a database with access policies
 is refused; for 5, only what OVDB can do without DALgo's exported additions (the route label is
-`database` or `in-memory`, and DALgo's bound messages are matched by text).
+`database` or `in-memory`, and DALgo's bound messages are matched by text); for D, the behaviour
+that main has.
 
 1. External sources, first form: must a caller be able to put any URL in a DTQL document, checked
    against an allow-list, or is it enough that the operator registers named external sources and
@@ -866,6 +891,19 @@ B. Are the limits right for a 512 MiB instance (1000 rows, 10 s, 2 concurrent in
    records heap at the bounds; the plan measured nothing.
 C. Does Cloud Run's default concurrency apply to OVDB Cloud? Recommendation: assume yes (the
    deploy sets no concurrency flag) and let the capacity gate, not Cloud Run, bound memory.
+D. A lone source that names a `database`, a `schema` or a `scan`, a subquery-only document, and
+   field names. The code on main answers it as follows. On the per-database endpoint a root that
+   names the endpoint's own database is read as one that names none, with the same body and keys;
+   a root that names another database, a `schema` other than the engine's default and a `scan`
+   are a 400 `invalid_dtql`; on `/v1/dtql` every source names its database, a one-source document
+   is relational with no keys, and no `schema` is accepted (`REQ: endpoints`). A document whose
+   only relational feature is a subquery is relational on the per-database endpoint. A relational
+   document holds the strict field-name rule on every engine, so a field named with a space is a
+   400 `invalid_dtql` even on SQLite (`REQ: values-and-names-never-text`). A client that sends such
+   a document gets the 400. This was set in review and reported to the founder, who has not
+   answered it. Pinned by `TestRelationalDTQLOverHTTPAcceptance` (a one-source document that names
+   its own database), `TestSingleCollectionDocumentAndTheDefaultSchemaOverHTTP` and
+   `TestTheJourneyOfAJoinOverHTTP` (step 2). Is this accepted? The decision is the founder's.
 
 Cut order if the window slips (a plan note, not a question): OJ-11, OJ-10, OJ-12, then subqueries.
 
@@ -892,16 +930,6 @@ A. The status and code of relational-profile refusals. Closed: a 400 `invalid_dt
    `POST /v1/dtql`; the paging headers are a 422 `snapshot_unsupported`. Pinned by
    `TestTheJourneyOfAJoinOverHTTP` (steps 2, 3 and 6) and
    `TestClassifierRefusalsOfADocumentTheSingleCollectionValidatorAcceptsAreClientErrors`.
-D. A lone source that names a `database`, a `schema` or a `scan`. Closed: on the per-database
-   endpoint a root that names the endpoint's own database is read as one that names none, with
-   the same body and keys; a root that names another database, a `schema` other than the engine's
-   default and a `scan` are a 400 `invalid_dtql`; on `/v1/dtql` every source names its database,
-   a one-source document is relational with no keys, and no `schema` is accepted (`REQ: endpoints`).
-   A client that sends such a document gets the 400. This was set in review and reported to the
-   founder, who has not answered it. Pinned by
-   `TestRelationalDTQLOverHTTPAcceptance` (a one-source document that names its own database),
-   `TestSingleCollectionDocumentAndTheDefaultSchemaOverHTTP` and
-   `TestTheJourneyOfAJoinOverHTTP` (step 2).
 
 ---
 *This document follows the https://specscore.md/feature-specification*
