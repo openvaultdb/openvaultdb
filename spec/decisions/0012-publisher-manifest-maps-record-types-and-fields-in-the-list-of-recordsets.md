@@ -54,7 +54,8 @@ the "`recordsets` and optional `recordset_entities` mapping" (line 116), and it
 says of the second (line 174): "`recordset_entities` maps native collection names to ModelSpec entity names.
 Names not listed in the mapping keep the existing same-name behavior." So today a
 manifest names each recordset in one list, and pairs a recordset with a record type
-of another name in a second list at the end of the file:
+of another name in a second list at the end of the file. The example is made up for
+this record, with made-up names; it is not the README's own:
 
 ```yaml
 format: ovdb-manifest/draft-1
@@ -71,13 +72,15 @@ different names.
 **On record, the proposal.** The questions recorded here were put to the owner as
 decision D5 of the conceptual design proposal for ModelSpec, the proposal that
 ModelSpec's decisions
-[0018](https://github.com/specscore/modelspec/blob/main/spec/decisions/0018-entity-becomes-record.md),
-[0019](https://github.com/specscore/modelspec/blob/main/spec/decisions/0019-collection-and-recordset-removed-three-words-reserved.md)
+[0018](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0018-entity-becomes-record.md),
+[0019](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0019-collection-and-recordset-removed-three-words-reserved.md)
 and
-[0020](https://github.com/specscore/modelspec/blob/main/spec/decisions/0020-field-is-the-member-word.md)
-also record. The proposal is not published. It exists in a first version, dated 8
-October 2026, and in a second version, dated 9 October 2026 and called revision 2
-here, which records the owner's answers. The session records quoted below are not published either.
+[0020](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0020-field-is-the-member-word.md)
+also record (each ModelSpec decision is linked in this record at commit `9212dac`,
+where it was read). The proposal is not published. It exists in a first version,
+dated 8 October 2026, and in a second version, dated 9 October 2026 and called
+revision 2 here, which records the owner's answers. The session records quoted below
+are not published either.
 
 ### Decision D5 as first put, and his rejection
 
@@ -110,7 +113,10 @@ of answers he sent to the proposal's author:
 **On record, the questions as put again** (the stored record of the proposal
 author's session, not published). On 2026-10-08 at 21:22 UTC, in its reply to that
 sheet, the proposal's author put D5 again under the heading "D5 again, split, with
-an example each". The text under that heading, exactly:
+an example each". The text under that heading is quoted exactly below, up to the
+message's closing paragraph. That paragraph, two sentences, is left out: it says
+that other work had not started and when the proposal's document would be revised,
+and it puts no question about D5.
 
 > **Q1. One line per table in a public database's manifest.** Northwind's `Order Details` table today:
 >
@@ -204,6 +210,12 @@ author's record of the exchange and not the wording he answered. The stored copy
 plain text that has lost the indentation of its examples; the code fences below are
 the recorder's, and the characters inside them are the copy's.
 
+The card is quoted in part. Quoted, in the card's order: its note on the rejection,
+questions 1 to 3 with their examples, the line on what his approvals authorise, and
+the line that records his answers. Left out: the card's heading, the one line that
+states its subject, its paragraph on part c, which stands between question 3 and the
+line on what his approvals authorise, and the rows of answers offered at its end.
+
 > You rejected parts a and b with this note: "It's too much theory without example. Need split up and some examples for each item." They are split below, each with its example. Section 8 has the rules in full.
 
 > Question 1. In a public database's manifest, one line in the list of recordsets ties a table to its record type. It replaces the separate list recordset_entities. Northwind:
@@ -262,8 +274,8 @@ the recorder's, and the characters inside them are the copy's.
   of your one-line approval."
 - Question 3 concerned a file inside a DataTug project, not a publisher manifest.
   The example he approved for it writes its column as a bare string.
-- The card records his answers to questions 1 and 3 as "approved". His messages
-  read "Q1 - approved." and "Q3 - approved".
+- The card records his answers to questions 1 and 3 as "approved". His message of
+  21:34 UTC reads "Q1 - approved." and "Q3 - approved".
 
 ### The manifest's format line: the question, and his answers
 
@@ -362,8 +374,15 @@ exactly:
 
 > 2. **My reading of "5 - ok"**: the names as listed, the core graph then the six dataset graphs, and `ovdb-manifest/draft-2`. A word from you that this is right lets the three pieces above land once reviewed.
 
+**On record, one more message before his reply**, 2026-10-09 at 15:38 UTC. The
+coordinating session reported another matter, said of this record "It lands only
+after you confirm my reading of "5 - ok".", and closed by naming the same two open
+points again, in the same order and without numbers: the other matter first, then
+"that reading".
+
 **The owner's words**, 2026-10-09 at 15:43 UTC, the second line of a two-line
-message that answers those two points by number:
+message. It follows the list of 15:32 UTC and the message of 15:38 UTC, and its
+numbers are those of the list:
 
 > 2 - correct
 
@@ -378,6 +397,10 @@ message that answers those two points by number:
   `ovdb-manifest/draft-2` as the first option and the session's recommendation.
 - "5 - ok" does not itself name an option. Taking it as the recommended option was
   the coordinating session's reading, and the session said so to him.
+- His "2 - correct" follows both the numbered list of 15:32 UTC and the message of
+  15:38 UTC. The list is the last numbered one put to him, and the later message
+  names the same two points in the same order, so the recorder takes his "2" as the
+  second point, the reading.
 - His "2 - correct" confirms that reading. The point he confirmed names the string
   `ovdb-manifest/draft-2`. So the identifier rests on the reading he confirmed and
   no longer on the reading alone. He has not written the string himself.
@@ -480,7 +503,7 @@ manifest that has it, a search finds none elsewhere, and the owner has approved 
 step. The proposal asks for a separate approval before ModelSpec's earlier spelling
 becomes an error; applying that to this manifest key is the contract author's
 choice. On record, ModelSpec's decision
-[0022](https://github.com/specscore/modelspec/blob/main/spec/decisions/0022-prose-now-format-change-on-the-owners-word.md)
+[0022](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0022-prose-now-format-change-on-the-owners-word.md)
 quotes the owner on 2026-10-09: "yes, you can and should make the old spelling an
 error". That was said about ModelSpec's spelling. Whether it covers this key is not
 known, and this record does not give that approval.
@@ -521,7 +544,7 @@ them again from the code.
 | N16 | The index's own format identifier. | It stays `ovdb-directory/draft-1`. | The contract's author; the coordinating session's brief for the index has the same rule. |
 | N18 | The key `modelEntity` in the descriptor file `ovdb-database.json`. | It stays. Not due until that format is next revised. | The contract's author. |
 | N19 | Keys named after "entity" inside the demo databases' own tooling. | They stay. | The contract's author. |
-| N20 | `columns` on a recordset that an HTTP source definition or a representation contract already describes. | Refused. The rule is read again against the contract reader that [decision 0011](0011-representation-contracts-may-point-at-a-model-in-either-modelspec-vocabulary.md) amends. | The contract's author. |
+| N20 | `columns` on a recordset that an HTTP source definition or a representation contract already describes. | Refused. The contract's author wrote the rule while the reader of representation contracts was being changed, and meant it to be read again against the changed reader. That reader is `openvaultdb/ovdb` at commit `e2e959f1836cc456462cf10babfd7284010ecbc9` (pull request #88, tagged v0.43.0), under [decision 0011](0011-representation-contracts-may-point-at-a-model-in-either-modelspec-vocabulary.md) as it stands at commit `874cf42d1df26847a264bee13e64b62741d713bd` of this repository. This record does not check the rule against the reader at that commit. | The contract's author. |
 | N22 | How `ovdb publisher check` reports the notice of N4. | In a new list `notices` of its output; `findings`, `ok` and the exit status are untouched. Fixed from the release that carries it. | The contract's author. |
 | N23 | The names of the new findings of `ovdb publisher check`. | `manifest-columns`, `repo-columns` and, for the notice, `manifest-deprecated`. Fixed from the same release. | The contract's author. |
 | N24 | Where the shared test cases live. | One file in the Directory, copied into the Go check's reference files. | The contract's author. |
@@ -538,7 +561,8 @@ them again from the code.
 | N35 | How much of this specification's prose about a ModelSpec "projection" is corrected alongside. | One file is named by the proposal; four more are the contract author's survey. None is corrected in the change that adds this record (see "Known and not done here"). | The contract's author for the list; the coordinating session for leaving it out of this change. |
 | N36 | What this record holds. | His whole answer on D5, all four parts, and the choices above under their makers' names. | The contract's author. |
 
-Six points the proposal leaves open are not taken up at all. None is due:
+Six points the proposal leaves open are not taken up at all. None is due. They are
+given in the recorder's words, not the proposal's:
 
 - a reference to a key of several fields;
 - a shared mapping file for databases with the same unusual names;
@@ -550,8 +574,9 @@ Six points the proposal leaves open are not taken up at all. None is due:
 
 ### What this record records and this change does not build
 
-He answered all four parts of D5. Two of the answers start no work on a publisher
-manifest, and they are recorded here so that a file holds them.
+Recorder's account, except the words quoted as his and the sentences marked "On
+record". He answered all four parts of D5. Two of the answers start no work on a
+publisher manifest, and they are recorded here so that a file holds them.
 
 - **Question 3**, answered "Q3 - approved": a database with no public address
   carries the same lines in a source file inside the DataTug project. On record, the
@@ -573,7 +598,7 @@ at the commit named below for `ovdb-manifest`, `recordset_entities` and the word
 manifest. It does contain an older picture, in which an application
 writes a ModelSpec "projection" to suggest where its data should be stored.
 ModelSpec's decision
-[0019](https://github.com/specscore/modelspec/blob/main/spec/decisions/0019-collection-and-recordset-removed-three-words-reserved.md)
+[0019](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0019-collection-and-recordset-removed-three-words-reserved.md)
 made `projection` a reserved word with no content, so a model can no longer carry
 one. The sentences below are known to need correcting. The change that adds this
 record corrects none of them. Lines are as read at commit
@@ -581,7 +606,7 @@ record corrects none of them. Lines are as read at commit
 
 | File and line | What is there |
 |---|---|
-| `spec/schema/modelspec-integration.md`, line 58 | The artifact for "Optional backend mapping suggestion" is "Advisory ModelSpec projection". This is the one phrase the proposal names. |
+| `spec/schema/modelspec-integration.md`, line 58 | The artifact for "Optional backend mapping suggestion" is "Advisory ModelSpec projection". This is the one phrase the proposal names for correction (the recorder's summary of the proposal, not a quotation from it). |
 | The same file, lines 16 and 17 | "Projection" is defined as a mapping from a logical ModelSpec model, and "Advisory mapping hint" as a projection suggestion that an application provides. |
 | The same file, line 27 | OpenVaultDB "MAY accept app-provided ModelSpec projection hints". |
 | The same file, line 89 | "Treating projection hints as authoritative would move storage decisions back into applications." |
@@ -591,10 +616,10 @@ record corrects none of them. Lines are as read at commit
 | `spec/glossary.md`, line 21 | "Projection" is defined as a mapping from a logical ModelSpec model. |
 | `spec/graph/modules/schema/entities/projection.md`, lines 6, 15 and 16 | `model: modelspec:///schema.Projection`, and "App-provided projection hints are advisory and non-authoritative." |
 
-The first row is the proposal's; the other eight are the contract author's survey
-(N35). Lines 44 and 60 of `spec/schema/modelspec-integration.md` speak of the
-vault's own "backend projection" and "Projection plan"; they describe what the
-vault does and are not made false by decision 0019.
+The first row is the one the proposal names; the other eight are the contract
+author's survey (N35). Lines 44 and 60 of `spec/schema/modelspec-integration.md`
+speak of the vault's own "backend projection" and "Projection plan"; they describe
+what the vault does and are not made false by decision 0019.
 
 ### Takes effect
 
@@ -634,7 +659,7 @@ The following are not his.
   reader of the manifest finds a recordset's record type and its differing columns
   in one place, and the key says "record type", the word ModelSpec now uses
   (decision
-  [0018](https://github.com/specscore/modelspec/blob/main/spec/decisions/0018-entity-becomes-record.md)
+  [0018](https://github.com/specscore/modelspec/blob/9212dacc606cfcb7e131c67680fe1c1ec3c08f28/spec/decisions/0018-entity-becomes-record.md)
   reports that "the proposal has OpenVaultDB's files spell their mapping key
   `record_type` once that format changes").
 
@@ -645,7 +670,11 @@ The following are not his.
 On record, he rejected parts a and b as put ("D5a: Reject", "D5b: Reject") with the
 note quoted above. Recorder's account: the note is about the form of the question.
 The content of part a came back as questions 1 and 2, and of part b as question 3,
-each with an example, and he approved those.
+each with an example. He approved questions 1 and 3 as put ("Q1 - approved.", "Q3 -
+approved"). He did not approve question 2 as put, with the column as a bare string:
+he answered it with a map of his own ("Q2 - how about making it more expandable in
+future by using column attributes, something like") and then approved the key
+(`approved the "field" attribute of a column`).
 
 ### A column written as a bare string only
 
@@ -676,9 +705,9 @@ Recorder's account, written on 2026-10-09 from the public repositories as they w
 read that day. It states what is true then and no more.
 
 - A manifest in the new form says `format: ovdb-manifest/draft-2`. A manifest that
-  says `ovdb-manifest/draft-1` stays valid; whether one that still holds
-  `recordset_entities` draws a notice, and when that key stops being read, are N4
-  and N17.
+  says `ovdb-manifest/draft-1` stays valid, by N3, which is the contract author's
+  choice; whether one that still holds `recordset_entities` draws a notice, and when
+  that key stops being read, are N4 and N17.
 - Nothing of the new form is on the Directory's `main`. Its checker
   ([`openvaultdb/directory`](https://github.com/openvaultdb/directory) at
   `2ed201d`, `scripts/lib/directory.mjs`) requires the format line to be
