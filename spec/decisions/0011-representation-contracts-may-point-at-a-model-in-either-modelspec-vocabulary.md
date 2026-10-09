@@ -20,7 +20,8 @@ labelled:
 
 - **The owner's words**, quoted exactly with their date.
 - **On record**: what a message, a decision or a file already on record says, with
-  a link or a place to find it.
+  a link or a place to find it. Where the source is not published, so that a reader
+  cannot open it, the text says "not published".
 - **Recorder's account**: what the session writing this file says or infers. It
   is not the owner's ruling, whatever its tone.
 
@@ -51,7 +52,7 @@ in the ModelSpec repository. In the JSON form the two vocabularies are:
 
 **On record.** Decision 0022 carries a dated entry of 2026-10-09 about the last
 stage, making the earlier spelling an error. The session recording it had told the
-owner that this approval would come later, and asked then. The owner's words in
+owner that this approval would come later and that it would ask then. The owner's words in
 that entry are: "yes, you can and should make the old spelling an error". The
 entry says the recording session reads this as approval of that step in its place
 in the order, after the registered models are pinned anew, and that it put that
@@ -129,12 +130,13 @@ and exactly:
 
 > 4. **Representation contracts: amend the frozen formats, or add a new one?** GeoNames and ROR cannot be rewritten while the contract accepts only `"modelspec": "1.0-draft"`. I recommend amending formats 1 to 3 on one point only: which model vocabularies a contract may point at. No contract byte changes, and the Directory's own checker already behaves this way.
 
-The wording is read from the session's stored record of its turns, where an
-independent reviewer recovered it. The question carried no before-and-after
+The wording is read from the session's stored record of its turns (not published),
+where an independent reviewer recovered it. The question carried no before-and-after
 example and did not mention a hash.
 
 **On record, the reply.** On 2026-10-09 at 06:25 UTC the owner replied in one
-message of four lines, to the four numbered questions. Its fourth line was:
+message of four lines, to the four numbered questions (read from the same stored
+record, not published). Its fourth line was:
 
 > 4 - amend
 
@@ -156,8 +158,23 @@ message of four lines, to the four numbered questions. Its fourth line was:
   contract entry more than one value; and then the contract file's own SHA-256 in
   `ovdb.yaml` changes too. The Decision section sets this out by case.
 - The owner answered "amend" having been told the false sentence. Whether it would
-  have changed his answer is not known. This record stays In Review until he has
-  read the corrected text.
+  have changed his answer is not known. This record was left In Review for that
+  reason: it stays In Review until he has read the corrected text.
+
+**On record, the question put to him again** (read from the session's stored record,
+not published, by the independent reviewer; the coordinating session's lead confirms
+it). On 2026-10-09 at 08:21 UTC, after the review that found the error, the
+coordinating session told him that the sentence was false and what changes by kind
+of contract entry, and asked: "does "amend" still stand, knowing that the pinned
+hashes inside each contract do change?" When this text was written he had not
+answered.
+
+The coordinating session's argument in that message, not his words: a new format
+would have required rewriting each contract wholesale, so amending is still the
+smaller change.
+
+**Recorder's account.** An answer to that question, when it comes, says whether the
+course stands. It is not approval of this text.
 
 **Recorder's account of the problem.** The formats are frozen, and a frozen format
 that is silent about the model's vocabulary leaves a question that readers answer
@@ -176,7 +193,7 @@ four-line reply to the four numbered questions:
 Those are all the owner's words this record has on the point.
 
 **Recorder's reading of the answer** (the reading is the recorder's; the owner has
-not been shown this text): the answer chooses to amend over adding a format. The
+not been shown this text when it was written): the answer chooses to amend over adding a format. The
 amendment, on one point only, which is the question's own wording of the scope:
 
 > A ModelSpec model or source schema that a representation contract refers to may
@@ -192,16 +209,18 @@ The contract entry's own keys are not part of that vocabulary and do not move.
 `entity`, `property`, and every other key a contract file has keep their names and
 their meaning. In a contract entry, `entity` names a record type of the referenced
 model in either vocabulary, and `property` names a member of it in either. On
-record, the ModelSpec conceptual design proposal, on which the owner's answers to
-the ModelSpec questions (decisions 0018 to 0022) were given, says in its "What does
-not change" section, in the version headed "Revision 2, 9 October 2026" and in an
-earlier version: "OVDB's representation contract
+record, the ModelSpec conceptual design proposal (not published) says in its "What
+does not change" section, in the version headed "8 October 2026, for approval" and
+in the version headed "Revision 2, 9 October 2026", which came after. On the
+recorder's account, the owner's answers of 8 October to the ModelSpec questions
+(decisions 0018 to 0022) were given on the first of the two versions. The sentence
+reads: "OVDB's representation contract
 formats 1 to 3. They are frozen and versioned. They keep their entity field; a
 later format adopts the new word." Those are the proposal's words, not the
 owner's of 2026-10-09.
 
-Before and after, as the recorder's illustration, written afterwards and not put
-to the owner: the GeoNames target model that a contract entry names, abridged (the
+Before and after, as the recorder's illustration, written afterwards and not in
+the question put to the owner: the GeoNames target model that a contract entry names, abridged (the
 real model has more members; the rewritten file is not published):
 
 ```json
@@ -227,8 +246,7 @@ byte-identical before and after:
 "datatype": "string", "entity": "geonames_countries", "module": "geonames", "property": "iso"
 ```
 
-That is the true part of the question's sentence "No contract byte changes": no
-key and no schema changes. Other values in the contract file do change, by case.
+What does hold: no key and no schema changes. Other values in the contract file do change, by case.
 This is the recorder's account, read from the two implementations (`ovdb` v0.42.0,
 `publisher/representation/contract.go` lines 556 to 560 and `native.go` line 189;
 `openvaultdb/directory` at `ec53d75`, `scripts/lib/representation.mjs` lines 156
@@ -270,9 +288,10 @@ not run.
    moving it changes `source.schema.revision` together with `source.schema.sha256`,
    and only when that other repository has a rewritten revision. A publisher that
    rewrites its own model does not touch `source.schema` at all: that pin belongs
-   to whoever holds a contract entry that uses the model as a source. Whether
-   moving a source pin needs a new decision is not settled here (see below); the
-   GeoNames entries each carry a `decision.scope` that names the source revision.
+   to whoever holds a contract entry that uses the model as a source. Whether the
+   entry's own `decision.document` and `decision.scope` should be rewritten when
+   its source pin moves is not settled here (see below); the GeoNames entries each
+   carry a `decision.scope` that names the source revision.
 
 In every case the contract file's own bytes change, so the SHA-256 that
 `ovdb.yaml` records for it (`representation_contract.sha256`) moves too.
@@ -305,8 +324,17 @@ In every case the contract file's own bytes change, so the SHA-256 that
 - Whether a later format renames the contract entry's own keys `entity` and
   `property`. On record, the proposal quoted above says "a later format adopts the
   new word". This record does not propose such a format and does not rule it out.
-- Whether moving a source pin (item 3 above) needs a new decision, because a
-  GeoNames entry's `decision.scope` names the source revision.
+- Whether a contract entry's own `decision.document` and `decision.scope` should be
+  rewritten when its source pin moves (item 3 above). "Decision" here means those
+  two members of the contract entry, not a decision record like this one. A
+  GeoNames entry's `decision.scope` names the source revision. On record, neither
+  reader compares `decision.scope` with the source revision: the Go reader of
+  `ovdb` v0.42.0 declares the field and reads the pinned document's bytes
+  (`contract.go` lines 100 to 103 and 278 to 281) and nowhere compares the scope;
+  the Directory's reader at `ec53d75` resolves the document's bytes
+  (`representation.mjs` line 116) and does not read `scope`. So nothing refuses an
+  entry whose scope names the old revision; what is unsettled is whether one should
+  be written.
 - Whether a model that mixes the two vocabularies is refused. On record, the
   Directory's README (line 138 onward, about a manifest's own model) says the
   identifier decides the vocabulary and a document that mixes the two is refused,
@@ -318,8 +346,8 @@ In every case the contract file's own bytes change, so the SHA-256 that
 
 ### Takes effect
 
-Recorder's account, not the owner's. On the owner's approval of this text, as to
-the specification. In running software, only when and as each implementation
+Recorder's account, not the owner's. As to the specification, once the owner
+approves this text. In running software, only when and as each implementation
 changes, which this record does not do; see the consequences.
 
 ## Rationale
@@ -373,7 +401,7 @@ that day. It states what is true then and no more.
 - Readers must read `1.0-draft` for as long as any contract entry pins a model in
   it.
 - Implementations, as read on 2026-10-09:
-  - `openvaultdb/directory`, `main` at `ec53d7539aafd23d006b4943acdd7a31f4eb9340`:
+  - `openvaultdb/directory`, read at `ec53d7539aafd23d006b4943acdd7a31f4eb9340`:
     reads either vocabulary for these models (pull request #43, merged
     2026-10-09T04:44:36Z).
   - `openvaultdb/ovdb`, release v0.42.0 (`86c31700875661a011552c7ae28a55cc7a370dd7`),
