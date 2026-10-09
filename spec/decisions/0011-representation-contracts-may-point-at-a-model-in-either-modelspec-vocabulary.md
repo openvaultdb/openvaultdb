@@ -174,21 +174,22 @@ The coordinating session's argument in that message, not his words: a new format
 would have required rewriting each contract wholesale, so amending is still the
 smaller change.
 
-**On record, the same question put to him once more, and his answer.** Later the same
-day, after a review of `openvaultdb/ovdb` pull request #88 (the time of these
-messages is not in the record this text was written from), the coordinating session
-put two questions to him that unblock that pull request. The first, exactly (from
-the session's stored record, not published):
+**On record, the question repeated, and his answer.** The session repeated the
+question in its messages through the morning. The last two are quoted here, from
+the session's stored record (not published). The first was sent on 2026-10-09 at
+09:44 UTC, in a message headed "Two questions that unblock openvaultdb/ovdb#88"
+(a pull request in `openvaultdb/ovdb`); its first question, exactly:
 
 > **1. Does "amend" still stand?**
 >
 > No contract key, format or schema changes. A publisher who rewrites its model must update the pinned hashes inside its contract: one per entry for GeoNames, three for ROR's entry, then the contract's own hash in `ovdb.yaml`.
 
-and, in the numbered list that ended its next message ("Waiting on you"), the line:
+and a later message, at 11:52 UTC, ended with a numbered list headed "Waiting on you",
+whose first line was:
 
 > 1. Does "amend" still stand?
 
-His reply, 2026-10-09, was one message of five lines. Its first line was:
+His reply, 2026-10-09 at 11:58 UTC, was one message of five lines. Its first line was:
 
 > 1. Yes
 
@@ -325,10 +326,10 @@ In every case the contract file's own bytes change, so the SHA-256 that
 This is a rule separate from the amendment above, and it was put to the owner as its
 own question.
 
-**On record, the question.** The coordinating session's message that put it,
-quoted exactly from its stored record (not published), relevant part in full. Its
-heading was "Two questions that unblock openvaultdb/ovdb#88"; the second question
-read:
+**On record, the question.** The coordinating session's message of 09:44 UTC that
+put it, quoted exactly from its stored record (not published), relevant part in
+full. Its heading was "Two questions that unblock openvaultdb/ovdb#88"; the second
+question read:
 
 > **2. May the representation check also refuse a model that mixes the two vocabularies or carries a removed construct?**
 >
@@ -350,12 +351,12 @@ read:
 >
 > If you say yes to both, I record your words in decision 0011, have its text reviewed, and bring you that text to approve separately. Then #88 lands and releases `ovdb` v0.43.0.
 
-and, in the numbered list that ended its next message, the line:
+and, in a later message, at 11:52 UTC, the second line of the "Waiting on you" list:
 
 > 2. May the representation check refuse mixed or removed-construct models? (I recommend yes.)
 
-**The owner's words.** His reply, 2026-10-09, the second line of the same
-five-line message as "1. Yes":
+**The owner's words.** His reply, 2026-10-09 at 11:58 UTC, the second line of the
+same five-line message as "1. Yes":
 
 > 2. Yes
 
@@ -363,13 +364,35 @@ five-line message as "1. Yes":
 not been shown this text when it was written). The rule, stated by the recorder:
 
 > A ModelSpec model or source schema that a representation contract refers to, whose
-> identifier is `1.0-draft` or `1.0-draft-2`, is refused when its keys disagree with
-> its identifier (a key of the other vocabulary at the top level, on a record type
-> or on a member), or when it carries a removed or reserved top-level key
-> (`collections`, `recordsets`, `projections`, `migrations`).
+> identifier is `1.0-draft` or `1.0-draft-2`, is refused when it carries a key of the
+> other vocabulary (at the top level, on a record type or on a member), or a removed
+> top-level key (`collections`, `recordsets`).
 
-The example's "which today's `ovdb` v0.42.0 accepts when a contract uses it as a
-source schema" and the reasons listed above are what was in front of him.
+The identifier limit is where the readers apply the check, not an extension.
+
+**On record.** ModelSpec's specification makes a document that carries `projections`
+or `migrations` an error as well. In `specscore/modelspec` at `origin/main`
+(`17e2c503ce882e72aca2e277f5ed2d958da723cc`), `spec/json-format.md`, section
+"Removed And Reserved Fields": "The top-level fields `collections` and `recordsets`
+are removed, and `projections` and `migrations` are reserved with no content. A
+document that carries any of the four is an error, under either identifier". The
+Directory's reader refuses those two keys with the same check as the other two, and
+so does the Go reader in `ovdb` pull request #88 (not merged; the independent
+reviewer's run). The question he answered said "removed construct" and did not name
+them, so refusing them rests on ModelSpec's specification, not on his "2. Yes".
+
+**Recorder's note.** If he approves this text with the four keys in it, the four are
+then his.
+
+The full question, with its example and reasons, was sent to him at 09:44 UTC. His
+reply at 11:58 UTC followed the list of 11:52 UTC, which carried only the one line.
+
+**Recorder's note on the example.** The quoted example is abridged: it has no
+`module`, so that exact document would be refused by `ovdb` v0.42.0 for another
+reason (the contract's module does not resolve; read in the code, not run). What the
+question claims holds for a whole model, as the independent reviewer's run showed
+(a `1.0-draft` source schema with a top-level `collections`, `recordsets`,
+`projections` or `migrations` is accepted by v0.42.0 and refused by #88).
 
 **Separate from the amendment.** The amendment widens what a contract may point at;
 this rule narrows what is accepted in the earlier vocabulary, so it is a second
@@ -379,12 +402,14 @@ point only: which model vocabularies a contract may point at"), and rests on his
 
 **What it changes** (recorder's account):
 
-- A source schema in `1.0-draft` that carries such a key, which `ovdb` v0.42.0
-  accepted, is refused. The Directory already refused it. The publisher's own model
+- A source schema in `1.0-draft` that carries a key of the other vocabulary or any
+  of the four removed or reserved top-level keys, which `ovdb` v0.42.0 accepted, is
+  refused (for `projections` and `migrations` by the specification, not by his
+  answer). The Directory already refused it. The publisher's own model
   is also read by `internal/publisher/repo`, which has had the checks
   `repo-model-vocabulary` and `repo-model-removed` since v0.42.0 (its README, line
   113).
-- A contract that points at a `1.0-draft` model without such a key is read as
+- A contract that points at a `1.0-draft` model without any such key is read as
   before.
 - Older pins of clean earlier-vocabulary files stay valid.
 
@@ -410,7 +435,7 @@ affected. The check covers the files fetched, not any file written later.
   that pins a model by SHA-256 keeps pinning those bytes, and they are read in the
   vocabulary they are in, if they are clean: a file with a key of the other
   vocabulary or a removed or reserved top-level key is refused whichever pin names
-  it. A source schema pinned at an older revision of another repository stays
+  it (for the two reserved keys by the specification, not by his answer). A source schema pinned at an older revision of another repository stays
   readable in the vocabulary it was written in under the same condition.
 - The text of the formats is not in this repository (see Context), so this record
   edits no sentence of the specification. The sentences that describe the formats
@@ -443,8 +468,8 @@ affected. The check covers the files fetched, not any file written later.
 - Recorder's account, not a rule he was asked about: a key that merely folds to a
   word of the other vocabulary by letter case (`Entities` under `1.0-draft-2`) is
   an unrelated key, matched by exact bytes, in both implementations (the
-  Directory, and `ovdb` pull request #88 at `b280a829667076dad34c296a4e5206aa94377603`,
-  not merged); that is behaviour of the readers.
+  Directory, and `ovdb` pull request #88 at `b7e1c4a7c172f9ceeb97f6482e56200d8a4dc8d3`, not merged);
+  that is behaviour of the readers.
 
 ### Takes effect
 
@@ -470,8 +495,10 @@ are the recorder's.
 - A model that a contract entry pins can move to the current vocabulary under
   decision 0022 without a new contract format and without waiting for one.
 - Both vocabularies have to stay readable anyway, because older pins of older
-  model revisions stay valid for ever (decision 0018: "A commit that is pinned
-  today keeps its old spelling and stays readable").
+  model revisions stay valid for ever, with one exception, the second rule: a clean
+  file does, and a file with a key of the other vocabulary or a removed or reserved
+  top-level key is refused (decision 0018: "A commit that is pinned today keeps its
+  old spelling and stays readable").
 - The second rule's reasons are the five listed in the question he answered "2. Yes"
   to (quoted in the Decision section); his reply gave none of his own.
 
@@ -505,7 +532,8 @@ that day. It states what is true then and no more.
 
 - Both vocabularies are permitted for any model or source schema a contract refers
   to, in formats 1, 2 and 3, and a referenced model that mixes them or carries a
-  removed or reserved top-level key is refused (the second rule).
+  removed top-level key is refused (the second rule), as is one that carries a
+  reserved top-level key, by ModelSpec's specification.
 - A publisher that rewrites its own model must change the values listed by case in
   the Decision section: one value per contract entry for a label-bridge entry (and
   the snapshot's, if it keeps its snapshot true), three for a native-identifier
@@ -533,10 +561,12 @@ that day. It states what is true then and no more.
     (`publisher/source/pinchain/model.go`) requires `1.0-draft`. A change to
     `publisher/representation` is open as pull request
     [#88](https://github.com/openvaultdb/ovdb/pull/88): not merged, not released,
-    head `b280a829667076dad34c296a4e5206aa94377603`. It has been reviewed by an
-    independent reviewer at `684b0c0` and, in a delta review, at `7f86ee3`; three
-    commits came after that second review (`9339b72`, `66772c0`, `b280a82`) and I
-    know of no review of them. It does not touch the pin-chain reader.
+    head `b7e1c4a7c172f9ceeb97f6482e56200d8a4dc8d3`. It has been reviewed by an
+    independent reviewer at `684b0c0` and, in a delta review, at `7f86ee3`; four
+    commits follow that second review (`9339b72`, `66772c0`, `b280a82`, `b7e1c4a`)
+    and the recorder knows of no review of them. The head and the figure are as of
+    the recorder's reading on 2026-10-09 at about 12:14 UTC; the pull request may
+    have moved since. It does not touch the pin-chain reader.
   - Until that change is released, a publisher that rewrites a model that its
     contract points at passes the Directory's check and fails `ovdb`'s
     representation check. Recorder's inference from the two code paths above, not
