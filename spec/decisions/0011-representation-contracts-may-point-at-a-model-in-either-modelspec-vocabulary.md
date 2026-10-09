@@ -426,17 +426,33 @@ when:
   at that pull request's head `684b0c04bb0577e1188fd3c17649ab415e48ddd4`). They are
   `1.0-draft` with the top-level keys `entities`, `modelspec` and `module` only, and
   no `fields` or `record` at the two inner places.
-- Three more are synthetic models that fixtures of `datatug/datatug-apps` pin under
-  placeholder repository names. Their bytes are in the fixture directory, not at a
-  pinned commit, and the first comment had not opened them. The reviewer opened them
-  for the final review ([comment](https://github.com/openvaultdb/ovdb/pull/88#issuecomment-6081177581),
-  at head `64c47f4bd89cb1ead7416f540be03e9908bc5bbb`): each matches its pinned hash,
-  is `1.0-draft` and has no refused key.
-- One pin in `demo-db/chinook`'s fixture is a placeholder: no file with those bytes
-  exists anywhere.
+- Five more are synthetic fixture models. Each is a file in the repository that holds
+  the fixture, not at a pinned commit of a repository the pin names:
+  - `demo-db/chinook`'s own fixture model
+    (`scripts/testdata/representation/model/target.modelspec.json`), fetched from
+    that repository's history and checked against its SHA-256 in the first review;
+  - three pinned by fixtures of `datatug/datatug-apps`: `target.modelspec.json` as
+    the fixture's own model, `source.modelspec.json` and `fixture.modelspec.json`
+    under placeholder repository names. The first comment had not opened them; the
+    reviewer opened them for the final review
+    ([comment](https://github.com/openvaultdb/ovdb/pull/88#issuecomment-6081177581),
+    at head `64c47f4bd89cb1ead7416f540be03e9908bc5bbb`);
+  - one pinned by the `ovdb` repository's `native-geonames` fixture under a
+    placeholder repository name (`source/fixture.modelspec.json`, other bytes than
+    the `datatug-apps` file of that name), read by both readers in the first review
+    and checked against its pin for the review of this paragraph
+    ([comment](https://github.com/openvaultdb/openvaultdb/pull/24#issuecomment-6081374928)).
 
-The reviewer found none affected. The check covers the pinned files that exist, not
-any file written later.
+  Each matches its pinned hash, is `1.0-draft` and has no refused key. The `ovdb`
+  repository's other fixture pins, at v0.42.0, are four of the six real ones and the
+  first two of the `datatug-apps` three, with the same bytes.
+- One pin in `demo-db/chinook`'s fixture is a placeholder: no file with those bytes
+  exists anywhere the reviewer looked.
+
+The reviewer found none of the eleven files affected. The check covers the pinned
+files that exist, not any file written later, and not a contract in a repository
+other than the five named (the search for others used GitHub's code index, which sees
+default branches only).
 
 ### What does not change
 
