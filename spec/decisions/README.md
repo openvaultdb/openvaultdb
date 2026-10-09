@@ -18,6 +18,7 @@ format: https://specscore.md/decisions-index-specification
 | [0009](0009-opt-in-product-telemetry.md) | Opt-in product telemetry with PostHog | Approved | 2026-09-17 | telemetry,privacy,onboarding,ai-agents | [Telemetry consent](../features/telemetry-consent/README.md) — states, parity, events and copy., [First-run onboarding](../features/first-run-onboarding/README.md) — when consent is asked., [AI agent skills](../features/ai-agent-skills/README.md) — agents relay, never infer, consent. |
 | [0010](0010-built-in-todo-demo.md) | Built-in TODO demo is the first-run demo | Approved | 2026-09-17 | onboarding,demo,ai-agents | [TODO demo](../features/todo-demo/README.md) — implements this decision., [AI agent skills](../features/ai-agent-skills/README.md) — TODO skill., [Explore data hand-off](../features/explore-data-handoff/README.md) — demo next action. |
 | [0011](0011-representation-contracts-may-point-at-a-model-in-either-modelspec-vocabulary.md) | Representation contracts may point at a model in either ModelSpec vocabulary | Approved | 2026-10-09 | representation-contract,modelspec,compatibility | — |
+| [0012](0012-publisher-manifest-maps-record-types-and-fields-in-the-list-of-recordsets.md) | A publisher manifest maps record types and fields in its list of recordsets | In Review | 2026-10-09 | publisher-manifest,modelspec,mapping,format | — |
 
 ## Open Questions
 
