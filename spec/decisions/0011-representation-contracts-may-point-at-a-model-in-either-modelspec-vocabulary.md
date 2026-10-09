@@ -451,8 +451,9 @@ when:
 
 The reviewer found none of the eleven files affected. The check covers the pinned
 files that exist, not any file written later, and not a contract in a repository
-other than the five named (the search for others used GitHub's code index, which sees
-default branches only).
+other than the five named (the reviewer's search for others, through GitHub's code
+search, returned hits only in the `datatug` organisation and none for four of the
+five repositories named, so it shows nothing about others).
 
 ### What does not change
 
