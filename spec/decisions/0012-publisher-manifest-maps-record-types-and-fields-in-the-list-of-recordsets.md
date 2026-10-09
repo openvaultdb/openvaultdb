@@ -369,16 +369,18 @@ decision.)
 >
 > Say so if you meant something else. I am starting the reader-side work now; nothing that publishes either format name lands before your next message.
 
-and again at 15:32 UTC, as the second of two points headed "Open with you:",
-exactly:
+and again at 15:32 UTC, as the second of two points headed "Open with you:". The
+first of the two points is about edits in two other repositories and is not part of
+this decision. The second, exactly:
 
 > 2. **My reading of "5 - ok"**: the names as listed, the core graph then the six dataset graphs, and `ovdb-manifest/draft-2`. A word from you that this is right lets the three pieces above land once reviewed.
 
 **On record, one more message before his reply**, 2026-10-09 at 15:38 UTC. The
-coordinating session reported another matter, said of this record "It lands only
-after you confirm my reading of "5 - ok".", and closed by naming the same two open
-points again, in the same order and without numbers: the other matter first, then
-"that reading".
+coordinating session reported on a matter outside this decision, the approval of
+decision 0011, said of this record "It lands only after you confirm my reading of
+"5 - ok".", and closed by naming the same two open points again, in the same order
+and without numbers: the first point, about the edits in the two other repositories,
+then "that reading".
 
 **The owner's words**, 2026-10-09 at 15:43 UTC, the second line of a two-line
 message. It follows the list of 15:32 UTC and the message of 15:38 UTC, and its
@@ -386,7 +388,8 @@ numbers are those of the list:
 
 > 2 - correct
 
-(Its first line answers the first point, which concerns another matter.)
+(Its first line answers the first point, the one about the edits in the two other
+repositories.)
 
 **Recorder's account of this question and these answers.**
 
@@ -561,13 +564,15 @@ them again from the code.
 | N35 | How much of this specification's prose about a ModelSpec "projection" is corrected alongside. | One file is named by the proposal; four more are the contract author's survey. None is corrected in the change that adds this record (see "Known and not done here"). | The contract's author for the list; the coordinating session for leaving it out of this change. |
 | N36 | What this record holds. | His whole answer on D5, all four parts, and the choices above under their makers' names. | The contract's author. |
 
-Six points the proposal leaves open are not taken up at all. None is due. They are
-given in the recorder's words, not the proposal's:
+Six more points are not taken up at all, and none is due. The first four are in the
+proposal's own list of what the mapping does not settle. The contract's author added
+the last two. Each is summarised by the recorder; the proposal is not quoted:
 
-- a reference to a key of several fields;
-- a shared mapping file for databases with the same unusual names;
-- keys of a column's map beyond `field` (N6 says what a reader does until then);
-- checking a manifest against the live database;
+- how a model refers to a record type whose key is made of more than one field;
+- a mapping written once for several databases whose tables are named alike;
+- any key of a column's map other than `field` (N6 says what a reader does until
+  then);
+- comparing a manifest with the database as it runs, and not only with files;
 - how a DataTug project reads this mapping, and DataTug as a later writer of
   manifests;
 - the bare string as a short form of a column (N5).
