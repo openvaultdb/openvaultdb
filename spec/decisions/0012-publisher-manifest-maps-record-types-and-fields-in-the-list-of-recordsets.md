@@ -565,11 +565,11 @@ them again from the code.
 | N36 | What this record holds. | His whole answer on D5, all four parts, and the choices above under their makers' names. | The contract's author. |
 
 Six more points are not taken up at all, and none is due. The first four are in the
-proposal's own list of what the mapping does not settle. The contract's author added
+proposal's own list of open points about the mapping. The contract's author added
 the last two. Each is summarised by the recorder; the proposal is not quoted:
 
 - how a model refers to a record type whose key is made of more than one field;
-- a mapping written once for several databases whose tables are named alike;
+- a mapping written once for several databases that share the same names;
 - any key of a column's map other than `field` (N6 says what a reader does until
   then);
 - comparing a manifest with the database as it runs, and not only with files;
