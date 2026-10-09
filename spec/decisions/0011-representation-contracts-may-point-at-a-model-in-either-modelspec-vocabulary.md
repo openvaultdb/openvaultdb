@@ -1,11 +1,11 @@
 ---
 format: https://specscore.md/decision-specification
-status: In Review
+status: Approved
 ---
 
 # Decision: Representation contracts may point at a model in either ModelSpec vocabulary
 
-**Status:** In Review
+**Status:** Approved
 **Date:** 2026-10-09
 **Owner:** alex
 **Tags:** representation-contract,modelspec,compatibility
@@ -160,8 +160,8 @@ record, not published). Its fourth line was:
 - The owner answered "amend" at 06:25 UTC having been told the false sentence. He
   was then told it was false and what changes, and asked again (below); he answered
   that "amend" still stands. The record was left In Review for the first answer's
-  sake, and stays In Review until he has approved this text (see "What he is asked to
-  approve").
+  sake, and stayed In Review until he approved this text (see "His approval of this
+  text").
 
 **On record, the question put to him again** (read from the session's stored record,
 not published, by the independent reviewer; the coordinating session confirms it).
@@ -508,11 +508,25 @@ Recorder's account, not the owner's. As to the specification, once the owner
 approves this text. In running software, only when and as each implementation
 changes, which this record does not do; see the consequences.
 
-### What he is asked to approve
+### His approval of this text
 
-Recorder's account. A "Yes" to either question, "1. Yes" or "2. Yes", is not
-approval of this text. The text is put to him separately, at a named commit, after
-independent review. Until then the status stays In Review.
+Recorder's account. A "Yes" to either question, "1. Yes" or "2. Yes", was not
+approval of this text. The text was put to him separately, at a named commit, after
+independent review, and the status stayed In Review until he answered.
+
+**On record, what was put to him** (the session's stored record, not published). On
+2026-10-09 the coordinating session's list of things waiting on him had, as its
+fourth line: "4. **Decision 0011's text**, on `main` of `openvaultdb/openvaultdb` at
+706b8c0: approve or say what to change." The commit is
+`706b8c0ae4eefc01b47be65c465961ead11d86e6`.
+
+**The owner's words**, 2026-10-09, in one message that answers that list by number:
+"4 - approved".
+
+Recorder's account. What he approved is this file as it stood at that commit. The
+commit that records his approval changes the status, this section, the one sentence
+of the Context that points to it, and adds the first entry under Observed
+Consequences; it changes nothing else in this file.
 
 ## Rationale
 
@@ -608,7 +622,10 @@ that day. It states what is true then and no more.
 
 ## Observed Consequences
 
-None observed yet.
+- 2026-10-09. `openvaultdb/ovdb` pull request #88, which this record cites as not
+  merged, was merged as `e2e959f1836cc456462cf10babfd7284010ecbc9` and released as
+  `ovdb` v0.43.0, the first release whose representation check reads a referenced
+  model in either vocabulary and applies the second rule.
 
 ## Affected Features
 
