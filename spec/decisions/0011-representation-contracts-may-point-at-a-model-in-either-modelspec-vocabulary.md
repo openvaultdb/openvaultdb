@@ -381,8 +381,9 @@ so does the Go reader in `ovdb` pull request #88 (not merged; the independent
 reviewer's run). The question he answered said "removed construct" and did not name
 them, so refusing them rests on ModelSpec's specification, not on his "2. Yes".
 
-**Recorder's note.** If he approves this text with the four keys in it, the four are
-then his.
+**Recorder's note.** This text has the check refuse all four keys: `collections` and
+`recordsets` on his "2. Yes", `projections` and `migrations` on ModelSpec's
+specification. An approval of this text is an approval of the text as a whole.
 
 The full question, with its example and reasons, was sent to him at 09:44 UTC. His
 reply at 11:58 UTC followed the list of 11:52 UTC, which carried only the one line.
@@ -495,10 +496,10 @@ are the recorder's.
 - A model that a contract entry pins can move to the current vocabulary under
   decision 0022 without a new contract format and without waiting for one.
 - Both vocabularies have to stay readable anyway, because older pins of older
-  model revisions stay valid for ever, with one exception, the second rule: a clean
-  file does, and a file with a key of the other vocabulary or a removed or reserved
-  top-level key is refused (decision 0018: "A commit that is pinned today keeps its
-  old spelling and stays readable").
+  model revisions stay valid for ever (decision 0018: "A commit that is pinned today
+  keeps its old spelling and stays readable"), with one exception, the second rule:
+  a clean file does, and a file with a key of the other vocabulary or a removed or
+  reserved top-level key is refused.
 - The second rule's reasons are the five listed in the question he answered "2. Yes"
   to (quoted in the Decision section); his reply gave none of his own.
 
