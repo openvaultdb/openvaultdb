@@ -415,15 +415,28 @@ point only: which model vocabularies a contract may point at"), and rests on his
 - Older pins of clean earlier-vocabulary files stay valid.
 
 **Evidence, the independent reviewer's check and not a guarantee.** The reviewer of
-`openvaultdb/ovdb` pull request #88 ([comment](https://github.com/openvaultdb/ovdb/pull/88#issuecomment-6077613935),
-at that pull request's head `684b0c04bb0577e1188fd3c17649ab415e48ddd4`) fetched, at
-its pinned commit and checked against its SHA-256, every model and source schema
-pinned by any revision of any contract file in the history of `ingitdb/geo-ingitdb`
-and `ingitdb/ror-ingitdb`, by the contract fixtures of `datatug/datatug-apps` and
-`demo-db/chinook`, and by the `ovdb` repository's own fixtures. The six real ones
-are `1.0-draft` with the top-level keys `entities`, `modelspec` and `module` only,
-and no `fields` or `record` at the two inner places; the reviewer found none
-affected. The check covers the files fetched, not any file written later.
+`openvaultdb/ovdb` pull request #88 listed every model and source schema pinned by
+any revision of any contract file in the history of `ingitdb/geo-ingitdb` and
+`ingitdb/ror-ingitdb`, by the contract fixtures of `datatug/datatug-apps` and
+`demo-db/chinook`, and by the `ovdb` repository's own fixtures. What was opened, and
+when:
+
+- The six real ones were fetched at their pinned commits and checked against their
+  SHA-256 ([first comment](https://github.com/openvaultdb/ovdb/pull/88#issuecomment-6077613935),
+  at that pull request's head `684b0c04bb0577e1188fd3c17649ab415e48ddd4`). They are
+  `1.0-draft` with the top-level keys `entities`, `modelspec` and `module` only, and
+  no `fields` or `record` at the two inner places.
+- Three more are synthetic models that fixtures of `datatug/datatug-apps` pin under
+  placeholder repository names. Their bytes are in the fixture directory, not at a
+  pinned commit, and the first comment had not opened them. The reviewer opened them
+  for the final review ([comment](https://github.com/openvaultdb/ovdb/pull/88#issuecomment-6081177581),
+  at head `64c47f4bd89cb1ead7416f540be03e9908bc5bbb`): each matches its pinned hash,
+  is `1.0-draft` and has no refused key.
+- One pin in `demo-db/chinook`'s fixture is a placeholder: no file with those bytes
+  exists anywhere.
+
+The reviewer found none affected. The check covers the pinned files that exist, not
+any file written later.
 
 ### What does not change
 
