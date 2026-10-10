@@ -1,11 +1,11 @@
 ---
 format: https://specscore.md/decision-specification
-status: In Review
+status: Approved
 ---
 
 # Decision: A publisher manifest maps record types and fields in its list of recordsets
 
-**Status:** In Review
+**Status:** Approved
 **Date:** 2026-10-09
 **Owner:** alex
 **Tags:** publisher-manifest,modelspec,mapping,format
@@ -637,10 +637,34 @@ the new form it refuses a manifest written in it (see the consequences).
 
 ### His approval of this text
 
-Recorder's account. None of his answers above is approval of this text: not "Q1 -
-approved." or the others of 8 October, and not "5 - ok" or "2 - correct". He has not
-been shown this file. Its status is In Review until he approves the text or says
-what to change.
+Recorder's account. None of his answers quoted above was approval of this text: not
+"Q1 - approved." or the others of 8 October, and not "5 - ok" or "2 - correct". The
+text was put to him separately, at a named commit, and the status stayed In Review
+until he answered.
+
+**On record, what was put to him** (the stored record of the coordinating session's
+conversation with him, not published). On 2026-10-10 at 04:14:26 UTC that session's
+message to him had a section "Needed from you" with three numbered items. The third
+read, exactly:
+
+> 3. **Four decision texts to approve:** MeaningGraph records 0002, 0001 and 0003 on `meaninggraph/core` `main`, and OpenVaultDB decision 0012 on `openvaultdb/openvaultdb` `main` at `385ca56`.
+
+**The owner's words**, 2026-10-10 at 05:30:31 UTC, the third line of one message of
+three lines that answers the three items by number (its other two lines answer items
+1 and 2, which are not part of this decision):
+
+> 3 all approved
+
+Recorder's account. What he approved is this file as it stood on `main` of
+`openvaultdb/openvaultdb` at commit `385ca56f3e8d69d4af6939c93bb0fdfa43fb52fa`, the
+tip of `main` when he answered. The file was last changed before that, by commit
+`6267d4aabbb3e6c28ad244c908c5163448bcef3f`. His answer approves this text as it
+stood there. It is not an answer to any question that the Recorder's notes list as
+not put to him, and it does not make a choice that they mark as not his ruling into
+his ruling. N17 says that this record does not give the approval it names, and his
+answer does not give it either. The commit that records his approval changes the
+status, replaces this section and changes this record's row in the index; it changes
+nothing else in this file.
 
 ## Rationale
 
