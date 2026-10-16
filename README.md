@@ -4,6 +4,12 @@ OpenVaultDB is a user-controlled private data vault and database layer for appli
 
 This repository is the public gravity point for OpenVaultDB specifications, architecture review, security model review, SpecScore reports, contributors, and project-level decisions. Implementation work lives in the implementation repositories.
 
+## Flagship ecosystem product
+
+The OpenVaultDB session-storage architecture for DataTug is under development; no shipped integration is implied.
+
+DataTug is the flagship ecosystem product. [Explore DataTug](https://datatug.app), and read [how we built its development tools](https://datatug.app/en/under-the-hood/tools-we-built/) for the open-source tools and standards behind it.
+
 ## Goals
 
 - Put user data ownership, permission boundaries, and auditability ahead of convenience.
