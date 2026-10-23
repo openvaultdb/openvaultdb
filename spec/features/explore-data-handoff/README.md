@@ -30,10 +30,10 @@ OVDB database at all. Promising a one-click experience that does not exist would
 
 | Capability | State | Evidence |
 |---|---|---|
-| DataTug CLI query | Read-only DTQL on **root** collections via `datatug query run --db openvaultdb://<descriptor.json>` | `datatug-cli` `pkg/openvaultdb/source.go`, `pkg/dbcopy/url.go`, `apps/datatugapp/commands/cmd_query.go` |
+| DataTug CLI query | Read-only TugQL on **root** collections via `datatug query run --db openvaultdb://<descriptor.json>` | `datatug-cli` `pkg/openvaultdb/source.go`, `pkg/dbcopy/url.go`, `apps/datatugapp/commands/cmd_query.go` |
 | Descriptor | Exactly `baseUrl`, `databaseId`, `tokenEnv`, `principalId`; token from `$<tokenEnv>` (non-empty), `$<tokenEnv>_BASE_URL` and `$<tokenEnv>_PRINCIPAL_ID` must match | `source.go` `OpenSource`, `client.go` `Target.Validate` |
 | Principal | `--as <principalId>` must equal the descriptor | `source.go` |
-| Nested collections (demo items) | Not reachable: OVDB DTQL accepts root collections only, and `datatug-cli`'s own `--from` also only builds a root-collection reference — a `/`-containing value is sent as one literal name and comes back `200 {"records":[]}`, indistinguishable from a genuinely empty collection | `openvaultdb-go` `validateDTQL`; `datatug-cli` `pkg/dbcopy/url.go` `NewRootCollectionRef`, `apps/datatugapp/commands/cmd_query.go` `buildQuery` (spike S4) |
+| Nested collections (demo items) | Not reachable: OVDB TugQL accepts root collections only, and `datatug-cli`'s own `--from` also only builds a root-collection reference — a `/`-containing value is sent as one literal name and comes back `200 {"records":[]}`, indistinguishable from a genuinely empty collection | `openvaultdb-go` `validateTugQL`; `datatug-cli` `pkg/dbcopy/url.go` `NewRootCollectionRef`, `apps/datatugapp/commands/cmd_query.go` `buildQuery` (spike S4) |
 | DataTug.app opening an OVDB database | **No route exists**; an earlier `pwa/repo/:repo/agent/:agentId` route was not merged as a competing convention | `datatug-apps` `nav-models.ts`, `datatug-app-routes.ts` |
 
 Local-mode OVDB requires authentication, so DataTug needs a real read-only token; spike S4 in
@@ -141,7 +141,7 @@ for 10 minutes)" instead of naming DataTug.app).
 | `openvaultdb-go` | Nested-collection queries so DataTug can show `/lists/to-buy/items` | Follow-up |
 | `openvaultdb/ovdb` | Read-only token creation against the local server (`ovdb token create`, specified in local server) | Proven in spike S4 |
 | `datatug-cli` | Reject a `--from` value containing `/` up front ("root collections only") instead of silently returning `{"records":[]}` | Follow-up (spike S4), filed against `datatug-cli` |
-| `datatug-cli` | Distinguish a revoked/expired token (plain server `401`) from a DTQL policy denial (`403` authorization envelope) instead of collapsing both to `Dalgo access denied.` | Follow-up (spike S4), `pkg/openvaultdb/source.go` |
+| `datatug-cli` | Distinguish a revoked/expired token (plain server `401`) from a TugQL policy denial (`403` authorization envelope) instead of collapsing both to `Dalgo access denied.` | Follow-up (spike S4), `pkg/openvaultdb/source.go` |
 | `datatug-apps` | A supported way to open an OVDB database following DataTug's store-id convention | Not started |
 | DataTug.app ↔ loopback | Browser rules for public-site-to-local requests (Chrome's local network access changes); re-verify before designing | Design needed |
 

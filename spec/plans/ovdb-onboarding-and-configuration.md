@@ -53,7 +53,7 @@ screens are therefore subsets, by design.
 | `server.New(version, dbs)` takes a fixed map; there is no exported Mount/Unmount; `core.Database.Close()` is a no-op, yet the SQLite mount holds a file handle | `pkg/server/server.go`, `pkg/core/core.go` | S1 upstream change, including a real Close |
 | `mount.Dir` fails on the first error; the inGitDB mount runs `ensureGitIdentity` and writes `<folder>/.ovdb/inferred-schema.json` | `pkg/mount/` | S1 upstream change |
 | `/authorize` and `/token` are public paths; `POST /authorize` mints a code with no owner check | `pkg/auth/middleware.go`, `pkg/server/connect.go` | Local mode returns 404 `not_supported` for both until increment 6 adds the session check |
-| `POST …/query` accepts `parent`; DTQL accepts root collections only; record writes return no body | `pkg/core/query.go`, `pkg/server/records.go` | `ovdb list` of demo items works; the CLI builds `{"key"}` |
+| `POST …/query` accepts `parent`; TugQL accepts root collections only; record writes return no body | `pkg/core/query.go`, `pkg/server/records.go` | `ovdb list` of demo items works; the CLI builds `{"key"}` |
 | `daemonlifecycle` has lock + `ProtectOwnerOnly`/`ValidateOwnerOnly` (exact 0700 on Unix), but no detach and no process start time | `cli-helpers` v0.12.0 | S2 upstream change; OVDB never chmods directories it did not create |
 | `skillsync.Sync` reconciles every bundle of one identity; `cobracmd.DefaultHarnesses` resolves harness dirs | `cli-helpers/skillsync` | S5 |
 | wb: `Setsid` / `DETACHED_PROCESS\|CREATE_NEW_PROCESS_GROUP` detach; embeds `hub/web/dist` with `.gitkeep`; its GoReleaser hook is `sh -c '…pnpm build'`, and it releases on the same `strongo/cicd` runner with no setup-node step | `sneat-dev/wb` | Lift the detach code (S2); copy the embed pattern and hook (S3 shrinks) |
@@ -653,7 +653,7 @@ checklist, verbatim, with how each item is verified:
 | Login item or OS service; no-terminal cold start | decision 0007; local-server Open Questions |
 | Web console stop/restart; record editing in TUI and web | parity E2, E5 |
 | `ovdb skills uninstall`, skill refresh after self-update, marketplace publication | ai-agent-skills Open Questions |
-| DataTug run-now, DataTug.app OVDB route, nested DTQL for demo items | explore-data-handoff |
+| DataTug run-now, DataTug.app OVDB route, nested TugQL for demo items | explore-data-handoff |
 | Guided connect for Firestore, MySQL and PostgreSQL; remote servers as contexts | database-setup Open Questions; decision 0008 |
 | Per-storage-folder lock; local HTTPS; log rotation | local-server; decision 0007 |
 | `ovdb demo reset`; list sharing in the TODO app | todo-demo Open Questions |
@@ -813,7 +813,7 @@ folded back into `explore-data-handoff`:
 | A fresh machine or agent has no `~/.datatug/policies`, so the plain `datatug query run` command the spec described would fail immediately with "No access policies loaded" before reaching OVDB | `REQ:prepare-datatug-cli-connection` requires the printed command to always include `--no-policies` |
 | The descriptor's `principalId`/`--as` match is a `datatug-cli`-side destination-binding convention checked entirely inside `datatug-cli`; OVDB accepts the token regardless of `--as` | `REQ:prepare-datatug-cli-connection` states OVDB does not validate a principal, so copy must not imply it does |
 | `datatug-cli`'s own `--from` also builds only a root-collection reference; a `/`-containing value silently returns `{"records":[]}` instead of an error, indistinguishable from a genuinely empty collection | The "What DataTug can do" table and External dependencies gain this as a `datatug-cli` follow-up (not an OVDB defect) |
-| A revoked or expired token and a genuine DTQL policy denial both surface from `datatug-cli` as the same bare `Dalgo access denied.`, with no way to tell them apart | Recorded as a `datatug-cli` follow-up in External dependencies |
+| A revoked or expired token and a genuine TugQL policy denial both surface from `datatug-cli` as the same bare `Dalgo access denied.`, with no way to tell them apart | Recorded as a `datatug-cli` follow-up in External dependencies |
 
 **Implementation amendments (2026-09-17, increment 7).** Findings from building and reviewing
 Explore data hand-off to DataTug (`ovdb` PR #20, review-inc-7.md, verdict LAND-AFTER-FIXES, all

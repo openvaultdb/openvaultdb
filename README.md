@@ -14,7 +14,7 @@ The session-storage architecture for [DataTug](https://datatug.app) is under dev
 - Define an implementation-independent vault, schema, permission, storage, and migration model before production code.
 - Support hostile or compromised applications, confused AI agents, leaked credentials, stale permission caches, and untrusted storage providers.
 - Make schema evolution explicit, reviewable, resumable, reversible where possible, and auditable.
-- Consume ModelSpec directly for logical application schemas, migration planning, backend mapping, GraphQL generation, DTQL typing metadata, DALGO metadata, and backend generators.
+- Consume ModelSpec directly for logical application schemas, migration planning, backend mapping, GraphQL generation, TugQL typing metadata, DALGO metadata, and backend generators.
 - Start with a conservative MVP using InGitDB/GitHub-backed storage first, SQLite second, and Firestore third. The MVP does not encrypt vault data; hoster/provider access recovery is implementation-specific.
 
 ## Architecture-First Development
