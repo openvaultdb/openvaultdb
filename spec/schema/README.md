@@ -7,7 +7,7 @@ Index OpenVaultDB schema and migration specifications.
 ## Key Concepts
 
 - Applications publish ModelSpec as the logical application schema.
-- OpenVaultDB loads current and target ModelSpec for validation, migration planning, backend mapping, GraphQL generation, DTQL typing metadata, DALGO metadata, and backend generators.
+- OpenVaultDB loads current and target ModelSpec for validation, migration planning, backend mapping, GraphQL generation, TugQL typing metadata, DALGO metadata, and backend generators.
 - Permissions, audit policy, encryption, and user approvals remain OpenVaultDB concerns, not ModelSpec concerns.
 - Migrations are plans, not hidden side effects.
 - Data, permission, index, encryption, and storage format changes are auditable.

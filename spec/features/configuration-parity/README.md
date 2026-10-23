@@ -101,7 +101,7 @@ of: `invalid_argument`, `confirmation_required`, `not_found`, `already_exists`,
 
 | Code | Local API HTTP status | `/v1` error codes mapped to it (human output) |
 |---|---|---|
-| `invalid_argument` | 400 | `bad_request`, `invalid_dtql`, `invalid_key` |
+| `invalid_argument` | 400 | `bad_request`, `invalid_tugql`, `invalid_key` |
 | `confirmation_required` | 400 | — |
 | `unauthorized` | 401 | HTTP 401, `invalid_grant` |
 | `forbidden` | 403 | `forbidden`, `access_denied` |

@@ -21,7 +21,7 @@ SpecScore or on any specific backend.
 - Applications MUST publish ModelSpec as the primary logical schema contract for OpenVaultDB.
 - The MVP ingestion path MUST accept a ModelSpec JSON AST serialization first while remaining compatible with HCL-authored ModelSpec modules.
 - OpenVaultDB MUST load the current ModelSpec and target ModelSpec before planning schema migrations.
-- OpenVaultDB MUST use ModelSpec for schema validation, migration planning, backend mapping, GraphQL schema generation, DTQL typing metadata, DALGO metadata, and backend generators.
+- OpenVaultDB MUST use ModelSpec for schema validation, migration planning, backend mapping, GraphQL schema generation, TugQL typing metadata, DALGO metadata, and backend generators.
 - The first backend generator SHOULD target a GitHub repository using InGitDB layout.
 - OpenVaultDB MUST keep backend choice under vault control.
 - OpenVaultDB MAY accept app-provided ModelSpec projection hints, but those hints MUST be advisory and non-authoritative.

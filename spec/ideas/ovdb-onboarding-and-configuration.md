@@ -105,7 +105,7 @@ each keep parity and the four canonical journeys passing.
   traffic.
 - Record editing, querying, or a schema or admin UI in the web console or TUI — read-only
   Browse data is in scope; apps and agents edit, DataTug owns querying.
-- Full DataTug integration (new DataTug.app routes, nested DTQL) — owned by other
+- Full DataTug integration (new DataTug.app routes, nested TugQL) — owned by other
   repositories; recorded as external dependencies.
 - A comprehensive storage skill covering tokens, ACLs and schemas — MVP teaches setup and
   the small verb set.
@@ -151,7 +151,7 @@ each keep parity and the four canonical journeys passing.
 - **Existing Features affected:** none directly. Sneat's `listus-local-demo` (in
   `sneat-co/ovdb`) shares the `ovdb demo` namespace.
 - **Dependencies:** decisions 0006–0010; `strongo/cli-helpers` (skillsync,
-  daemonlifecycle); `openvaultdb-go` (nested DTQL); `datatug-cli` and `datatug-apps`
+  daemonlifecycle); `openvaultdb-go` (nested TugQL); `datatug-cli` and `datatug-apps`
   (OVDB source routes).
 
 ## Review History
